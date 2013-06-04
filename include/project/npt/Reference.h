@@ -8,6 +8,7 @@
 #ifndef REFERENCE_H_
 #define REFERENCE_H_
 
+#include <inttypes.h>
 #include <iostream>
 
 using namespace std;

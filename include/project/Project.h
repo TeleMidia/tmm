@@ -17,8 +17,10 @@
 #include "timeline/Timeline.h"
 #include "Stc.h"
 
+#include <inttypes.h>
 #include <iostream>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include <string>
 #include <map>

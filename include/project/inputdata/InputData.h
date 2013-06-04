@@ -10,6 +10,8 @@
 
 #include "project/ProjectInfo.h"
 #include "InputRange.h"
+
+#include <inttypes.h>
 #include <iostream>
 #include <string>
 #include <vector>

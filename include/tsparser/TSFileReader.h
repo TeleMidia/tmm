@@ -8,6 +8,7 @@
 #ifndef TSFILEREADER_H_
 #define TSFILEREADER_H_
 
+#include <inttypes.h>
 #include <iostream>
 #include <cstdio>
 #include <cstring>

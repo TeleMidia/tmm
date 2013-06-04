@@ -15,6 +15,8 @@
 #include "tsparser/TSFileReader.h"
 #include "tsparser/Demuxer.h"
 #include "Stc.h"
+
+#include <inttypes.h>
 #include <iostream>
 #include <string>
 #include <map>

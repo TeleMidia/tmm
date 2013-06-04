@@ -8,6 +8,7 @@
 #ifndef PROJECTINFO_H_
 #define PROJECTINFO_H_
 
+#include <inttypes.h>
 #include <iostream>
 
 using namespace std;

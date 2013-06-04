@@ -5,7 +5,7 @@
  *      Author: Felippe Nagato
  */
 
-#include "tsparser/TSinfo.h"
+#include "tsparser/TSInfo.h"
 
 namespace br {
 namespace pucrio {
