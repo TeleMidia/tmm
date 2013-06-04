@@ -49,7 +49,8 @@ bool Project::mountCarousels() {
 			pcar = (PCarousel*) itProj->second;
 			pcar->setSectionEncapsulationMode(true);
 			pcar->setBlockSize(4066);
-			itoa(pcar->getServiceDomain(), number, 10);
+			snprintf(number, 11, "%d", pcar->getServiceDomain());
+
 			path = "./carousel/";
 			makeDir(path.c_str(), 0777);
 			path.insert(path.size(), number);
