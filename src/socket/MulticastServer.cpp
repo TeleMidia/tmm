@@ -12,6 +12,7 @@ MulticastServer::MulticastServer(const char* group, int portNumber) {
 	mAddr.sin_addr.s_addr = inet_addr(this->groupAddr);
 	mAddr.sin_port = htons(this->portNumber);
 
+	loopedBack = 0;
 	ttl = 16;
 }
 
@@ -21,6 +22,10 @@ MulticastServer::~MulticastServer() {
 
 void MulticastServer::setTTL(unsigned char t) {
 	ttl = t;
+}
+
+void MulticastServer::setLoopedBack(unsigned char lb) {
+	loopedBack = lb;
 }
 
 bool MulticastServer::createSocket() {
@@ -93,9 +98,8 @@ bool MulticastServer::tryToBind() {
 }
 
 bool MulticastServer::setSocketOptions() {
-	int opt = 0;
 	int ret = setsockopt(sockDescriptor, IPPROTO_IP, IP_MULTICAST_LOOP,
-						(char*)&opt, sizeof(int));
+						(char*)&loopedBack, sizeof(loopedBack));
 
 	if (ret < 0) {
 		perror("Multicast::setSocketOptions loop");

@@ -15,6 +15,7 @@ namespace tool {
 		private:
 			char* groupAddr;
 			struct sockaddr_in mAddr;
+			unsigned char loopedBack;
 			bool tryToBind();
 			bool setSocketOptions();
 
@@ -25,6 +26,7 @@ namespace tool {
 			bool createSocket();
 			int send(char* buff, unsigned int size);
 			void setTTL(unsigned char t);
+			void setLoopedBack(unsigned char lb);
 	};
 }
 }

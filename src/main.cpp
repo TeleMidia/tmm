@@ -57,8 +57,9 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 
-	if ((strcmp(project_file, "-info") == 0) && ts_output) {
+	if ((strcmp(project_file, "--info") == 0) && ts_output) {
 		readTSInfo(ts_output);
+		return 0;
 	}
 
 	if ((strcmp(project_file, "-h") == 0) || (strcmp(project_file, "--help") == 0)) {

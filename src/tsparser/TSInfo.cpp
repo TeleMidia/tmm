@@ -340,13 +340,16 @@ void TSInfo::printTable() {
 				if (j->first != 0) {
 					k = esList->begin();
 					while (k != esList->end()) {
+						cout << k->first << ",";
 						if (isVideoStreamType(k->second)) {
-							cout << k->first << " - ";
-							cout << "Video" << endl;
+							cout << "Video";
 						} else if (isAudioStreamType(k->second)) {
-							cout << k->first << " - ";
-							cout << "Audio" << endl;
+							cout << "Audio";
+						} else {
+							cout << "Unrecognized";
 						}
+						cout << "," <<
+								pmt->getStreamTypeName(k->second) << endl;
 						++k;
 					}
 				}

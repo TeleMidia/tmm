@@ -56,6 +56,15 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		bool getDaylightSavingTime();
 		void setOffset(int os);
 		void setCountryCode(string country);
+		time_t nextTimeChange(time_t dateTime, char *dst);
+
+		static char dayOfWeek(time_t date);
+		static time_t makeUtcDate(unsigned short yy, unsigned short mo,
+								  unsigned short dd);
+		static time_t easterSunday(unsigned short wYear);
+		static time_t carnivalSunday(unsigned short year);
+		static time_t daylightStart(unsigned short year);
+		static time_t daylightEnd(unsigned short year);
 
 		int encodeSections(int64_t stc, vector<PrivateSection*>* list);
 

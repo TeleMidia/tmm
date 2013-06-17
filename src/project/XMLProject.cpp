@@ -485,7 +485,7 @@ int XMLProject::readFile() {//TODO: make the order of the document's elements in
 						tsid = 1;
 					}
 					if (e->QueryAttribute("vbv", &num) == XML_NO_ERROR) {
-						vbvBuffer = num;
+						vbvBuffer = (double) num / 1000;
 					} else {
 						vbvBuffer = 1.0;
 					}
