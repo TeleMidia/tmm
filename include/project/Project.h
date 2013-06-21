@@ -13,6 +13,7 @@
 #include "carousel/PCarousel.h"
 #include "si/PAit.h"
 #include "si/PTot.h"
+#include "si/PSdt.h"
 #include "si/PMTView.h"
 #include "timeline/Timeline.h"
 #include "Stc.h"

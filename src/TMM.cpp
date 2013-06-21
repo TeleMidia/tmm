@@ -17,7 +17,9 @@ TMM::TMM() {
 	muxer = NULL;
 	patStream = NULL;
 	totStream = NULL;
+	sdtStream = NULL;
 	patVersion = 0;
+	sdtVersion = 0;
 	destination = "";
 	lastStcPrinter = 0;
 }
@@ -27,6 +29,8 @@ TMM::TMM(Project* project) {
 	muxer = NULL;
 	patStream = NULL;
 	totStream = NULL;
+	sdtStream = NULL;
+	useSdt = false;
 	patVersion = 0;
 	destination = "";
 	lastStcPrinter = 0;
@@ -36,6 +40,7 @@ TMM::~TMM() {
 	if (muxer) delete muxer;
 	if (patStream) delete patStream;
 	if (totStream) delete totStream;
+	if (sdtStream) delete sdtStream;
 }
 
 void TMM::setProject(Project* project) {
@@ -131,7 +136,6 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		if (TSInfo::isAudioStreamType(indata->getStreamType())) {
 			pes->setPreponeTicks(Stc::secondToStc(PREPONETICKS_AUDIO + bufOffset));
 			pes->setIsVideoStream(false);
-			//TODO: find a way to synchronize audio and video automatically
 		} else if (TSInfo::isVideoStreamType(indata->getStreamType())) {
 			pes->setPreponeTicks(Stc::secondToStc(PREPONETICKS_VIDEO + bufOffset));
 			pes->setHasDts(indata->getHasDts());
@@ -395,6 +399,30 @@ void TMM::processPcrsInUse() {
 	tempPcrsInUse.clear();
 }
 
+int TMM::updateSdt(vector<pmtViewInfo*>* newTimeline, Sdt** sdt) {
+	vector<pmtViewInfo*>::iterator itPmt;
+
+	if ((*sdt) == NULL) return -1;
+	(*sdt)->releaseAllServiceInformation();
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		ServiceInformation* si = new ServiceInformation();
+		Service* service = new Service();
+		service->setServiceName((*itPmt)->pv->getServiceName());
+		service->setProviderName(project->getProviderName());
+		si->eitPresentFollowingFlag = false;
+		si->eitScheduleFlag = false;
+		si->freeCaMode = 0;
+		si->runningStatus = 4; //Running
+		si->serviceId = (*itPmt)->pv->getProgramNumber();
+		si->descriptorList.push_back(service);
+		(*sdt)->addServiceInformation(si);
+		++itPmt;
+	}
+
+	return 0;
+}
+
 int TMM::createPmt(PMTView* pmtView, Pmt** pmt) {
 	map<unsigned short, ProjectInfo*>* pi;
 	map<unsigned short, ProjectInfo*>::iterator itPi;
@@ -475,6 +503,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 					(*itPmt)->pv->getPid());
 		ret = createPmt((*itPmt)->pv, &pmt);
 		if (ret < 0) return -1;
+		if ((*itPmt)->pv->getServiceName() != "Unnamed service") useSdt = true;
 		sec = new SectionStream();
 		pmt->updateStream();
 		sec->addSection(pmt);
@@ -508,6 +537,29 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 
 	//Time Offset Table ends
 
+	//Service Descriptor Table begins
+	if (useSdt) {
+		Sdt* sdt = new Sdt();
+		sdt->setCurrentNextIndicator(1);
+		sdt->setVersionNumber(++sdtVersion);
+		sdt->setOriginalNetworkId(0x233A); //TODO: define this number
+		sdt->setTableIdExtension(project->getTsid());
+		ret = updateSdt(newTimeline, &sdt);
+		if (ret < 0) {
+			if (sdt) delete sdt;
+			return -2;
+		}
+		if (sdtStream) delete sdtStream;
+		sdtStream = new SectionStream();
+		sdt->updateStream();
+		sdtStream->addSection(sdt);
+		sdtStream->fillBuffer();
+		sdtStream->setFrequency(Stc::secondToStc(1.0));
+		sdtStream->initiateNextSend(muxer->getCurrentStc());
+		muxer->addElementaryStream(0x11, sdtStream);
+	}
+	//Service Descriptor Table ends
+
 	return 0;
 }
 
@@ -519,6 +571,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 	Pat* pat = NULL;
 	Pmt* pmt = NULL;
 	bool found = false;
+	bool sdtChanged = false;
 	int ret;
 
 	//PAT
@@ -541,7 +594,6 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 		pat = new Pat();
 		pat->setCurrentNextIndicator(1);
 		pat->setVersionNumber(++patVersion);
-		pat->setSectionSyntaxIndicator(1);
 		pat->setTableIdExtension(project->getTsid());
 		itPmtNew = newTimeline->begin();
 		while (itPmtNew != newTimeline->end()) {
@@ -555,6 +607,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 		patStream->addSection(pat);
 		patStream->fillBuffer();
 		muxer->addElementaryStream(0x00, patStream);
+		sdtChanged = true;
 	} else {
 		//add the previous one
 		muxer->addElementaryStream(0x00, patStream);
@@ -624,6 +677,26 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 		++itPmtNew;
 		found = false;
 	}
+
+	//Service Descriptor Table begins
+	if (sdtStream && sdtChanged) {
+		Sdt* sdt = new Sdt();
+		sdt->setCurrentNextIndicator(1);
+		sdt->setVersionNumber(++sdtVersion);
+		sdt->setOriginalNetworkId(0x233A); //TODO: define this number
+		sdt->setTableIdExtension(project->getTsid());
+		ret = updateSdt(newTimeline, &sdt);
+		if (ret < 0) {
+			if (sdt) delete sdt;
+			return -2;
+		}
+		sdtStream->releaseSectionList();
+		sdt->updateStream();
+		sdtStream->addSection(sdt);
+		sdtStream->fillBuffer();
+		muxer->addElementaryStream(0x11, sdtStream);
+	}
+	//Service Descriptor Table ends
 
 	//Time Offset Table
 

@@ -40,7 +40,10 @@ class TMM {
 		map<unsigned short, unsigned short> tempPcrsInUse;
 		SectionStream* patStream;
 		SectionStream* totStream;
+		SectionStream* sdtStream;
+		bool useSdt;
 		unsigned char patVersion;
+		unsigned char sdtVersion;
 		unsigned int lastStcPrinter;
 
 		ProjectInfo* getFirstProject(char projectType);
@@ -51,6 +54,7 @@ class TMM {
 							  vector<pmtViewInfo*>* newTimeline);
 
 		void processPcrsInUse();
+		int updateSdt(vector<pmtViewInfo*>* newTimeline, Sdt** sdt);
 		int createPmt(PMTView* pmtView, Pmt** pmt);
 		int createSiTables(vector<pmtViewInfo*>* newTimeline);
 		int restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
