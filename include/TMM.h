@@ -32,29 +32,33 @@ class TMM {
 	#define PREPONETICKS_VIDEO 1.00
 
 	private:
+		void init();
 
 	protected:
 		Project *project;
 		Muxer* muxer;
 		string destination;
-		map<unsigned short, unsigned short> tempPcrsInUse;
 		SectionStream* patStream;
 		SectionStream* totStream;
 		SectionStream* sdtStream;
+		SectionStream* nitStream;
 		bool useSdt;
+		bool useNit;
 		unsigned char patVersion;
 		unsigned char sdtVersion;
+		unsigned char nitVersion;
 		unsigned int lastStcPrinter;
 
 		ProjectInfo* getFirstProject(char projectType);
 		ProjectInfo* getFirstProjectReversed(char projectType);
 		bool loadProject();
-		Stream *createStream(ProjectInfo* proj);
+		Stream *createStream(ProjectInfo* proj, unsigned char version);
 		bool createStreamList(vector<pmtViewInfo*>* currentTimeline,
 							  vector<pmtViewInfo*>* newTimeline);
 
-		void processPcrsInUse();
+		void processPcrsInUse(vector<pmtViewInfo*>* newTimeline);
 		int updateSdt(vector<pmtViewInfo*>* newTimeline, Sdt** sdt);
+		int updateNit(vector<pmtViewInfo*>* newTimeline, Nit** nit);
 		int createPmt(PMTView* pmtView, Pmt** pmt);
 		int createSiTables(vector<pmtViewInfo*>* newTimeline);
 		int restoreSiTables(vector<pmtViewInfo*>* currentTimeline,

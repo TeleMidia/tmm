@@ -46,9 +46,11 @@ XMLProject::~XMLProject() {
 }
 
 string XMLProject::getAttribute(XMLElement* e, string name) {
-	string str;
-	const char *s = e->Attribute(name.c_str());
-	if (s) str.assign(s);
+	string str = "";
+	if (e) {
+		const char *s = e->Attribute(name.c_str());
+		if (s) str.assign(s);
+	}
 	return str;
 }
 
@@ -81,7 +83,7 @@ int XMLProject::getId(string id) {
 	}
 }
 
-int XMLProject::readFile() {//TODO: make the order of the document's elements independent.
+int XMLProject::readFile() {
 	enum XMLError err;
 	bool hasInput = false;
 	ProjectInfo* proj;
@@ -93,7 +95,7 @@ int XMLProject::readFile() {//TODO: make the order of the document's elements in
 	}
 
 	XMLNode *n, *m, *o, *p;
-	XMLElement *top, *e, *f, *g, *h;
+	XMLElement *top, *e, *f, *g = NULL, *h;
 	string value, value1, value2;
 	int num, id;
 
@@ -498,7 +500,62 @@ int XMLProject::readFile() {//TODO: make the order of the document's elements in
 					if (value1.size()) {
 						providerName = value1;
 					} else {
-						providerName.assign("Unnamed network");
+						providerName.assign("Unnamed provider");
+					}
+					if (e->QueryAttribute("originalnetworkid", &num) == XML_NO_ERROR) {
+						originalNetworkId = num;
+					} else {
+						originalNetworkId = tsid;
+					}
+					value1 = getAttribute(e, "tsname");
+					if (value1.size()) {
+						tsName = value1;
+					} else {
+						tsName.assign(providerName);
+					}
+					if (e->QueryAttribute("broadcastfrequency", &num) == XML_NO_ERROR) {
+						broadcastFrequency = num;
+					} else {
+						broadcastFrequency = 395;
+					}
+					if (e->QueryAttribute("virtualchannel", &num) == XML_NO_ERROR) {
+						virtualChannel = num;
+					} else {
+						virtualChannel = 1;
+					}
+					guardInterval = GUARD_INTERVAL_1_16;
+					value1 = getAttribute(g, "guardinterval");
+					if (value1.size()) {
+						if (value1 == "1/32") {
+							guardInterval = GUARD_INTERVAL_1_32;
+						} else if (value1 == "1/16") {
+							guardInterval = GUARD_INTERVAL_1_16;
+						} else if (value1 == "1/8") {
+							guardInterval = GUARD_INTERVAL_1_8;
+						} else if (value1 == "1/4") {
+							guardInterval = GUARD_INTERVAL_1_4;
+						} else {
+							cout << "output: 'guardinterval' not recognized ("
+								 << value1 << ")" << endl;
+							return -6;
+						}
+					}
+					transmissionMode = TRANSMISSION_MODE_3;
+					value1 = getAttribute(g, "transmissionmode");
+					if (value1.size()) {
+						if (value1 == "1") {
+							transmissionMode = TRANSMISSION_MODE_1;
+						} else if (value1 == "2") {
+							transmissionMode = TRANSMISSION_MODE_2;
+						} else if (value1 == "3") {
+							transmissionMode = TRANSMISSION_MODE_3;
+						} else if (value1 == "undefined") {
+							transmissionMode = TRANSMISSION_MODE_UNDEFINED;
+						} else {
+							cout << "output: 'transmissionmode' not recognized ("
+								 << value1 << ")" << endl;
+							return -6;
+						}
 					}
 					value1 = getAttribute(e, "usesystime");
 					if (value1.size()) {

@@ -14,26 +14,12 @@ namespace tool {
 
 TMM::TMM() {
 	project = NULL;
-	muxer = NULL;
-	patStream = NULL;
-	totStream = NULL;
-	sdtStream = NULL;
-	patVersion = 0;
-	sdtVersion = 0;
-	destination = "";
-	lastStcPrinter = 0;
+	init();
 }
 
 TMM::TMM(Project* project) {
 	this->project = project;
-	muxer = NULL;
-	patStream = NULL;
-	totStream = NULL;
-	sdtStream = NULL;
-	useSdt = false;
-	patVersion = 0;
-	destination = "";
-	lastStcPrinter = 0;
+	init();
 }
 
 TMM::~TMM() {
@@ -41,6 +27,22 @@ TMM::~TMM() {
 	if (patStream) delete patStream;
 	if (totStream) delete totStream;
 	if (sdtStream) delete sdtStream;
+	if (nitStream) delete nitStream;
+}
+
+void TMM::init() {
+	muxer = NULL;
+	patStream = NULL;
+	totStream = NULL;
+	sdtStream = NULL;
+	nitStream = NULL;
+	useSdt = false;
+	useNit = false;
+	patVersion = 0;
+	sdtVersion = 0;
+	nitVersion = 0;
+	destination = "";
+	lastStcPrinter = 0;
 }
 
 void TMM::setProject(Project* project) {
@@ -97,7 +99,7 @@ bool TMM::loadProject() {
 	return true;
 }
 
-Stream* TMM::createStream(ProjectInfo* proj) {
+Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 	PESStream* pes;
 	SectionStream* sec;
 	InputData* indata;
@@ -166,6 +168,7 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		return sec;
 	case PT_AIT:
 		aitProj = (PAit*) proj;
+		aitProj->setVersionNumber(version);
 		sec = new SectionStream();
 		aitProj->updateStream();
 		sec->addSection(aitProj);
@@ -235,12 +238,22 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 								}
 								break;
 							}
+							if ((itProjNew->second->getProjectType() == PT_AIT) &&
+								(itProjCurr->second->getProjectType() == PT_AIT) &&
+								(!canReuse)) {
+								if ((*itPmtNew)->pv->getProjectPid(itProjNew->second) ==
+									((PMTView*)proj)->getProjectPid(itProjCurr->second)) {
+									//AIT version must be updated.
+									itProjCurr->second->setVersion(itProjCurr->second->getVersion() + 1);
+									itProjNew->second->setVersion(itProjCurr->second->getVersion());
+								}
+							}
 							++itProjCurr;
 						}
 					}
 					if (!canReuse) {
 						//Create a new ES for the current timeline
-						stream = createStream(itProjNew->second);
+						stream = createStream(itProjNew->second, itProjNew->second->getVersion());
 						if (stream) {
 							(*itPmtNew)->pv->addStream(itProjNew->first, stream);
 						} else {
@@ -256,7 +269,7 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 			//Create a new ES for the current timeline
 			itProjNew = (*itPmtNew)->pv->getProjectInfoList()->begin();
 			while (itProjNew != (*itPmtNew)->pv->getProjectInfoList()->end()) {
-				stream = createStream(itProjNew->second);
+				stream = createStream(itProjNew->second, itProjNew->second->getVersion());
 				if (stream) {
 					(*itPmtNew)->pv->addStream(itProjNew->first, stream);
 				} else {
@@ -325,10 +338,8 @@ int TMM::multiplex() {
 			//begin to switch elementary streams
 			createStreamList(currTimeline, newTimeline);
 			muxer->removeAllElementaryStreams();
-			tempPcrsInUse.clear();
 			itPmt = newTimeline->begin();
 			while (itPmt != newTimeline->end()) {
-				tempPcrsInUse[(*itPmt)->pv->getPcrPid()] = (*itPmt)->pv->getPcrFrequency();
 				itStream = (*itPmt)->pv->getStreamList()->begin();
 				while (itStream != (*itPmt)->pv->getStreamList()->end()) {
 					muxer->addElementaryStream(itStream->first, itStream->second);
@@ -336,7 +347,7 @@ int TMM::multiplex() {
 				}
 				++itPmt;
 			}
-			processPcrsInUse();
+			processPcrsInUse(newTimeline);
 			//end of switch elementary streams
 
 			if (currTimeline) {
@@ -368,35 +379,33 @@ int TMM::multiplex() {
 	return ret;
 }
 
-void TMM::processPcrsInUse() {
+void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 	map<unsigned short, unsigned short>::iterator itPcrsInMuxer;
-	map<unsigned short, unsigned short>::iterator itPcrs;
+	vector<pmtViewInfo*>::iterator itPmt;
 
 	itPcrsInMuxer = muxer->getPcrList()->begin();
 	while (itPcrsInMuxer != muxer->getPcrList()->end()) {
 		bool found = false;
-		itPcrs = tempPcrsInUse.begin();
-		while (itPcrs != tempPcrsInUse.end()) {
-			if (itPcrs->first == itPcrsInMuxer->first) {
-				tempPcrsInUse.erase(itPcrs);
+		itPmt = newTimeline->begin();
+		while (itPmt != newTimeline->end()) {
+			if ((*itPmt)->pv->getPcrPid() == itPcrsInMuxer->first) {
 				found = true;
 				break;
 			}
-			++itPcrs;
+			++itPmt;
 		}
 		if (!found) {
-			muxer->getPcrList()->erase(itPcrsInMuxer);
-			muxer->getPcrList()->begin();
+			muxer->removePcrPid(itPcrsInMuxer->first);
+			itPcrsInMuxer = muxer->getPcrList()->begin();
 			continue;
 		}
 		++itPcrsInMuxer;
 	}
-	itPcrs = tempPcrsInUse.begin();
-	while (itPcrs != tempPcrsInUse.end()) {
-		muxer->addPcrPid(itPcrs->first, itPcrs->second);
-		++itPcrs;
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		muxer->addPcrPid((*itPmt)->pv->getPcrPid(), (*itPmt)->pv->getPcrFrequency());
+		++itPmt;
 	}
-	tempPcrsInUse.clear();
 }
 
 int TMM::updateSdt(vector<pmtViewInfo*>* newTimeline, Sdt** sdt) {
@@ -404,6 +413,9 @@ int TMM::updateSdt(vector<pmtViewInfo*>* newTimeline, Sdt** sdt) {
 
 	if ((*sdt) == NULL) return -1;
 	(*sdt)->releaseAllServiceInformation();
+	(*sdt)->setCurrentNextIndicator(1);
+	(*sdt)->setOriginalNetworkId(project->getOriginalNetworkId());
+	(*sdt)->setTableIdExtension(project->getTsid());
 	itPmt = newTimeline->begin();
 	while (itPmt != newTimeline->end()) {
 		ServiceInformation* si = new ServiceInformation();
@@ -419,6 +431,66 @@ int TMM::updateSdt(vector<pmtViewInfo*>* newTimeline, Sdt** sdt) {
 		(*sdt)->addServiceInformation(si);
 		++itPmt;
 	}
+
+	return 0;
+}
+
+int TMM::updateNit(vector<pmtViewInfo*>* newTimeline, Nit** nit) {
+	vector<pmtViewInfo*>::iterator itPmt;
+	unsigned int serviceId = 65536;
+
+	if ((*nit) == NULL) return -1;
+
+	(*nit)->releaseAllDescriptors();
+	(*nit)->releaseAllTransportInformation();
+	(*nit)->setCurrentNextIndicator(1);
+	(*nit)->setTableIdExtension(project->getOriginalNetworkId());
+	(*nit)->setTransportStreamId(project->getTsid());
+	NetworkName* netName = new NetworkName();
+	netName->setNetworkName(project->getProviderName());
+	(*nit)->addDescriptor(netName);
+	SystemManagement* sysMan = new SystemManagement();
+	(*nit)->addDescriptor(sysMan);
+	TransportInformation* ti = new TransportInformation();
+	ti->transportStreamId = project->getTsid();
+	ti->originalNetworkId = (*nit)->getTableIdExtension();
+	ServiceList* sl = new ServiceList();
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		sl->addService((*itPmt)->pv->getProgramNumber(), DIGITAL_TELEVISION_SERVICE);
+		++itPmt;
+	}
+	ti->descriptorList.push_back(sl);
+	TerrestrialDeliverySystem* tds = new TerrestrialDeliverySystem();
+	tds->setGuardInterval(project->getGuardInterval());
+	tds->setTransmissionMode(project->getTransmissionMode());
+	tds->addFrequency(project->getBroadcastFrequency());
+	ti->descriptorList.push_back(tds);
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		if ((*itPmt)->pv->getProgramNumber() < serviceId) {
+			serviceId = (*itPmt)->pv->getProgramNumber();
+		}
+		++itPmt;
+	}
+	if (serviceId != 65536) {
+		PartialReception* pr = new PartialReception();
+		pr->addServiceId(serviceId);
+		ti->descriptorList.push_back(pr);
+	}
+	TSInformation* tsinfo = new TSInformation();
+	tsinfo->setRemoteControlKeyId(project->getVirtualChannel());
+	tsinfo->setTsName(project->getTsName());
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		TransmissionType* tt = new TransmissionType();
+		tt->transmissionTypeInfo = 0x0F; // ???
+		tt->serviceIdList.insert((*itPmt)->pv->getProgramNumber());
+		tsinfo->addTransmissionTypeList(tt);
+		++itPmt;
+	}
+	ti->descriptorList.push_back(tsinfo);
+	(*nit)->addTransportInformation(ti);
 
 	return 0;
 }
@@ -490,6 +562,8 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	vector<pmtViewInfo*>::iterator itPmt;
 	int ret;
 
+	if (project->getProviderName() != "Unnamed provider") useNit = true;
+
 	//Program Association Table & Program Map Table begin
 	if (pat) delete pat;
 	pat = new Pat();
@@ -497,6 +571,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	pat->setVersionNumber(0);
 	pat->setSectionSyntaxIndicator(1);
 	pat->setTableIdExtension(project->getTsid());
+	if (useNit) pat->addPmt(0, 0x10);
 	itPmt = newTimeline->begin();
 	while (itPmt != newTimeline->end()) {
 		pat->addPmt((*itPmt)->pv->getProgramNumber(),
@@ -531,7 +606,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 
 	proj = getFirstProject(PT_TOT);
 	if (proj) {
-		totStream = (SectionStream*) createStream(proj);
+		totStream = (SectionStream*) createStream(proj, proj->getVersion());
 		muxer->addElementaryStream(0x14, totStream);
 	}
 
@@ -540,10 +615,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	//Service Descriptor Table begins
 	if (useSdt) {
 		Sdt* sdt = new Sdt();
-		sdt->setCurrentNextIndicator(1);
 		sdt->setVersionNumber(++sdtVersion);
-		sdt->setOriginalNetworkId(0x233A); //TODO: define this number
-		sdt->setTableIdExtension(project->getTsid());
 		ret = updateSdt(newTimeline, &sdt);
 		if (ret < 0) {
 			if (sdt) delete sdt;
@@ -560,6 +632,22 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	}
 	//Service Descriptor Table ends
 
+
+	//Network Information Table begins
+	if (useNit) {
+		Nit* nit = new Nit();
+		updateNit(newTimeline, &nit);
+		if (nitStream) delete nitStream;
+		nitStream = new SectionStream();
+		nit->updateStream();
+		nitStream->addSection(nit);
+		nitStream->fillBuffer();
+		nitStream->setFrequency(Stc::secondToStc(1.0));
+		nitStream->initiateNextSend(muxer->getCurrentStc());
+		muxer->addElementaryStream(0x10, nitStream);
+	}
+	//Network Information Table ends
+
 	return 0;
 }
 
@@ -571,7 +659,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 	Pat* pat = NULL;
 	Pmt* pmt = NULL;
 	bool found = false;
-	bool sdtChanged = false;
+	bool patChanged = false;
 	int ret;
 
 	//PAT
@@ -607,7 +695,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 		patStream->addSection(pat);
 		patStream->fillBuffer();
 		muxer->addElementaryStream(0x00, patStream);
-		sdtChanged = true;
+		patChanged = true;
 	} else {
 		//add the previous one
 		muxer->addElementaryStream(0x00, patStream);
@@ -679,24 +767,44 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 	}
 
 	//Service Descriptor Table begins
-	if (sdtStream && sdtChanged) {
-		Sdt* sdt = new Sdt();
-		sdt->setCurrentNextIndicator(1);
-		sdt->setVersionNumber(++sdtVersion);
-		sdt->setOriginalNetworkId(0x233A); //TODO: define this number
-		sdt->setTableIdExtension(project->getTsid());
-		ret = updateSdt(newTimeline, &sdt);
-		if (ret < 0) {
-			if (sdt) delete sdt;
-			return -2;
+	if (sdtStream) {
+		if (patChanged) {
+			Sdt* sdt = new Sdt();
+			sdt->setVersionNumber(++sdtVersion);
+			ret = updateSdt(newTimeline, &sdt);
+			if (ret < 0) {
+				if (sdt) delete sdt;
+				return -2;
+			}
+			sdtStream->releaseSectionList();
+			sdtStream->releaseBufferList();
+			sdt->updateStream();
+			sdtStream->addSection(sdt);
+			sdtStream->fillBuffer();
 		}
-		sdtStream->releaseSectionList();
-		sdt->updateStream();
-		sdtStream->addSection(sdt);
-		sdtStream->fillBuffer();
 		muxer->addElementaryStream(0x11, sdtStream);
 	}
 	//Service Descriptor Table ends
+
+	//Network Information Table begins
+	if (nitStream) {
+		if (patChanged) {
+			Nit* nit = new Nit();
+			nit->setVersionNumber(++nitVersion);
+			ret = updateNit(newTimeline, &nit);
+			if (ret < 0) {
+				if (nit) delete nit;
+				return -2;
+			}
+			nitStream->releaseSectionList();
+			nitStream->releaseBufferList();
+			nit->updateStream();
+			nitStream->addSection(nit);
+			nitStream->fillBuffer();
+		}
+		muxer->addElementaryStream(0x10, nitStream);
+	}
+	//Network Information Table ends
 
 	//Time Offset Table
 

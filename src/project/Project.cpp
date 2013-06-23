@@ -184,6 +184,30 @@ unsigned char Project::getTTL() {
 	return ttl;
 }
 
+unsigned short Project::getOriginalNetworkId() {
+	return originalNetworkId;
+}
+
+string Project::getTsName() {
+	return tsName;
+}
+
+unsigned short Project::getBroadcastFrequency() {
+	return broadcastFrequency;
+}
+
+unsigned char Project::getVirtualChannel() {
+	return virtualChannel;
+}
+
+unsigned char Project::getGuardInterval() {
+	return guardInterval;
+}
+
+unsigned char Project::getTransmissionMode() {
+	return transmissionMode;
+}
+
 ProjectInfo* Project::findProject(int id) {
 	map<int, ProjectInfo*>::iterator itProj;
 

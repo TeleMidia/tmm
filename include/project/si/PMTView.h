@@ -59,6 +59,7 @@ class PMTView : public ProjectInfo {
 		bool deleteAllStreams();
 		map<unsigned short, ProjectInfo*>* getProjectInfoList();
 		map<unsigned short, Stream*>* getStreamList();
+		int getProjectPid(ProjectInfo* proj);
 
 };
 

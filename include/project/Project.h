@@ -14,6 +14,7 @@
 #include "si/PAit.h"
 #include "si/PTot.h"
 #include "si/PSdt.h"
+#include "si/PNit.h"
 #include "si/PMTView.h"
 #include "timeline/Timeline.h"
 #include "Stc.h"
@@ -54,8 +55,15 @@ class Project {
 		double vbvBuffer;
 		unsigned char ttl;
 
+		unsigned short originalNetworkId;
+		string tsName;
+		unsigned short broadcastFrequency;
+		unsigned char virtualChannel;
+		unsigned char guardInterval;
+		unsigned char transmissionMode;
+
 		map<int, ProjectInfo*>* projectList;
-		//TODO: NIT, SDT, EIT, CAT
+		//TODO: EIT, CAT
 
 	public:
 		Project();
@@ -85,6 +93,12 @@ class Project {
 		double getVbvBuffer();
 		bool getIsLoop();
 		unsigned char getTTL();
+		unsigned short getOriginalNetworkId();
+		string getTsName();
+		unsigned short getBroadcastFrequency();
+		unsigned char getVirtualChannel();
+		unsigned char getGuardInterval();
+		unsigned char getTransmissionMode();
 
 		virtual int readFile()=0;
 

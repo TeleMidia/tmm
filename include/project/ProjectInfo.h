@@ -30,6 +30,7 @@ class ProjectInfo {
 	#define PT_PMTVIEW 0x07
 	#define PT_TIMELINE 0x08
 	#define PT_SDT 0x09
+	#define PT_NIT 0x0A
 	#define PT_PES 0xFE
 	#define PT_SECTION 0xFF
 

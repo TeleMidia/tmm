@@ -105,6 +105,15 @@ map<unsigned short, Stream*>* PMTView::getStreamList() {
 	return &streamList;
 }
 
+int PMTView::getProjectPid(ProjectInfo* proj) {
+	map<unsigned short, ProjectInfo*>::iterator it;
+	it = projectInfoList.begin();
+	while(it != projectInfoList.end()) {
+		if (it->second == proj) return it->first;
+		++it;
+	}
+	return -1;
+}
 
 }
 }
