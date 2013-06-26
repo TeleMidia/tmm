@@ -16,6 +16,7 @@
 #include "PESStream.h"
 #include "SectionStream.h"
 #include "si/descriptor/CarouselIdentifier.h"
+#include "si/descriptor/StreamIdentifier.h"
 #include <iostream>
 #include <string>
 #include <vector>

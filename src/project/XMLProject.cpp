@@ -437,7 +437,24 @@ int XMLProject::readFile() {
 							} else {
 								pmtView->setServiceName("Unnamed service");
 							}
+							value1 = getAttribute(g, "servicetype");
+							if (value1.size()) {
+								if (value1 == "tv") {
+									pmtView->setServiceType(SRV_TYPE_TV);
+								} else if (value1 == "data1") {
+									pmtView->setServiceType(SRV_TYPE_DATA1);
+								} else if (value1 == "data2") {
+									pmtView->setServiceType(SRV_TYPE_DATA2);
+								} else if (value1 == "oneseg") {
+									pmtView->setServiceType(SRV_TYPE_ONESEG);
+								} else {
+									cout << "output: 'servicetype' not recognized ("
+										 << value1 << ")" << endl;
+									return -6;
+								}
+							}
 							for (o = f->FirstChild(); o; o = o->NextSibling()) {
+								int esPid;
 								g = o->ToElement();
 								if (strcmp(o->Value(), "es") == 0) {
 									value1 = getAttribute(g, "refid");
@@ -447,15 +464,18 @@ int XMLProject::readFile() {
 											 << value1 << ")" << endl;
 										return -7;
 									}
-									if (g->QueryAttribute("pid", &num) != XML_NO_ERROR) {
+									if (g->QueryAttribute("pid", &esPid) != XML_NO_ERROR) {
 										cout << "pmt: attribute 'pid' not found." << endl;
 										return -4;
 									}
 									if (proj->getProjectType() == PT_INPUTDATA) {
 										//TODO: Is this really necessary?
-										((InputData*)proj)->setNewPid(num);
+										((InputData*)proj)->setNewPid(esPid);
 									}
-									pmtView->addProjectInfo(num, proj);
+									pmtView->addProjectInfo(esPid, proj);
+									if (g->QueryAttribute("ctag", &num) == XML_NO_ERROR) {
+										pmtView->addComponentTag(esPid, num);
+									}
 								}
 							}
 							(*projectList)[id] = pmtView;
@@ -489,7 +509,7 @@ int XMLProject::readFile() {
 					if (e->QueryAttribute("vbv", &num) == XML_NO_ERROR) {
 						vbvBuffer = (double) num / 1000;
 					} else {
-						vbvBuffer = 1.0;
+						vbvBuffer = 0.0;
 					}
 					if (e->QueryAttribute("bitrate", &num) == XML_NO_ERROR) {
 						tsBitrate = num;
@@ -613,15 +633,41 @@ int XMLProject::readFile() {
 					if (value1.size()) {
 						if (!pTot) {
 							pTot = new PTot();
-							value1 = TOT_NAME;
-							if (!createNewId(value1)) return -3;
-							id = getId(value1);
+							value2 = TOT_NAME;
+							if (!createNewId(value2)) return -3;
+							id = getId(value2);
 							if (id == -1) {
 								cout << "The id = " << value1 << " doesn't exists." << endl;
 								return -8;
 							}
 						}
 						pTot->setCountryCode(value1);
+					}
+					if (e->QueryAttribute("countryregionid", &num) == XML_NO_ERROR) {
+						if (!pTot) {
+							pTot = new PTot();
+							value2 = TOT_NAME;
+							if (!createNewId(value2)) return -3;
+							id = getId(value2);
+							if (id == -1) {
+								cout << "The id = " << value2 << " doesn't exists." << endl;
+								return -8;
+							}
+						}
+						pTot->setCountryRegionId(num);
+					}
+					if (e->QueryAttribute("utcoffset", &num) == XML_NO_ERROR) {
+						if (!pTot) {
+							pTot = new PTot();
+							value2 = TOT_NAME;
+							if (!createNewId(value2)) return -3;
+							id = getId(value2);
+							if (id == -1) {
+								cout << "The id = " << value2 << " doesn't exists." << endl;
+								return -8;
+							}
+						}
+						pTot->setUtcOffset(num);
 					}
 					if (pTot) (*projectList)[id] = pTot;
 

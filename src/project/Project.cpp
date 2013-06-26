@@ -82,6 +82,9 @@ int Project::configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 	ObjectCarouselProtocol* ocp = new ObjectCarouselProtocol;
 	ocp->remoteConnection = false;
 	ocp->componentTag = ctag;
+	ocp->originalNetworkId = originalNetworkId;
+	ocp->transportStreamId = tsid;
+	//ocp->serviceId = ; TODO: Depends on the service that it's broadcasted.
 	tp->setOcProtocol(ocp);
 	dlist->push_back(tp);
 

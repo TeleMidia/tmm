@@ -109,9 +109,13 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 	PTot* totProj;
 	double offset, preponeDiff = 0, bufOffset = 0;
 
+	bufOffset = project->getVbvBuffer();
 	unsigned found = project->getDestination().find("://");
 	if (found != std::string::npos) {
-		bufOffset = project->getVbvBuffer(); //increasing the amount of buffer for network (seconds)
+		if (project->getVbvBuffer() <= 0.0) {
+			//increasing the amount of buffer for network (seconds)
+			bufOffset = 1.0;
+		}
 	}
 
 	switch (proj->getProjectType()) {
@@ -149,7 +153,8 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 		return pes;
 	case PT_NPT:
 		nptProj = (NPTProject*) proj;
-		nptProj->setFirstReference(muxer->getCurrentStc()); //TODO: add A/V sync offset
+		 //TODO: add A/V sync offset
+		nptProj->setFirstReference(muxer->getCurrentStc() + Stc::secondToStc(3.0));
 		sec = new SectionStream();
 		sec->attach(nptProj);
 		sec->setFrequency(Stc::secondToStc(1.0));
@@ -252,7 +257,7 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 						}
 					}
 					if (!canReuse) {
-						//Create a new ES for the current timeline
+						//Create a new ES for the new timeline
 						stream = createStream(itProjNew->second, itProjNew->second->getVersion());
 						if (stream) {
 							(*itPmtNew)->pv->addStream(itProjNew->first, stream);
@@ -266,7 +271,7 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 			}
 		} else {
 			(*itPmtNew)->pv->deleteAllStreams();
-			//Create a new ES for the current timeline
+			//Create a new ES for the new timeline
 			itProjNew = (*itPmtNew)->pv->getProjectInfoList()->begin();
 			while (itProjNew != (*itPmtNew)->pv->getProjectInfoList()->end()) {
 				stream = createStream(itProjNew->second, itProjNew->second->getVersion());
@@ -501,8 +506,9 @@ int TMM::createPmt(PMTView* pmtView, Pmt** pmt) {
 	InputData* indata = NULL;
 	unsigned char st;
 	CarouselIdentifier* cidesc = NULL;
+	StreamIdentifier* sidesc = NULL;
 	char* descStream;
-	unsigned char descLen;
+	unsigned char descLen, ctag;
 
 	(*pmt) = new Pmt();
 	(*pmt)->setCurrentNextIndicator(1);
@@ -548,6 +554,19 @@ int TMM::createPmt(PMTView* pmtView, Pmt** pmt) {
 			delete cidesc;
 			break;
 		}
+
+		if ((!pmtView->getComponentTagList()->size()) && pmtView->getServiceType() >= 0) {
+			//TODO: Auto fulfill componentTagList
+		}
+		if (pmtView->getComponentTag(itPi->first, &ctag)) {
+			sidesc = new StreamIdentifier();
+			sidesc->setComponentTag(ctag);
+			descLen = sidesc->getStream(&descStream);
+			if (descLen) {
+				(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+			}
+		}
+
 		++itPi;
 	}
 
@@ -707,9 +726,9 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 	while (itPmtNew != newTimeline->end()) {
 		itPmtCurr = currentTimeline->begin();
 		while (itPmtCurr != currentTimeline->end()) {
-			if (((*itPmtNew)->pv->getPid() == (*itPmtCurr)->pv->getPid()) &&
+			if (((*itPmtNew)->pv->getPid() == (*itPmtCurr)->pv->getPid()) && // Is it necessary?
 					((*itPmtNew)->pv->getId() == (*itPmtCurr)->pv->getId())) {
-				found = true;
+				found = true; //Identical
 				break;
 			}
 			++itPmtCurr;
@@ -745,7 +764,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 				if (!sec) {
 					sec = new SectionStream();
 				} else {
-					(*itPmtCurr)->pv->setPmtStream(NULL);
+					(*itPmtCurr)->pv->setPmtStream(NULL); //Is it necessary?
 					sec->releaseSectionList();
 					sec->releaseBufferList();
 				}

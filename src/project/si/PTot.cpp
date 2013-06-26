@@ -13,28 +13,27 @@ namespace telemidia {
 namespace tool {
 
 PTot::PTot() {
-	offset = 0;
-	useCurrentTime = true;
-	timeBegin = 0;
-	utc = Tot::localTimezone();
-	daylightSavingTime = false;
-	projectType = PT_TOT;
-	countryCode.assign("BRA");
+	init();
 }
 
 PTot::PTot(int id) {
 	this->id = id;
-	offset = 0;
-	useCurrentTime = true;
-	timeBegin = 0;
-	utc = Tot::localTimezone();
-	daylightSavingTime = false;
-	projectType = PT_TOT;
-	countryCode.assign("BRA");
+	init();
 }
 
 PTot::~PTot() {
 
+}
+
+void PTot::init() {
+ 	offset = 0;
+ 	useCurrentTime = true;
+ 	timeBegin = 0;
+ 	utc = Tot::localTimezone();
+	daylightSavingTime = true;
+ 	projectType = PT_TOT;
+ 	countryCode.assign("BRA");
+ 	countryRegionId = 3;//Brazil: RJ
 }
 
 void PTot::printDateTime(time_t now, string format) {
@@ -122,10 +121,10 @@ time_t PTot::nextTimeChange(time_t dateTime, char *dst) {
 	}
 
 	if ((dBegin - dateTime) >= 0) {
-		*dst = 1;
+		*dst = 0;
 		return dBegin;
 	} else {
-		*dst = 0;
+		*dst = 1;
 		return dEnd;
 	}
 	return true;
@@ -197,8 +196,17 @@ void PTot::setOffset(int os) {
 	offset = os;
 }
 
+//this method causes the UTC time has an offset.
+void PTot::setUtcOffset(int uos) {
+	utcOffset = uos * 3600;
+}
+
 void PTot::setCountryCode(string country) {
 	countryCode.assign(country);
+}
+
+void PTot::setCountryRegionId(unsigned char id) {
+	countryRegionId = id; //ABNT NBR 15608-3:2008 page 39
 }
 
 int PTot::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
@@ -212,7 +220,8 @@ int PTot::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 	} else {
 		dateTime = timeBegin + (elapsedTime + 0.5f);
 	}
-	dateTime += offset;
+	//In the normal way, utcOffset should be equal to zero.
+	dateTime += offset + utcOffset;
 	cout << "tot = ";
 	printDateTime(dateTime, "");
 	cout << " ~ elapsed time = " << (int64_t) elapsedTime << endl;
@@ -226,17 +235,41 @@ int PTot::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 	LocalTimeData* ltd = new LocalTimeData();
 	ltd->timeOfChange = nextTimeChange(dateTime, &dst) + 3600;
 	ltd->countryCode = countryCode;
-	ltd->countryRegionId = 0; //hardcoded - is it correct?
-	if (utc < 0) {
-		ltd->localTimeOffsetPolarity = 1;
-		localTimeOffset = utc * -1;
+	ltd->countryRegionId = countryRegionId;
+
+	if (countryCode == "BRA") {
+		//The weird semantic definition of fields in Brazilian Standard.
+		if (((countryRegionId > 0) && (countryRegionId < 3)) ||
+			(countryRegionId == 4) || (countryRegionId == 6)) {
+			daylightSavingTime = false;
+		} else {
+			daylightSavingTime = true;
+		}
+		if (countryRegionId > 3) ltd->localTimeOffsetPolarity = 1;
+		localTimeOffset = 0;
+		if ((countryRegionId == 1) || (countryRegionId == 4) ||
+			(countryRegionId == 5)) {
+			localTimeOffset = 1;
+		} else if ((countryRegionId == 6) || (countryRegionId == 7)) {
+			localTimeOffset = 2;
+		}
 	} else {
-		ltd->localTimeOffsetPolarity = 0;
-		localTimeOffset = utc;
+		//The normal way.
+		if (utc < 0) {
+			ltd->localTimeOffsetPolarity = 1;
+			localTimeOffset = utc * -1;
+		} else {
+			ltd->localTimeOffsetPolarity = 0;
+			localTimeOffset = utc;
+		}
 	}
+
 	dateTime = Tot::makeUtcTime(localTimeOffset, 0, 0);
 	ltd->localTimeOffset = dateTime;
-	dateTime = Tot::makeUtcTime(dst, 0, 0);
+	dateTime = 0;
+	if (daylightSavingTime) {
+		if (!dst) dateTime = Tot::makeUtcTime(1, 0, 0);
+	}
 	ltd->nextTimeOffset = dateTime;
 	LocalTimeOffset* lto = new LocalTimeOffset();
 	lto->addLocalTimeData(ltd);

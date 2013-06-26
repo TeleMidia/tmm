@@ -23,6 +23,11 @@ namespace tool {
 
 class PMTView : public ProjectInfo {
 
+	#define SRV_TYPE_TV 	0x00
+	#define SRV_TYPE_DATA1  0x01
+	#define SRV_TYPE_DATA2  0x02
+	#define SRV_TYPE_ONESEG 0x03
+
 	private:
 
 	protected:
@@ -33,8 +38,10 @@ class PMTView : public ProjectInfo {
 		unsigned short pcrPid;
 		unsigned short pcrFrequency;
 		string serviceName;
+		short int serviceType;
 		map<unsigned short, ProjectInfo*> projectInfoList; //(pid, ProjectInfo)
 		map<unsigned short, Stream*> streamList; //(pid, Stream)
+		map<unsigned short, unsigned char> componentTagList; //(pid, ctag)
 
 	public:
 		PMTView();
@@ -54,12 +61,20 @@ class PMTView : public ProjectInfo {
 		unsigned short getPcrFrequency();
 		void setServiceName(string name);
 		string getServiceName();
+		void setServiceType(short int st);
+		short int getServiceType();
 		bool addProjectInfo(unsigned short pid, ProjectInfo* projInfo);
 		bool addStream(unsigned short pid, Stream* stream);
+		bool addComponentTag(unsigned short pid, unsigned char tag);
+		bool getComponentTag(unsigned short pid, unsigned char* tag);
 		bool deleteAllStreams();
 		map<unsigned short, ProjectInfo*>* getProjectInfoList();
 		map<unsigned short, Stream*>* getStreamList();
+		map<unsigned short, unsigned char>* getComponentTagList();
 		int getProjectPid(ProjectInfo* proj);
+
+		static bool compareComponentTagList(map<unsigned short, unsigned char>* oldList,
+				map<unsigned short, unsigned char>* newList);
 
 };
 

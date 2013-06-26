@@ -28,16 +28,20 @@ namespace tool {
 class PTot : public ProjectInfo, public Tot, public Subscriber {
 
 	private:
+		void init();
 
 	protected:
 		int64_t stcBegin; // for reference purpose
 		int offset;
+		int utcOffset;
 
 		bool useCurrentTime; // if TOT should use system time
 		time_t timeBegin; // date and time when the muxer starts (from project)
 		char utc;
 		bool daylightSavingTime;
 		string countryCode;
+		unsigned char countryRegionId;
+
 	public:
 		PTot();
 		PTot(int id);
@@ -55,7 +59,9 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		void setDaylightSavingTime(bool dst);
 		bool getDaylightSavingTime();
 		void setOffset(int os);
+		void setUtcOffset(int uos);
 		void setCountryCode(string country);
+		void setCountryRegionId(unsigned char id);
 		time_t nextTimeChange(time_t dateTime, char *dst);
 
 		static char dayOfWeek(time_t date);
