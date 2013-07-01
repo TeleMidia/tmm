@@ -36,6 +36,8 @@ class NPTProject : public ProjectInfo, public Subscriber {
 		map<int, Reference*>* endPointList;
 		vector<Reference*>* currRefList;
 		int64_t firstReference, priorTime;
+		double firstReferenceOffset;
+		void init();
 
 	protected:
 
@@ -54,6 +56,8 @@ class NPTProject : public ProjectInfo, public Subscriber {
 		bool removeEndPoint(int id);
 		vector<Reference*>* getCurrRef(int64_t currStc);
 		void setFirstReference(int64_t first);
+		double getFirstReferenceOffset();
+		void setFirstReferenceOffset(double offset);
 
 };
 

@@ -82,7 +82,7 @@ void Stream::releaseBufferList() {
 }
 
 void Stream::initiateNextSend(int64_t stc) {
-	nextSend = stc + frequency;
+	nextSend = stc;
 	maxBytesRate = maxBitrate / 8;
 }
 

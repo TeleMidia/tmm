@@ -15,6 +15,7 @@ namespace tool {
 ProjectInfo::ProjectInfo() {
 	projectType = PT_UNKNOWN;
 	version = 0;
+	transmissionDelay = 0.0;
 }
 
 ProjectInfo::~ProjectInfo() {
@@ -43,6 +44,14 @@ void ProjectInfo::setVersion(unsigned char ver) {
 
 unsigned char ProjectInfo::getVersion() {
 	return version;
+}
+
+double ProjectInfo::getTransmissionDelay() {
+	return transmissionDelay;
+}
+
+void ProjectInfo::setTransmissionDelay(double delay) {
+	transmissionDelay = delay;
 }
 
 }

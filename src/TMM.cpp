@@ -107,16 +107,18 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 	PCarousel* carProj;
 	PAit* aitProj;
 	PTot* totProj;
-	double offset, preponeDiff = 0, bufOffset = 0;
+	double nextSendOffset, timeOffset, bufOffset, preponeDiff = 0.0;
 
 	bufOffset = project->getVbvBuffer();
-	unsigned found = project->getDestination().find("://");
+	unsigned found = destination.find("://");
 	if (found != std::string::npos) {
 		if (project->getVbvBuffer() <= 0.0) {
 			//increasing the amount of buffer for network (seconds)
 			bufOffset = 1.0;
 		}
 	}
+
+	timeOffset = ((2*PREPONETICKS_VIDEO) + (bufOffset)) - PREPONETICKS_AUDIO;
 
 	switch (proj->getProjectType()) {
 	case PT_INPUTDATA:
@@ -125,19 +127,20 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 		pes->addPidFilter(indata->getPid());
 		pes->setFilename(indata->getFilename());
 		pes->setInputRangeList(indata->getInputRangeList());
+		//pes->setFrequency(Stc::secondToStc(0.005));
 		if (TSInfo::isAudioStreamType(indata->getStreamType())) {
 			preponeDiff = PREPONETICKS_VIDEO - PREPONETICKS_AUDIO;
 		}
-		offset = (double) indata->getOffset() / 1000;
-		if (offset >= 0) {
+		nextSendOffset = ((double) indata->getOffset() / 1000) + 0.005;
+		if (nextSendOffset >= 0) {
 			pes->initiateNextSend(Stc::secondToStc(preponeDiff) +
 								  muxer->getCurrentStc() +
-								  Stc::secondToStc(offset));
+								  Stc::secondToStc(nextSendOffset));
 		} else {
-			offset = offset * -1.0;
+			nextSendOffset = nextSendOffset * -1.0;
 			pes->initiateNextSend(Stc::secondToStc(preponeDiff) +
 								  muxer->getCurrentStc() -
-								  Stc::secondToStc(offset));
+								  Stc::secondToStc(nextSendOffset));
 		}
 		if (TSInfo::isAudioStreamType(indata->getStreamType())) {
 			pes->setPreponeTicks(Stc::secondToStc(PREPONETICKS_AUDIO + bufOffset));
@@ -153,12 +156,13 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 		return pes;
 	case PT_NPT:
 		nptProj = (NPTProject*) proj;
-		 //TODO: add A/V sync offset
-		nptProj->setFirstReference(muxer->getCurrentStc() + Stc::secondToStc(3.0));
+		nptProj->setFirstReference(muxer->getCurrentStc() +
+				Stc::secondToStc(timeOffset + nptProj->getFirstReferenceOffset()));
 		sec = new SectionStream();
 		sec->attach(nptProj);
 		sec->setFrequency(Stc::secondToStc(1.0));
-		sec->initiateNextSend(muxer->getCurrentStc());
+		sec->initiateNextSend(muxer->getCurrentStc() +
+				Stc::secondToStc(nptProj->getTransmissionDelay()));
 		sec->fillBuffer();
 		return sec;
 	case PT_CAROUSEL:
@@ -168,7 +172,8 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 		sec->setMaxBitrate(carProj->getBitrate());
 		sec->setFrequency(
 		   Stc::secondToStc(1.0/(((double) carProj->getBitrate()/8.0)/4182.0)));
-		sec->initiateNextSend(muxer->getCurrentStc());
+		sec->initiateNextSend(muxer->getCurrentStc() +
+				Stc::secondToStc(carProj->getTransmissionDelay()));
 		sec->fillBuffer();
 		return sec;
 	case PT_AIT:
@@ -178,12 +183,13 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 		aitProj->updateStream();
 		sec->addSection(aitProj);
 		sec->setFrequency(Stc::secondToStc(0.2));
-		sec->initiateNextSend(muxer->getCurrentStc());
+		sec->initiateNextSend(muxer->getCurrentStc() +
+				Stc::secondToStc(aitProj->getTransmissionDelay()));
 		sec->fillBuffer();
 		return sec;
 	case PT_TOT:
 		totProj = (PTot*) proj;
-		totProj->setOffset((int) (0.25 + bufOffset));
+		totProj->setOffset((int) (-timeOffset - 0.5f));
 		totProj->setStcBegin(muxer->getStcBegin());
 		sec = new SectionStream();
 		sec->attach(totProj);
@@ -295,8 +301,7 @@ int TMM::multiplexSetup() {
 	muxer = new Muxer();
 	muxer->setTTL(project->getTTL());
 
-	if (destination.empty()) muxer->setDestination(project->getDestination());
-		else muxer->setDestination(destination);
+	muxer->setDestination(destination);
 	muxer->setTsBitrate(project->getTsBitrate());
 
 	//add all pcr frequencies used in project
@@ -859,12 +864,13 @@ ProjectInfo* TMM::getFirstProjectReversed(char projectType) {
 int TMM::sendTo(const char* destination) {
 	if (!project) return -1;
 
-	if (destination) this->destination.assign(destination);
-
 	if (!loadProject()) {
 		cout << "TMM::sendTo - Error opening project." << endl;
 		return -1;
 	}
+
+	if (destination) this->destination.assign(destination); else
+		this->destination = project->getDestination();
 
 	if (multiplex() < 0) return -2;
 

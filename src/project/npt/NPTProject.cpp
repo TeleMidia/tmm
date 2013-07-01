@@ -13,22 +13,12 @@ namespace telemidia {
 namespace tool {
 
 NPTProject::NPTProject() {
-	referenceList = new map<int, vector<Reference*>*>;
-	endPointList = new map<int, Reference*>;
-	currRefList = new vector<Reference*>;
-	firstReference = 0;
-	priorTime = Stc::secondToStc(2.0);
-	projectType = PT_NPT;
+	init();
 }
 
 NPTProject::NPTProject(int id) {
 	this->id = id;
-	referenceList = new map<int, vector<Reference*>*>;
-	endPointList = new map<int, Reference*>;
-	currRefList = new vector<Reference*>;
-	firstReference = 0;
-	priorTime = Stc::secondToStc(2.0);
-	projectType = PT_NPT;
+	init();
 }
 
 NPTProject::~NPTProject() {
@@ -55,6 +45,16 @@ NPTProject::~NPTProject() {
 	delete endPointList;
 
 	delete currRefList;
+}
+
+void NPTProject::init() {
+	referenceList = new map<int, vector<Reference*>*>;
+	endPointList = new map<int, Reference*>;
+	currRefList = new vector<Reference*>;
+	firstReference = 0;
+	priorTime = Stc::secondToStc(2.0);
+	projectType = PT_NPT;
+	firstReferenceOffset = 0.0;
 }
 
 bool NPTProject::addReference(int id, char cid, int64_t absStart, int64_t absEnd,
@@ -191,6 +191,14 @@ vector<Reference*>* NPTProject::getCurrRef(int64_t currStc) {
 
 void NPTProject::setFirstReference(int64_t first) {
 	firstReference = first;
+}
+
+double NPTProject::getFirstReferenceOffset() {
+	return firstReferenceOffset;
+}
+
+void NPTProject::setFirstReferenceOffset(double offset) {
+	firstReferenceOffset = offset;
 }
 
 int NPTProject::encodeSections(int64_t stc, vector<PrivateSection*>* list) {

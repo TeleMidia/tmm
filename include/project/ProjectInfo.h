@@ -40,6 +40,7 @@ class ProjectInfo {
 		int id;
 		char projectType;
 		unsigned char version;
+		double transmissionDelay;
 
 	public:
 		ProjectInfo();
@@ -51,6 +52,8 @@ class ProjectInfo {
 		char getProjectType();
 		void setVersion(unsigned char ver);
 		unsigned char getVersion();
+		double getTransmissionDelay();
+		void setTransmissionDelay(double delay);
 
 };
 

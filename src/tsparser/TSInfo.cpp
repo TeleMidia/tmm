@@ -167,7 +167,7 @@ double TSInfo::duration(unsigned short pid) {
 			tsReader->goTo(temp);
 		}
 		while (tsReader->getLoopCount() == lc) {
-			if (demuxer.getNextPacketbyFilter(&tsPacket) >= 0) {
+			if (demuxer.getNextPacketbyFilter(&tsPacket) > 0) {
 				if ((tsPacket->getAdaptationFieldControl() == 1) ||
 					(tsPacket->getAdaptationFieldControl() == 3)) {
 					tsPacket->process();
@@ -253,7 +253,7 @@ char TSInfo::hasDts(unsigned short pid, unsigned int pktCount) {
 	}
 
 	while (pktNum < pktCount) {
-		if (demuxer.getNextPacketbyFilter(&tsPacket) >= 0) {
+		if (demuxer.getNextPacketbyFilter(&tsPacket) > 0) {
 			if ((tsPacket->getAdaptationFieldControl() == 1) ||
 				(tsPacket->getAdaptationFieldControl() == 3)) {
 				tsPacket->process();

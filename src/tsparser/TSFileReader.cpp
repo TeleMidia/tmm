@@ -149,7 +149,10 @@ int TSFileReader::getBuffer(char** buffer) {
 
 int TSFileReader::read() {
 	int pos = 0;
-	if (!pFile) return -1;
+	if (!pFile) {
+		cout << "TSFileReader::read - File descriptor is NULL." << endl;
+		return -1;
+	}
 
 	if (feof(pFile)) {
 		fseeko64(pFile, 0, SEEK_SET);
@@ -160,10 +163,8 @@ int TSFileReader::read() {
 		pos = bufferLength - bufferPos;
 		memcpy(buffer, buffer + bufferPos, pos);
 	}
-
 	bufferLength = fread(buffer + pos, 1, BUFFER_SIZE - pos, pFile) + pos;
 	bufferPos = 0;
-
 	return bufferLength;
 }
 

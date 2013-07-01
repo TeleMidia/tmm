@@ -139,11 +139,12 @@ bool PESStream::timestampControl(PESPacket* packet) {
 void PESStream::fillBuffer() {
 	TSPacket* tsPacket = NULL;
 	char* payload;
-	int len;
+	int len, ret;
 	char lcc;
 
 	while (bufferList.size() < maxBufferLength) {
-		if (demuxer->getNextPacketbyFilter(&tsPacket) >= 0) {
+		ret = demuxer->getNextPacketbyFilter(&tsPacket);
+		if (ret > 0) {
 			lcc = demuxer->getContinuityCounter(tsPacket->getPid());
 			if (lcc >= 0) {
 				if ((lcc + 1) != tsPacket->getContinuityCounter()) {
@@ -194,6 +195,8 @@ void PESStream::fillBuffer() {
 			}
 			if (tsPacket) delete tsPacket;
 			tsPacket = NULL;
+		} else if (ret == -1) {
+			cout << "PESStream::fillBuffer - Unable to get a packet." << endl;
 		}
 		//It not necessary to release the packet here.
 		//(because it is always equal to NULL)

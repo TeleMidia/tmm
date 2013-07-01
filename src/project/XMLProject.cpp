@@ -180,6 +180,12 @@ int XMLProject::readFile() {
 								return -8;
 							}
 							NPTProject* npt = new NPTProject(id);
+							if (f->QueryAttribute("transmissiondelay", &num) == XML_NO_ERROR) {
+								npt->setTransmissionDelay((double) num / 1000);
+							}
+							if (f->QueryAttribute("offset", &num) == XML_NO_ERROR) {
+								npt->setFirstReferenceOffset((double) num / 1000);
+							}
 							for (o = f->FirstChild(); o; o = o->NextSibling()) {
 								int epbegin = 0, epend = 0;
 								bool firstTimeEpBegin = true;
@@ -291,6 +297,9 @@ int XMLProject::readFile() {
 							} else {
 								carousel->setTransactionId(2);
 							}
+							if (f->QueryAttribute("transmissiondelay", &num) == XML_NO_ERROR) {
+								carousel->setTransmissionDelay((double) num / 1000);
+							}
 							(*projectList)[id] = carousel;
 						}
 					}
@@ -308,6 +317,9 @@ int XMLProject::readFile() {
 							if (id == -1) {
 								cout << "The id = " << value1 << " doesn't exists." << endl;
 								return -8;
+							}
+							if (f->QueryAttribute("transmissiondelay", &num) == XML_NO_ERROR) {
+								ait->setTransmissionDelay((double) num / 1000);
 							}
 							for (o = f->FirstChild(); o; o = o->NextSibling()) {
 								g = o->ToElement();
@@ -437,7 +449,7 @@ int XMLProject::readFile() {
 							} else {
 								pmtView->setServiceName("Unnamed service");
 							}
-							value1 = getAttribute(g, "servicetype");
+							value1 = getAttribute(f, "servicetype");
 							if (value1.size()) {
 								if (value1 == "tv") {
 									pmtView->setServiceType(SRV_TYPE_TV);
@@ -544,7 +556,7 @@ int XMLProject::readFile() {
 						virtualChannel = 1;
 					}
 					guardInterval = GUARD_INTERVAL_1_16;
-					value1 = getAttribute(g, "guardinterval");
+					value1 = getAttribute(e, "guardinterval");
 					if (value1.size()) {
 						if (value1 == "1/32") {
 							guardInterval = GUARD_INTERVAL_1_32;
@@ -561,7 +573,7 @@ int XMLProject::readFile() {
 						}
 					}
 					transmissionMode = TRANSMISSION_MODE_3;
-					value1 = getAttribute(g, "transmissionmode");
+					value1 = getAttribute(e, "transmissionmode");
 					if (value1.size()) {
 						if (value1 == "1") {
 							transmissionMode = TRANSMISSION_MODE_1;

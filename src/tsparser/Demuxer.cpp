@@ -42,17 +42,20 @@ int Demuxer::getNextPacketbyFilter(TSPacket **packet) {
 	char* buffer;
 	unsigned short pid;
 
-	if (!tsReader) return -1;
+	if (!tsReader) {
+		cout << "Demuxer::getNextPacketbyFilter - tsReader is not available." << endl;
+		return -1;
+	}
 
 	if (tsReader->getBuffer(&buffer) > 0) {
 		pid = (((buffer[1] & 0x1F) << 8) | (buffer[2] & 0xFF));
 		if (pidFilterList->count(pid)) {
 			*packet = new TSPacket(buffer);
-			return 0;
+			return 1;
 		}
 	}
 	*packet = NULL;
-	return -1;
+	return 0;
 }
 
 void Demuxer::setContinuityCounter(unsigned short pid, char cc) {
