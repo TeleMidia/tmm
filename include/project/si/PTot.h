@@ -47,7 +47,7 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		PTot(int id);
 		virtual ~PTot();
 
-		static void printDateTime(time_t now, string format);
+		static void printDateTime(time_t now, string format, bool local);
 
 		void setStcBegin(int64_t stc);
 		void setUseCurrentTime(bool ct);

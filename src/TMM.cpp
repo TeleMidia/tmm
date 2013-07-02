@@ -127,7 +127,6 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 		pes->addPidFilter(indata->getPid());
 		pes->setFilename(indata->getFilename());
 		pes->setInputRangeList(indata->getInputRangeList());
-		//pes->setFrequency(Stc::secondToStc(0.005));
 		if (TSInfo::isAudioStreamType(indata->getStreamType())) {
 			preponeDiff = PREPONETICKS_VIDEO - PREPONETICKS_AUDIO;
 		}
@@ -173,7 +172,8 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 		sec->setFrequency(
 		   Stc::secondToStc(1.0/(((double) carProj->getBitrate()/8.0)/4182.0)));
 		sec->initiateNextSend(muxer->getCurrentStc() +
-				Stc::secondToStc(carProj->getTransmissionDelay()));
+				Stc::secondToStc(carProj->getTransmissionDelay()) +
+				Stc::secondToStc(0.005));
 		sec->fillBuffer();
 		return sec;
 	case PT_AIT:
@@ -379,7 +379,7 @@ int TMM::multiplex() {
 			if (lastStcPrinter != (unsigned int) Stc::stcToSecond(muxer->getCurrentStc())/5) {
 				lastStcPrinter = Stc::stcToSecond(muxer->getCurrentStc())/5;
 				time(&now);
-				PTot::printDateTime(now, "");
+				PTot::printDateTime(now, "", true);
 				cout << " ~ elapsed time = " <<
 					(int64_t) Stc::stcToSecond(muxer->getRelativeStc()) << endl;
 			}
@@ -505,7 +505,7 @@ int TMM::updateNit(vector<pmtViewInfo*>* newTimeline, Nit** nit) {
 	return 0;
 }
 
-int TMM::createPmt(PMTView* pmtView, Pmt** pmt) {
+int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 	map<unsigned short, ProjectInfo*>* pi;
 	map<unsigned short, ProjectInfo*>::iterator itPi;
 	InputData* indata = NULL;
@@ -519,9 +519,9 @@ int TMM::createPmt(PMTView* pmtView, Pmt** pmt) {
 	(*pmt)->setCurrentNextIndicator(1);
 	(*pmt)->setSectionSyntaxIndicator(1);
 	(*pmt)->setVersionNumber(0);
-	(*pmt)->setPCRPid(pmtView->getPcrPid());
-	(*pmt)->setProgramNumber(pmtView->getProgramNumber());
-	pi = pmtView->getProjectInfoList();
+	(*pmt)->setPCRPid(newPmtView->getPcrPid());
+	(*pmt)->setProgramNumber(newPmtView->getProgramNumber());
+	pi = newPmtView->getProjectInfoList();
 	itPi = pi->begin();
 	while (itPi != pi->end()) {
 		switch (itPi->second->getProjectType()) {
@@ -560,10 +560,11 @@ int TMM::createPmt(PMTView* pmtView, Pmt** pmt) {
 			break;
 		}
 
-		if ((!pmtView->getComponentTagList()->size()) && pmtView->getServiceType() >= 0) {
-			//TODO: Auto fulfill componentTagList
-		}
-		if (pmtView->getComponentTag(itPi->first, &ctag)) {
+		//Automatic creation/update of componentTagList, however a declared
+		//component tag in project has always the priority.
+		newPmtView->fulfillComponentTagList(currentPmtView);
+
+		if (newPmtView->getComponentTag(itPi->first, &ctag)) {
 			sidesc = new StreamIdentifier();
 			sidesc->setComponentTag(ctag);
 			descLen = sidesc->getStream(&descStream);
@@ -600,7 +601,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	while (itPmt != newTimeline->end()) {
 		pat->addPmt((*itPmt)->pv->getProgramNumber(),
 					(*itPmt)->pv->getPid());
-		ret = createPmt((*itPmt)->pv, &pmt);
+		ret = createPmt(NULL, (*itPmt)->pv, &pmt);
 		if (ret < 0) return -1;
 		if ((*itPmt)->pv->getServiceName() != "Unnamed service") useSdt = true;
 		sec = new SectionStream();
@@ -749,7 +750,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 			}
 			if (!found) {
 				//create a new one
-				ret = createPmt((*itPmtNew)->pv, &pmt);
+				ret = createPmt(NULL, (*itPmtNew)->pv, &pmt);
 				if (ret < 0) return -1;
 				sec = new SectionStream();
 				pmt->updateStream();
@@ -762,7 +763,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 			} else {
 				//update it
 				(*itPmtNew)->pv->setVersion((*itPmtCurr)->pv->getVersion() + 1);
-				ret = createPmt((*itPmtNew)->pv, &pmt);
+				ret = createPmt((*itPmtCurr)->pv, (*itPmtNew)->pv, &pmt);
 				if (ret < 0) return -1;
 				pmt->setVersionNumber((*itPmtNew)->pv->getVersion());
 				sec = (SectionStream*) (*itPmtCurr)->pv->getPmtStream();

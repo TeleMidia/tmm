@@ -486,7 +486,7 @@ int XMLProject::readFile() {
 									}
 									pmtView->addProjectInfo(esPid, proj);
 									if (g->QueryAttribute("ctag", &num) == XML_NO_ERROR) {
-										pmtView->addComponentTag(esPid, num);
+										pmtView->addDesiredComponentTag(esPid, num);
 									}
 								}
 							}

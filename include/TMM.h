@@ -60,7 +60,7 @@ class TMM {
 		void processPcrsInUse(vector<pmtViewInfo*>* newTimeline);
 		int updateSdt(vector<pmtViewInfo*>* newTimeline, Sdt** sdt);
 		int updateNit(vector<pmtViewInfo*>* newTimeline, Nit** nit);
-		int createPmt(PMTView* pmtView, Pmt** pmt);
+		int createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt);
 		int createSiTables(vector<pmtViewInfo*>* newTimeline);
 		int restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 							vector<pmtViewInfo*>* newTimeline);

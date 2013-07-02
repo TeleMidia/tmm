@@ -36,13 +36,24 @@ void PTot::init() {
  	countryRegionId = 3;//Brazil: RJ
 }
 
-void PTot::printDateTime(time_t now, string format) {
+void PTot::printDateTime(time_t now, string format, bool local) {
 	struct tm tstruct;
 	char buf[80];
+
 	if (!format.length()) format.assign("%Y-%m-%d %X");
-	tstruct = *gmtime(&now);
+	if (local) {
+		tstruct = *localtime(&now);
+	} else {
+		tstruct = *gmtime(&now);
+	}
 	strftime(buf, sizeof(buf), format.c_str(), &tstruct);
 	cout << buf;
+	if (local) {
+		int utc = Tot::localTimezone();
+		cout << " UTC";
+		if (utc >= 0) cout << "+";
+		cout << utc;
+	}
 }
 
 char PTot::dayOfWeek(time_t date) {
@@ -167,7 +178,7 @@ bool PTot::setTimeBegin(string dateTime) {
 	unsigned found = dateTime.find('+');
 	if (found==std::string::npos) utc *= -1;
 
-	timeBegin = mktime(&when) + (Tot::localTimezone() * 3600); //utc;
+	timeBegin = mktime(&when) - (Tot::localTimezone() * 3600); //utc;
 
 	return true;
 }
@@ -223,7 +234,7 @@ int PTot::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 	//In the normal way, utcOffset should be equal to zero.
 	dateTime += offset + utcOffset;
 	cout << "tot = ";
-	printDateTime(dateTime, "");
+	printDateTime(dateTime, "", true);
 	cout << " ~ elapsed time = " << (int64_t) elapsedTime << endl;
 
 	Tot* tot = new Tot();

@@ -10,7 +10,9 @@
 
 #include "Stream.h"
 #include "Stc.h"
+#include "tsparser/TSInfo.h"
 #include "project/ProjectInfo.h"
+#include "project/inputdata/InputData.h"
 #include <iostream>
 #include <map>
 
@@ -42,6 +44,7 @@ class PMTView : public ProjectInfo {
 		map<unsigned short, ProjectInfo*> projectInfoList; //(pid, ProjectInfo)
 		map<unsigned short, Stream*> streamList; //(pid, Stream)
 		map<unsigned short, unsigned char> componentTagList; //(pid, ctag)
+		map<unsigned short, unsigned char> desiredComponentTagList; //(pid, ctag)
 
 	public:
 		PMTView();
@@ -65,6 +68,7 @@ class PMTView : public ProjectInfo {
 		short int getServiceType();
 		bool addProjectInfo(unsigned short pid, ProjectInfo* projInfo);
 		bool addStream(unsigned short pid, Stream* stream);
+		bool addDesiredComponentTag(unsigned short pid, unsigned char tag);
 		bool addComponentTag(unsigned short pid, unsigned char tag);
 		bool getComponentTag(unsigned short pid, unsigned char* tag);
 		bool deleteAllStreams();
@@ -72,6 +76,9 @@ class PMTView : public ProjectInfo {
 		map<unsigned short, Stream*>* getStreamList();
 		map<unsigned short, unsigned char>* getComponentTagList();
 		int getProjectPid(ProjectInfo* proj);
+		bool fulfillComponentTagList(PMTView* previousPmtView);
+		bool isDesiredComponentTagInUse(unsigned char ctag);
+		bool isComponentTagInUse(unsigned char ctag);
 
 		static bool compareComponentTagList(map<unsigned short, unsigned char>* oldList,
 				map<unsigned short, unsigned char>* newList);
