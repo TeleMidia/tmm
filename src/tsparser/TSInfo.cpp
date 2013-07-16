@@ -346,7 +346,7 @@ void TSInfo::printTable() {
 						} else if (isAudioStreamType(k->second)) {
 							cout << "Audio";
 						} else {
-							cout << "Unrecognized";
+							cout << "Data";
 						}
 						cout << "," <<
 								pmt->getStreamTypeName(k->second) << endl;
