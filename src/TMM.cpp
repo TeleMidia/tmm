@@ -455,7 +455,6 @@ int TMM::updateNit(vector<pmtViewInfo*>* newTimeline, Nit** nit) {
 	(*nit)->releaseAllTransportInformation();
 	(*nit)->setCurrentNextIndicator(1);
 	(*nit)->setTableIdExtension(project->getOriginalNetworkId());
-	(*nit)->setTransportStreamId(project->getTsid());
 	NetworkName* netName = new NetworkName();
 	netName->setNetworkName(project->getProviderName());
 	(*nit)->addDescriptor(netName);
