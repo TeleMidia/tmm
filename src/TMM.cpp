@@ -784,7 +784,8 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 		} else {
 			//it's the same PMT
 			(*itPmtNew)->pv->setVersion((*itPmtCurr)->pv->getVersion());
-			muxer->addElementaryStream((*itPmtCurr)->pv->getPid(), (*itPmtCurr)->pv->getPmtStream());
+			muxer->addElementaryStream((*itPmtCurr)->pv->getPid(),
+					(*itPmtCurr)->pv->getPmtStream());
 		}
 		++itPmtNew;
 		found = false;

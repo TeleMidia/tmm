@@ -55,14 +55,6 @@ unsigned short InputData::getPid() {
 	return pid;
 }
 
-void InputData::setNewPid(unsigned short pid) {
-	newPid = pid;
-}
-
-unsigned short InputData::getNewPid() {
-	return newPid;
-}
-
 void InputData::setStreamType(unsigned char st) {
 	streamType = st;
 }

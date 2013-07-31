@@ -30,7 +30,6 @@ class InputData : public ProjectInfo {
 	private:
 		string filename;
 		unsigned short pid;
-		unsigned short newPid;
 		unsigned char streamType;
 		bool hasDts;
 		int offset;
@@ -49,8 +48,6 @@ class InputData : public ProjectInfo {
 		string getFilename();
 		void setPid(unsigned short pid);
 		unsigned short getPid();
-		void setNewPid(unsigned short pid);
-		unsigned short getNewPid();
 		void setStreamType(unsigned char st);
 		unsigned short getStreamType();
 		void setHasDts(bool has);

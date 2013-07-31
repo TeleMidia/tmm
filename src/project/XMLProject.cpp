@@ -444,6 +444,10 @@ int XMLProject::readFile() {
 								pmtView->setPcrFrequency(60);
 							}
 							value1 = getAttribute(f, "name");
+							if (value1.size() > 20) {
+								cout << "pmt: 'name' value is too long." << endl;
+								return -12;
+							}
 							if (value1.size()) {
 								pmtView->setServiceName(value1);
 							} else {
@@ -460,7 +464,7 @@ int XMLProject::readFile() {
 								} else if (value1 == "oneseg") {
 									pmtView->setServiceType(SRV_TYPE_ONESEG);
 								} else {
-									cout << "output: 'servicetype' not recognized ("
+									cout << "pmt: 'servicetype' not recognized ("
 										 << value1 << ")" << endl;
 									return -6;
 								}
@@ -479,10 +483,6 @@ int XMLProject::readFile() {
 									if (g->QueryAttribute("pid", &esPid) != XML_NO_ERROR) {
 										cout << "pmt: attribute 'pid' not found." << endl;
 										return -4;
-									}
-									if (proj->getProjectType() == PT_INPUTDATA) {
-										//TODO: Is this really necessary?
-										((InputData*)proj)->setNewPid(esPid);
 									}
 									pmtView->addProjectInfo(esPid, proj);
 									if (g->QueryAttribute("ctag", &num) == XML_NO_ERROR) {
@@ -529,6 +529,10 @@ int XMLProject::readFile() {
 						tsBitrate = 19000000;
 					}
 					value1 = getAttribute(e, "name");
+					if (value1.size() > 20) {
+						cout << "output: 'name' value is too long." << endl;
+						return -12;
+					}
 					if (value1.size()) {
 						providerName = value1;
 					} else {
@@ -540,6 +544,10 @@ int XMLProject::readFile() {
 						originalNetworkId = tsid;
 					}
 					value1 = getAttribute(e, "tsname");
+					if (value1.size() > 20) {
+						cout << "output: 'tsname' value is too long." << endl;
+						return -12;
+					}
 					if (value1.size()) {
 						tsName = value1;
 					} else {
