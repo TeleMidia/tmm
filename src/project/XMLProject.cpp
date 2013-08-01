@@ -98,6 +98,7 @@ int XMLProject::readFile() {
 	XMLElement *top, *e, *f, *g = NULL, *h;
 	string value, value1, value2;
 	int num, id;
+	double dnum;
 
 	e = xmldoc->FirstChildElement("tmm");
 	if (e) {
@@ -552,6 +553,17 @@ int XMLProject::readFile() {
 						tsName = value1;
 					} else {
 						tsName.assign(providerName);
+					}
+					if (e->QueryAttribute("stcbegin", &dnum) == XML_NO_ERROR) {
+						if (dnum < 10.0) {
+							cout << "output: 'stcbegin' value is too low " <<
+									"(minimum is 10 seconds)." << endl;
+							return -12;
+						}
+						stcBegin = Stc::secondToStc(dnum);
+					}
+					if (e->QueryAttribute("packetspermessage", &num) == XML_NO_ERROR) {
+						packetsInBuffer = num;
 					}
 					if (e->QueryAttribute("broadcastfrequency", &num) == XML_NO_ERROR) {
 						broadcastFrequency = num;

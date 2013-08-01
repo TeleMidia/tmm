@@ -14,10 +14,11 @@ namespace tool {
 
 Project::Project() {
 	projectList = new map<int, ProjectInfo*>;
-	stcBegin = SYSTEM_CLOCK_FREQUENCY;
+	stcBegin = SYSTEM_CLOCK_FREQUENCY * 10;
 	isLoop = false;
 	vbvBuffer = 1.0;
 	ttl = 16;
+	packetsInBuffer = 40;
 }
 
 Project::~Project() {
@@ -51,14 +52,14 @@ bool Project::mountCarousels() {
 			pcar->setBlockSize(4066);
 			snprintf(number, 11, "%d", pcar->getServiceDomain());
 
-			path = "./carousel/";
+			path = "." + getUriSlash() + "carousel" + getUriSlash();
 			makeDir(path.c_str(), 0777);
 			path.insert(path.size(), number);
 			makeDir(path.c_str(), 0777);
 			tempPath.assign(path);
-			path.insert(path.size(), "/output/");
+			path.insert(path.size(), getUriSlash() + "output" + getUriSlash());
 			makeDir(path.c_str(), 0777);
-			tempPath.insert(tempPath.size(), "/temp/");
+			tempPath.insert(tempPath.size(), getUriSlash() + "temp" + getUriSlash());
 			makeDir(tempPath.c_str(), 0);
 			path.insert(path.size(), number);
 			path.insert(path.size(), ".sec");
@@ -209,6 +210,10 @@ unsigned char Project::getGuardInterval() {
 
 unsigned char Project::getTransmissionMode() {
 	return transmissionMode;
+}
+
+unsigned short Project::getPacketsInBuffer() {
+	return packetsInBuffer;
 }
 
 ProjectInfo* Project::findProject(int id) {

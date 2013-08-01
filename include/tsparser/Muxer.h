@@ -28,8 +28,6 @@ namespace tool {
 
 class Muxer {
 
-	#define TOTAL_PACKETS_IN_BUFFER 40;
-
 	private:
 
 	protected:
@@ -55,6 +53,7 @@ class Muxer {
 		char* streamBuffer;
 		int streamBufferSize;
 		int streamBufferLength;
+		unsigned short packetsInBuffer;
 		unsigned char ttl;
 
 		unsigned int tsBitrate;
@@ -86,7 +85,7 @@ class Muxer {
 		int writeStream(char* pktBuffer);
 
 	public:
-		Muxer();
+		Muxer(unsigned short packetsInBuffer);
 		virtual ~Muxer();
 
 		//Greatest Common Divisor

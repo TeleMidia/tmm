@@ -12,8 +12,8 @@ namespace pucrio {
 namespace telemidia {
 namespace tool {
 
-Muxer::Muxer() {
-	stc = SYSTEM_CLOCK_FREQUENCY;
+Muxer::Muxer(unsigned short packetsInBuffer) {
+	stc = SYSTEM_CLOCK_FREQUENCY * 10;
 	tsBitrate = 19000000;
 	packetSize = TSPacket::TS_PACKET_SIZE;
 	stcOffset = 0;
@@ -21,7 +21,8 @@ Muxer::Muxer() {
 	bitrateErrorCounter = 0;
 	server = NULL;
 	buffer = new Buffer;
-	streamBufferSize = packetSize * TOTAL_PACKETS_IN_BUFFER;
+	streamBufferSize = packetSize * packetsInBuffer;
+	this->packetsInBuffer = packetsInBuffer;
 	streamBuffer = new char[streamBufferSize];
 	streamBufferLength = 0;
 }
@@ -48,7 +49,7 @@ unsigned int Muxer::getTsBitrate() {
 void Muxer::setPacketSize(unsigned char size) {
 	packetSize = size;
 	if (streamBuffer) delete streamBuffer;
-	streamBufferSize = packetSize * TOTAL_PACKETS_IN_BUFFER;
+	streamBufferSize = packetSize * packetsInBuffer;
 	streamBuffer = new char[streamBufferSize];
 	streamBufferLength = 0;
 }

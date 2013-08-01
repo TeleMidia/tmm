@@ -28,7 +28,6 @@
 #include <map>
 
 using namespace std;
-using namespace br::pucrio::telemidia::mpeg2::util;
 using namespace br::pucrio::telemidia::mpeg2::dsmcc;
 
 namespace br {
@@ -51,7 +50,7 @@ class Project {
 		string providerName;
 		int tsid;
 		int tsBitrate;
-		int64_t stcBegin; //27 MHz - Max. project customized value = 79s
+		int64_t stcBegin; //27 MHz - Minimum value = 270000000 (10s)
 		double vbvBuffer;
 		unsigned char ttl;
 
@@ -61,6 +60,7 @@ class Project {
 		unsigned char virtualChannel;
 		unsigned char guardInterval;
 		unsigned char transmissionMode;
+		unsigned short packetsInBuffer;
 
 		map<int, ProjectInfo*>* projectList;
 		//TODO: EIT, CAT
@@ -99,6 +99,7 @@ class Project {
 		unsigned char getVirtualChannel();
 		unsigned char getGuardInterval();
 		unsigned char getTransmissionMode();
+		unsigned short getPacketsInBuffer();
 
 		virtual int readFile()=0;
 

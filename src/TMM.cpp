@@ -298,7 +298,7 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 
 int TMM::multiplexSetup() {
 	if (muxer) delete muxer;
-	muxer = new Muxer();
+	muxer = new Muxer(project->getPacketsInBuffer());
 	muxer->setTTL(project->getTTL());
 
 	muxer->setDestination(destination);
