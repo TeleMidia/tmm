@@ -410,6 +410,138 @@ int XMLProject::readFile() {
 
 					for (m = e->FirstChild(); m; m = m->NextSibling()) {
 						f = m->ToElement();
+						if (strcmp(m->Value(), "eit") == 0) {
+							PEit *eit = new PEit();
+							eit->setCurrentNextIndicator(1);
+							eit->setSectionSyntaxIndicator(1);
+							eit->setPrivateIndicator(1);
+							value1 = getAttribute(f, "id");
+							if (!createNewId(value1)) return -3;
+							id = getId(value1);
+							if (id == -1) {
+								cout << "The id = " << value1 << " doesn't exists." << endl;
+								return -8;
+							}
+							for (o = f->FirstChild(); o; o = o->NextSibling()) {
+								g = o->ToElement();
+								if (strcmp(o->Value(), "event") == 0) {
+									unsigned int eventId, durt;
+									time_t stime;
+									if (g->QueryAttribute("eventid", &eventId) != XML_NO_ERROR) {
+										cout << "eit: attribute 'eventid' not found." << endl;
+										return -4;
+									}
+									if (eit->hasEvent(eventId)) {
+										cout << "eit: 'eventid' must be unique." << endl;
+										return -4;
+									}
+									value1 = getAttribute(g, "time");
+									if (value1.size()) {
+										stime = PTot::makeUtcDate(value1);
+									} else {
+										cout << "eit: attribute 'time' not found or null." << endl;
+										return -4;
+									}
+									if (g->QueryAttribute("dur", &durt) != XML_NO_ERROR) {
+										cout << "eit: attribute 'dur' not found." << endl;
+										return -4;
+									}
+									EventInfo* ei = new EventInfo();
+									ei->eventId = eventId;
+									ei->duration = durt/1000;
+									ei->startTime = stime;
+									ei->freeCaMode = false;
+									ei->runningStatus = 1;
+									for (p = g->FirstChild(); p; p = p->NextSibling()) {
+										h = p->ToElement();
+										if (strcmp(p->Value(), "shortevent") == 0) {
+											value1 = getAttribute(h, "name");
+											if (value1.size() > 96) {
+												cout << "eit: 'name' value is too long." << endl;
+												return -12;
+											}
+											value2 = getAttribute(h, "text");
+											if (value2.size() > 192) {
+												cout << "eit: 'text' value is too long." << endl;
+												return -12;
+											}
+											ShortEvent* si = new ShortEvent();
+											si->setEventName(value1);
+											si->setText(value2);
+											value1 = getAttribute(h, "language");
+											if (value1.size()) {
+												if (value1.size() != 3) {
+													cout << "eit: 'language' value has 3 letters." << endl;
+													return -12;
+												}
+												si->setIso639LanguageCode(value1);
+											}
+											ei->descriptorsList.push_back(si);
+										}
+										if (strcmp(p->Value(), "component") == 0) {
+											int streamContent, componentType, ctag;
+											if (h->QueryAttribute("streamcontent", &streamContent) != XML_NO_ERROR) {
+												cout << "eit: attribute 'streamcontent' not found." << endl;
+												return -4;
+											}
+											if (h->QueryAttribute("componenttype", &componentType) != XML_NO_ERROR) {
+												cout << "eit: attribute 'componentType' not found." << endl;
+												return -4;
+											}
+											if (h->QueryAttribute("ctag", &ctag) != XML_NO_ERROR) {
+												cout << "eit: attribute 'ctag' not found." << endl;
+												return -4;
+											}
+											Component* comp = new Component();
+											comp->setStreamContent(streamContent);
+											comp->setComponentType(componentType);
+											comp->setComponentTag(ctag);
+											value1 = getAttribute(h, "language");
+											if (value1.size()) {
+												if (value1.size() != 3) {
+													cout << "eit: 'language' value has 3 letters." << endl;
+													return -12;
+												}
+												comp->setIso639LanguageCode(value1);
+											}
+											value2 = getAttribute(h, "text");
+											if (value2.size() > 192) {
+												cout << "eit: 'text' value is too long." << endl;
+												return -12;
+											}
+											comp->setText(value2);
+											ei->descriptorsList.push_back(comp);
+										}
+										if (strcmp(p->Value(), "parentalrating") == 0) {
+											int rating;
+											if (h->QueryAttribute("rating", &rating) != XML_NO_ERROR) {
+												cout << "eit: attribute 'rating' not found." << endl;
+												return -4;
+											}
+											ParentalRatingInfo* pri = new ParentalRatingInfo();
+											pri->rating = rating;
+											value1 = getAttribute(h, "countrycode");
+											if (value1.size()) {
+												if (value1.size() != 3) {
+													cout << "eit: 'countrycode' value has 3 letters." << endl;
+													return -12;
+												}
+												pri->countryCode = value1;
+											}
+											ParentalRating* pr = new ParentalRating();
+											pr->addParentalRating(pri);
+											ei->descriptorsList.push_back(pr);
+										}
+									}
+									eit->addEventInfo(ei);
+								}
+							}
+							(*projectList)[id] = eit;
+						}
+					}
+
+					for (m = e->FirstChild(); m; m = m->NextSibling()) {
+						f = m->ToElement();
 						if (strcmp(m->Value(), "pmt") == 0) {
 							PMTView* pmtView = new PMTView();
 							value1 = getAttribute(f, "id");

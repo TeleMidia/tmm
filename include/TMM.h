@@ -43,6 +43,7 @@ class TMM {
 		SectionStream* totStream;
 		SectionStream* sdtStream;
 		SectionStream* nitStream;
+		SectionStream* eitStream;
 		bool useSdt;
 		bool useNit;
 		unsigned char patVersion;
@@ -53,7 +54,7 @@ class TMM {
 		ProjectInfo* getFirstProject(char projectType);
 		ProjectInfo* getFirstProjectReversed(char projectType);
 		bool loadProject();
-		Stream *createStream(ProjectInfo* proj, unsigned char version);
+		Stream *createStream(ProjectInfo* proj);
 		bool createStreamList(vector<pmtViewInfo*>* currentTimeline,
 							  vector<pmtViewInfo*>* newTimeline);
 

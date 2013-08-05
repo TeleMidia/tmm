@@ -49,15 +49,49 @@ void PTot::printDateTime(time_t now, string format, bool local) {
 	strftime(buf, sizeof(buf), format.c_str(), &tstruct);
 	cout << buf;
 	if (local) {
-		int utc = Tot::localTimezone();
+		short utc = Tot::localTimezone();
 		cout << " UTC";
-		if (utc >= 0) cout << "+";
-		cout << utc;
+		if (utc >= 0) cout << "+"; else {
+			cout << "-";
+			utc *= -1;
+		}
+		cout << (short)(utc/60) << ":";
+		printf("%02d", utc%60);
 	}
 }
 
 char PTot::dayOfWeek(time_t date) {
 	return gmtime(&date)->tm_wday;
+}
+
+//TODO: Improve this code, please.
+time_t PTot::makeUtcDate(string dateTime) {
+	int dd, mo, yy, hh, mm, ss, uh = 0, um = 0, r;
+	struct tm when = {0};
+	short utcRef;
+
+	r = sscanf(dateTime.c_str(), "%d-%d-%dT%d:%d:%d-%d:%d",
+			&yy, &mo, &dd, &hh, &mm, &ss, &uh, &um);
+	if (r != 8) {
+		r = sscanf(dateTime.c_str(), "%d-%d-%dT%d:%d:%d+%d:%d",
+				&yy, &mo, &dd, &hh, &mm, &ss, &uh, &um);
+		if (r != 8) return false;
+	}
+
+	when.tm_mday = dd;
+	when.tm_mon = mo - 1;
+	when.tm_year = yy - 1900;
+	when.tm_hour = hh;
+	when.tm_min = mm;
+	when.tm_sec = ss;
+
+	utcRef = (uh * 60) + um;
+
+	unsigned found = dateTime.find('+');
+	if (found==std::string::npos) utcRef *= -1;
+
+	return mktime(&when) + (int64_t)(((Tot::localTimezone() - utcRef) * 60) -
+						   (Tot::localTimezone() * 60)); //utc;
 }
 
 time_t PTot::makeUtcDate(unsigned short yy, unsigned short mo,
@@ -70,7 +104,7 @@ time_t PTot::makeUtcDate(unsigned short yy, unsigned short mo,
 	when.tm_min = 0;
 	when.tm_sec = 0;
 
-	return mktime(&when) + (localTimezone() * 3600); //utc;
+	return mktime(&when) + (localTimezone() * 60); //utc;
 }
 
 time_t PTot::easterSunday(unsigned short wYear) {
@@ -153,32 +187,21 @@ bool PTot::getUseCurrentTime() {
 	return useCurrentTime;
 }
 
-//TODO: Improve this code, please.
 bool PTot::setTimeBegin(string dateTime) {
-	int dd, mo, yy, hh, mm, ss, uh = 0, um = 0, r;
-	struct tm when = {0};
+	int uh = 0, um = 0, r;
 
-	r = sscanf(dateTime.c_str(), "%d-%d-%dT%d:%d:%d-%d:%d",
-			&yy, &mo, &dd, &hh, &mm, &ss, &uh, &um);
-	if (r != 8) {
-		r = sscanf(dateTime.c_str(), "%d-%d-%dT%d:%d:%d+%d:%d",
-				&yy, &mo, &dd, &hh, &mm, &ss, &uh, &um);
-		if (r != 8) return false;
+	r = sscanf(dateTime.c_str(), "%*d-%*d-%*dT%*d:%*d:%*d-%d:%d", &uh, &um);
+	if (r != 2) {
+		r = sscanf(dateTime.c_str(), "%*d-%*d-%*dT%*d:%*d:%*d+%d:%d", &uh, &um);
+		if (r != 2) return false;
 	}
 
-	when.tm_mday = dd;
-	when.tm_mon = mo - 1;
-	when.tm_year = yy - 1900;
-	when.tm_hour = hh;
-	when.tm_min = mm;
-	when.tm_sec = ss;
-
-	utc = uh;
+	utc = (uh * 60) + um;
 
 	unsigned found = dateTime.find('+');
 	if (found==std::string::npos) utc *= -1;
 
-	timeBegin = mktime(&when) - (Tot::localTimezone() * 3600); //utc;
+	timeBegin = makeUtcDate(dateTime);
 
 	return true;
 }
@@ -187,11 +210,11 @@ time_t PTot::getTimeBegin() {
 	return timeBegin;
 }
 
-void PTot::setUtc(char utc) {
+void PTot::setUtc(short utc) {
 	this->utc = utc;
 }
 
-char PTot::getUtc() {
+short PTot::getUtc() {
 	return utc;
 }
 
@@ -237,12 +260,12 @@ int PTot::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 	printDateTime(dateTime, "", true);
 	cout << " ~ elapsed time = " << (int64_t) elapsedTime << endl;
 
-	Tot* tot = new Tot();
-	tot->setCurrentNextIndicator(1);
-	tot->setLastSectionNumber(0);
-	tot->setSectionNumber(0);
-	tot->setPrivateIndicator(1);
-	tot->setDateTime(dateTime);
+	releaseAllDescriptors();
+	setCurrentNextIndicator(1);
+	setLastSectionNumber(0);
+	setSectionNumber(0);
+	setPrivateIndicator(1);
+	setDateTime(dateTime);
 	LocalTimeData* ltd = new LocalTimeData();
 	ltd->timeOfChange = nextTimeChange(dateTime, &dst) + 3600;
 	ltd->countryCode = countryCode;
@@ -284,10 +307,10 @@ int PTot::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 	ltd->nextTimeOffset = dateTime;
 	LocalTimeOffset* lto = new LocalTimeOffset();
 	lto->addLocalTimeData(ltd);
-	tot->addDescriptor(lto);
-	tot->updateStream();
+	addDescriptor(lto);
+	updateStream();
 
-	list->push_back(tot);
+	list->push_back(this);
 
 	return 0;
 }

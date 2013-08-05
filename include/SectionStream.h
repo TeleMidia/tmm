@@ -30,6 +30,7 @@ class SectionStream : public Stream, public Publisher {
 	protected:
 		vector<PrivateSection*> sectionList;
 		unsigned int currPos;
+		bool destroySections;
 
 	public:
 		SectionStream();
@@ -39,6 +40,7 @@ class SectionStream : public Stream, public Publisher {
 		void fillBuffer();
 
 		void releaseSectionList();
+		void setDestroySections(bool destroy);
 
 		void addSection(PrivateSection* sec);
 		bool addSection(char* stream, int length);

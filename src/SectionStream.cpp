@@ -16,6 +16,7 @@ SectionStream::SectionStream() {
 	type = 1;
 	currPos = 0;
 	maxBitrate = 30000;
+	destroySections = true;
 }
 
 SectionStream::~SectionStream() {
@@ -26,11 +27,15 @@ void SectionStream::releaseSectionList() {
 	vector<PrivateSection*>::iterator it;
 	it = sectionList.begin();
 	while (it != sectionList.end()) {
-		if (*it) delete (*it);
+		if (destroySections && (*it)) delete (*it);
 		++it;
 	}
 	sectionList.clear();
 	currPos = 0;
+}
+
+void SectionStream::setDestroySections(bool destroy) {
+	destroySections = destroy;
 }
 
 bool SectionStream::getBuffer(Buffer** buffer) {

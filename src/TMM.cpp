@@ -28,6 +28,7 @@ TMM::~TMM() {
 	if (totStream) delete totStream;
 	if (sdtStream) delete sdtStream;
 	if (nitStream) delete nitStream;
+	if (eitStream) delete eitStream;
 }
 
 void TMM::init() {
@@ -36,6 +37,7 @@ void TMM::init() {
 	totStream = NULL;
 	sdtStream = NULL;
 	nitStream = NULL;
+	eitStream = NULL;
 	useSdt = false;
 	useNit = false;
 	patVersion = 0;
@@ -99,7 +101,7 @@ bool TMM::loadProject() {
 	return true;
 }
 
-Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
+Stream* TMM::createStream(ProjectInfo* proj) {
 	PESStream* pes;
 	SectionStream* sec;
 	InputData* indata;
@@ -107,6 +109,7 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 	PCarousel* carProj;
 	PAit* aitProj;
 	PTot* totProj;
+	PEit* eitProj;
 	double nextSendOffset, timeOffset, bufOffset, preponeDiff = 0.0;
 
 	bufOffset = project->getVbvBuffer();
@@ -178,7 +181,7 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 		return sec;
 	case PT_AIT:
 		aitProj = (PAit*) proj;
-		aitProj->setVersionNumber(version);
+		aitProj->setVersionNumber(aitProj->getVersion());
 		sec = new SectionStream();
 		aitProj->updateStream();
 		sec->addSection(aitProj);
@@ -193,7 +196,17 @@ Stream* TMM::createStream(ProjectInfo* proj, unsigned char version) {
 		totProj->setStcBegin(muxer->getStcBegin());
 		sec = new SectionStream();
 		sec->attach(totProj);
+		sec->setDestroySections(false);
 		sec->setFrequency(Stc::secondToStc(5.0));
+		sec->initiateNextSend(muxer->getCurrentStc());
+		sec->fillBuffer();
+		return sec;
+	case PT_EIT:
+		eitProj = (PEit*) proj;
+		eitProj->setStcBegin(muxer->getStcBegin());
+		sec = new SectionStream();
+		sec->attach(eitProj);
+		sec->setFrequency(Stc::secondToStc(1.0));
 		sec->initiateNextSend(muxer->getCurrentStc());
 		sec->fillBuffer();
 		return sec;
@@ -254,17 +267,17 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 								(!canReuse)) {
 								if ((*itPmtNew)->pv->getProjectPid(itProjNew->second) ==
 									((PMTView*)proj)->getProjectPid(itProjCurr->second)) {
-									//AIT version must be updated.
-									itProjCurr->second->setVersion(itProjCurr->second->getVersion() + 1);
-									itProjNew->second->setVersion(itProjCurr->second->getVersion());
+									//AIT version must be updated, because there is a previous one.
+									itProjNew->second->setVersion(itProjCurr->second->getVersion() + 1);
+									//The stream will be created below.
 								}
 							}
 							++itProjCurr;
 						}
 					}
 					if (!canReuse) {
-						//Create a new ES for the new timeline
-						stream = createStream(itProjNew->second, itProjNew->second->getVersion());
+						//Unable to reuse. Create a new ES for the new timeline
+						stream = createStream(itProjNew->second);
 						if (stream) {
 							(*itPmtNew)->pv->addStream(itProjNew->first, stream);
 						} else {
@@ -280,7 +293,7 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 			//Create a new ES for the new timeline
 			itProjNew = (*itPmtNew)->pv->getProjectInfoList()->begin();
 			while (itProjNew != (*itPmtNew)->pv->getProjectInfoList()->end()) {
-				stream = createStream(itProjNew->second, itProjNew->second->getVersion());
+				stream = createStream(itProjNew->second);
 				if (stream) {
 					(*itPmtNew)->pv->addStream(itProjNew->first, stream);
 				} else {
@@ -630,7 +643,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 
 	proj = getFirstProject(PT_TOT);
 	if (proj) {
-		totStream = (SectionStream*) createStream(proj, proj->getVersion());
+		totStream = (SectionStream*) createStream(proj);
 		muxer->addElementaryStream(0x14, totStream);
 	}
 
@@ -671,6 +684,21 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 		muxer->addElementaryStream(0x10, nitStream);
 	}
 	//Network Information Table ends
+
+	//Event Information Table begins
+	/*
+	if (eitStream) {
+		delete eitStream;
+		eitStream = NULL;
+	}
+
+	proj = getFirstProject(PT_EIT);
+	if (proj) {
+		eitStream = (SectionStream*) createStream(proj);
+		muxer->addElementaryStream(0x12, eitStream);
+	}
+	*/
+	//Event Information Table ends
 
 	return 0;
 }

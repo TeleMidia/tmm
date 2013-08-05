@@ -15,6 +15,7 @@
 #include "si/PTot.h"
 #include "si/PSdt.h"
 #include "si/PNit.h"
+#include "si/PEit.h"
 #include "si/PMTView.h"
 #include "timeline/Timeline.h"
 #include "Stc.h"

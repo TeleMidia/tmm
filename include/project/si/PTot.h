@@ -37,7 +37,7 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 
 		bool useCurrentTime; // if TOT should use system time
 		time_t timeBegin; // date and time when the muxer starts (from project)
-		char utc;
+		short utc;
 		bool daylightSavingTime;
 		string countryCode;
 		unsigned char countryRegionId;
@@ -54,8 +54,8 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		bool getUseCurrentTime();
 		bool setTimeBegin(string dateTime);
 		time_t getTimeBegin();
-		void setUtc(char utc);
-		char getUtc();
+		void setUtc(short utc);
+		short getUtc();
 		void setDaylightSavingTime(bool dst);
 		bool getDaylightSavingTime();
 		void setOffset(int os);
@@ -65,6 +65,7 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		time_t nextTimeChange(time_t dateTime, char *dst);
 
 		static char dayOfWeek(time_t date);
+		static time_t makeUtcDate(string dateTime);
 		static time_t makeUtcDate(unsigned short yy, unsigned short mo,
 								  unsigned short dd);
 		static time_t easterSunday(unsigned short wYear);
