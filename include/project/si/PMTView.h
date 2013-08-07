@@ -41,6 +41,7 @@ class PMTView : public ProjectInfo {
 		unsigned short pcrFrequency;
 		string serviceName;
 		short int serviceType;
+		ProjectInfo* eitProj;
 		map<unsigned short, ProjectInfo*> projectInfoList; //(pid, ProjectInfo)
 		map<unsigned short, Stream*> streamList; //(pid, Stream)
 		map<unsigned short, unsigned char> componentTagList; //(pid, ctag)
@@ -66,6 +67,8 @@ class PMTView : public ProjectInfo {
 		string getServiceName();
 		void setServiceType(short int st);
 		short int getServiceType();
+		ProjectInfo* getEitProj();
+		void setEitProj(ProjectInfo* proj);
 		bool addProjectInfo(unsigned short pid, ProjectInfo* projInfo);
 		bool addStream(unsigned short pid, Stream* stream);
 		bool addDesiredComponentTag(unsigned short pid, unsigned char tag);

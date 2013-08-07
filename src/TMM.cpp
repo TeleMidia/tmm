@@ -109,7 +109,6 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 	PCarousel* carProj;
 	PAit* aitProj;
 	PTot* totProj;
-	PEit* eitProj;
 	double nextSendOffset, timeOffset, bufOffset, preponeDiff = 0.0;
 
 	bufOffset = project->getVbvBuffer();
@@ -198,15 +197,6 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		sec->attach(totProj);
 		sec->setDestroySections(false);
 		sec->setFrequency(Stc::secondToStc(5.0));
-		sec->initiateNextSend(muxer->getCurrentStc());
-		sec->fillBuffer();
-		return sec;
-	case PT_EIT:
-		eitProj = (PEit*) proj;
-		eitProj->setStcBegin(muxer->getStcBegin());
-		sec = new SectionStream();
-		sec->attach(eitProj);
-		sec->setFrequency(Stc::secondToStc(1.0));
 		sec->initiateNextSend(muxer->getCurrentStc());
 		sec->fillBuffer();
 		return sec;
@@ -445,7 +435,11 @@ int TMM::updateSdt(vector<pmtViewInfo*>* newTimeline, Sdt** sdt) {
 		Service* service = new Service();
 		service->setServiceName((*itPmt)->pv->getServiceName());
 		service->setProviderName(project->getProviderName());
-		si->eitPresentFollowingFlag = false;
+		if ((*itPmt)->pv->getEitProj()) {
+			si->eitPresentFollowingFlag = true;
+		} else {
+			si->eitPresentFollowingFlag = false;
+		}
 		si->eitScheduleFlag = false;
 		si->freeCaMode = 0;
 		si->runningStatus = 4; //Running
@@ -596,8 +590,11 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	Pat* pat = NULL;
 	Pmt* pmt = NULL;
 	ProjectInfo* proj;
+	PEit* eitProj;
 	vector<pmtViewInfo*>::iterator itPmt;
 	int ret;
+	int tc;
+	int64_t currStc;
 
 	if (project->getProviderName() != "Unnamed provider") useNit = true;
 
@@ -685,20 +682,50 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	}
 	//Network Information Table ends
 
-	//Event Information Table begins
-	/*
+	//Event Information Table (present/following) begins
 	if (eitStream) {
 		delete eitStream;
 		eitStream = NULL;
 	}
-
-	proj = getFirstProject(PT_EIT);
-	if (proj) {
-		eitStream = (SectionStream*) createStream(proj);
+	tc = 0;
+	ret = 0;
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		if ((*itPmt)->pv->getEitProj()) {
+			ret++; //counting number of services using EIT
+		}
+		++itPmt;
+	}
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		if ((*itPmt)->pv->getEitProj()) {
+			eitProj = (PEit*)(*itPmt)->pv->getEitProj();
+			eitProj->setTableIdExtension((*itPmt)->pv->getProgramNumber());
+			eitProj->setTransmissionDelay(project->getTsid());
+			eitProj->setOriginalNetworkId(project->getOriginalNetworkId());
+			eitProj->setTurnNumber(tc++); //indexing EITs for each service
+			eitProj->setTurnCount(ret);
+			currStc = muxer->getStcBegin();
+			eitProj->setStcBegin(currStc);
+			proj = getFirstProject(PT_TOT);
+			if (proj) {
+				((PTot*)proj)->updateDateTime(currStc);
+				eitProj->setTimeBegin(((PTot*)proj)->getDateTime());
+				eitProj->adjustUtcOffset(((PTot*)proj)->getUtcOffset());
+			}
+			if (!eitStream) {
+				eitStream = new SectionStream();
+				eitStream->initiateNextSend(muxer->getCurrentStc());
+			}
+			eitStream->attach(eitProj);
+		}
+		++itPmt;
+	}
+	if (eitStream && ret) {
+		eitStream->setFrequency(Stc::secondToStc(2.0/ret));
 		muxer->addElementaryStream(0x12, eitStream);
 	}
-	*/
-	//Event Information Table ends
+	//Event Information Table (present/following) ends
 
 	return 0;
 }
@@ -707,12 +734,17 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 					vector<pmtViewInfo*>* newTimeline) {
 	vector<pmtViewInfo*>::iterator itPmtCurr;
 	vector<pmtViewInfo*>::iterator itPmtNew;
+	map<int, ProjectInfo*>::iterator itProj;
+	ProjectInfo* proj;
+	PEit* eitProj;
 	SectionStream *sec;
 	Pat* pat = NULL;
 	Pmt* pmt = NULL;
 	bool found = false;
 	bool patChanged = false;
+	int tc;
 	int ret;
+	int64_t currStc;
 
 	//PAT
 	if (newTimeline->size() == currentTimeline->size()) {
@@ -859,11 +891,68 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 	}
 	//Network Information Table ends
 
-	//Time Offset Table
+	//Time Offset Table begins
 
 	if (totStream && getFirstProject(PT_TOT)) {
 		muxer->addElementaryStream(0x14, totStream);
 	}
+	//Time Offset Table ends
+
+	//Event Information Table (present/following) begins
+	tc = 0;
+	ret = 0;
+	itPmtNew = newTimeline->begin();
+	while (itPmtNew != newTimeline->end()) {
+		if ((*itPmtNew)->pv->getEitProj()) {
+			ret++; //counting number of services using EIT
+		}
+		++itPmtNew;
+	}
+	itPmtNew = newTimeline->begin();
+	while (itPmtNew != newTimeline->end()) {
+		if ((*itPmtNew)->pv->getEitProj()) {
+			found = false;
+			if ((*itPmtNew)->priorPmtId >= 0) {
+				itProj = project->getProjectList()->find((*itPmtNew)->priorPmtId);
+				if (itProj != project->getProjectList()->end()) {
+					if ((*itPmtNew)->pv->getEitProj() !=
+						((PMTView*)(itProj->second))->getEitProj()) {
+						found = true;
+					}
+				}
+			}
+			eitProj = (PEit*)(*itPmtNew)->pv->getEitProj();
+			if ((eitProj->getTableIdExtension() !=
+				(*itPmtNew)->pv->getProgramNumber()) ||
+					found) {
+				eitProj->setVersionNumber(eitProj->getVersionNumber() + 1);
+			}
+			eitProj->setTableIdExtension((*itPmtNew)->pv->getProgramNumber());
+			eitProj->setTransmissionDelay(project->getTsid());
+			eitProj->setOriginalNetworkId(project->getOriginalNetworkId());
+			eitProj->setTurnNumber(tc++); //indexing EITs for each service
+			eitProj->setTurnCount(ret);
+			currStc = muxer->getCurrentStc();
+			eitProj->setStcBegin(currStc);
+			proj = getFirstProject(PT_TOT);
+			if (proj) {
+				((PTot*)proj)->updateDateTime(currStc);
+				eitProj->setTimeBegin(((PTot*)proj)->getDateTime());
+				eitProj->adjustUtcOffset(((PTot*)proj)->getUtcOffset());
+			}
+			if (!eitStream) {
+				eitStream = new SectionStream();
+				eitStream->initiateNextSend(muxer->getCurrentStc());
+			}
+			eitStream->attach(eitProj);
+		}
+		++itPmtNew;
+	}
+	if (eitStream && ret) {
+		eitStream->setFrequency(Stc::secondToStc(2.0/ret));
+		muxer->addElementaryStream(0x12, eitStream);
+	}
+	//Event Information Table (present/following) ends
 
 	return 0;
 }

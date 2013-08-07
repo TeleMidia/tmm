@@ -17,6 +17,7 @@ PMTView::PMTView() {
 	pmtStream = NULL;
 	projectType = PT_PMTVIEW;
 	serviceType = -1;
+	eitProj = NULL;
 }
 
 PMTView::~PMTView() {
@@ -86,6 +87,14 @@ void PMTView::setServiceType(short int st) {
 
 short int PMTView::getServiceType() {
 	return serviceType;
+}
+
+ProjectInfo* PMTView::getEitProj() {
+	return eitProj;
+}
+
+void PMTView::setEitProj(ProjectInfo* proj) {
+	eitProj = proj;
 }
 
 bool PMTView::addProjectInfo(unsigned short pid, ProjectInfo* projInfo) {

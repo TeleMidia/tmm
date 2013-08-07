@@ -31,7 +31,8 @@ class ProjectInfo {
 	#define PT_TIMELINE 0x08
 	#define PT_SDT 0x09
 	#define PT_NIT 0x0A
-	#define PT_EIT 0x0B
+	#define PT_EIT_PF 0x0B //Present and following
+	#define PT_EIT_S 0x0C //Schedule
 	#define PT_PES 0xFE
 	#define PT_SECTION 0xFF
 

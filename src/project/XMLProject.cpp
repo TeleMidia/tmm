@@ -451,7 +451,7 @@ int XMLProject::readFile() {
 									ei->duration = durt/1000;
 									ei->startTime = stime;
 									ei->freeCaMode = false;
-									ei->runningStatus = 1;
+									ei->runningStatus = RS_NOT_RUNNING;
 									for (p = g->FirstChild(); p; p = p->NextSibling()) {
 										h = p->ToElement();
 										if (strcmp(p->Value(), "shortevent") == 0) {
@@ -601,6 +601,18 @@ int XMLProject::readFile() {
 										 << value1 << ")" << endl;
 									return -6;
 								}
+							}
+							value1 = getAttribute(f, "eitid");
+							if (value1.size()) {
+								num = getId(value1);
+								if (num == -1) {
+									cout << "The id = " << value1 << " doesn't exists." << endl;
+									return -8;
+								}
+								proj = findProject(num);
+								if (proj) {
+									pmtView->setEitProj(proj);
+								} else return -7;
 							}
 							for (o = f->FirstChild(); o; o = o->NextSibling()) {
 								int esPid;
@@ -831,7 +843,7 @@ int XMLProject::readFile() {
 								return -8;
 							}
 						}
-						pTot->setUtcOffset(num);
+						pTot->setUtcOffset(num * 3600);
 					}
 					if (pTot) (*projectList)[id] = pTot;
 

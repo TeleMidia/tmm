@@ -54,11 +54,13 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		bool getUseCurrentTime();
 		bool setTimeBegin(string dateTime);
 		time_t getTimeBegin();
+		double updateDateTime(int64_t stc);
 		void setUtc(short utc);
 		short getUtc();
 		void setDaylightSavingTime(bool dst);
 		bool getDaylightSavingTime();
 		void setOffset(int os);
+		int getUtcOffset();
 		void setUtcOffset(int uos);
 		void setCountryCode(string country);
 		void setCountryRegionId(unsigned char id);

@@ -55,6 +55,10 @@ class Publisher {
 			}
 		}
 
+		virtual void dettachAll() {
+			subscriberList.clear();
+		}
+
 		virtual ~Publisher(){};
 };
 

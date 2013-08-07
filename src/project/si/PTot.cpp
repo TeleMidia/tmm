@@ -210,6 +210,21 @@ time_t PTot::getTimeBegin() {
 	return timeBegin;
 }
 
+double PTot::updateDateTime(int64_t stc) {
+	double elapsedTime = 0.0;
+
+	elapsedTime = Stc::stcToSecond(stc - stcBegin);
+	if (useCurrentTime){
+		time(&dateTime);
+	} else {
+		dateTime = timeBegin + (elapsedTime + 0.5f);
+	}
+	//In the normal way, utcOffset should be equal to zero.
+	dateTime += offset + utcOffset;
+
+	return elapsedTime;
+}
+
 void PTot::setUtc(short utc) {
 	this->utc = utc;
 }
@@ -230,9 +245,13 @@ void PTot::setOffset(int os) {
 	offset = os;
 }
 
+int PTot::getUtcOffset() {
+	return utcOffset;
+}
+
 //this method causes the UTC time has an offset.
 void PTot::setUtcOffset(int uos) {
-	utcOffset = uos * 3600;
+	utcOffset = uos;
 }
 
 void PTot::setCountryCode(string country) {
@@ -244,28 +263,20 @@ void PTot::setCountryRegionId(unsigned char id) {
 }
 
 int PTot::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
-	time_t dateTime;
+	time_t dt;
 	double elapsedTime = 0.0;
 	char localTimeOffset, dst;
 
-	elapsedTime = Stc::stcToSecond(stc - stcBegin);
-	if (useCurrentTime){
-		time(&dateTime);
-	} else {
-		dateTime = timeBegin + (elapsedTime + 0.5f);
-	}
-	//In the normal way, utcOffset should be equal to zero.
-	dateTime += offset + utcOffset;
+	elapsedTime = updateDateTime(stc);
 	cout << "tot = ";
 	printDateTime(dateTime, "", true);
 	cout << " ~ elapsed time = " << (int64_t) elapsedTime << endl;
 
 	releaseAllDescriptors();
-	setCurrentNextIndicator(1);
-	setLastSectionNumber(0);
-	setSectionNumber(0);
-	setPrivateIndicator(1);
-	setDateTime(dateTime);
+	currentNextIndicator = 1;
+	lastSectionNumber = 0;
+	sectionNumber = 0;
+	privateIndicator = 1;
 	LocalTimeData* ltd = new LocalTimeData();
 	ltd->timeOfChange = nextTimeChange(dateTime, &dst) + 3600;
 	ltd->countryCode = countryCode;
@@ -298,13 +309,13 @@ int PTot::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 		}
 	}
 
-	dateTime = Tot::makeUtcTime(localTimeOffset, 0, 0);
-	ltd->localTimeOffset = dateTime;
-	dateTime = 0;
+	dt = Tot::makeUtcTime(localTimeOffset, 0, 0);
+	ltd->localTimeOffset = dt;
+	dt = 0;
 	if (daylightSavingTime) {
-		if (!dst) dateTime = Tot::makeUtcTime(1, 0, 0);
+		if (!dst) dt = Tot::makeUtcTime(1, 0, 0);
 	}
-	ltd->nextTimeOffset = dateTime;
+	ltd->nextTimeOffset = dt;
 	LocalTimeOffset* lto = new LocalTimeOffset();
 	lto->addLocalTimeData(ltd);
 	addDescriptor(lto);
