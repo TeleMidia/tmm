@@ -37,7 +37,6 @@ namespace telemidia {
 namespace tool {
 
 class Project {
-	#define VBV_BUFFER 1.00
 
 	private:
 
@@ -64,7 +63,7 @@ class Project {
 		unsigned short packetsInBuffer;
 
 		map<int, ProjectInfo*>* projectList;
-		//TODO: EIT, CAT
+		//TODO: EIT (schedule)
 
 	public:
 		Project();
