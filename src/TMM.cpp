@@ -701,7 +701,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 		if ((*itPmt)->pv->getEitProj()) {
 			eitProj = (PEit*)(*itPmt)->pv->getEitProj();
 			eitProj->setTableIdExtension((*itPmt)->pv->getProgramNumber());
-			eitProj->setTransmissionDelay(project->getTsid());
+			eitProj->setTransportStreamId(project->getTsid());
 			eitProj->setOriginalNetworkId(project->getOriginalNetworkId());
 			eitProj->setTurnNumber(tc++); //indexing EITs for each service
 			eitProj->setTurnCount(ret);
@@ -928,7 +928,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 				eitProj->setVersionNumber(eitProj->getVersionNumber() + 1);
 			}
 			eitProj->setTableIdExtension((*itPmtNew)->pv->getProgramNumber());
-			eitProj->setTransmissionDelay(project->getTsid());
+			eitProj->setTransportStreamId(project->getTsid());
 			eitProj->setOriginalNetworkId(project->getOriginalNetworkId());
 			eitProj->setTurnNumber(tc++); //indexing EITs for each service
 			eitProj->setTurnCount(ret);
@@ -980,6 +980,8 @@ ProjectInfo* TMM::getFirstProjectReversed(char projectType) {
 }
 
 int TMM::sendTo(const char* destination) {
+	int ret;
+
 	if (!project) return -1;
 
 	if (!loadProject()) {
@@ -990,7 +992,11 @@ int TMM::sendTo(const char* destination) {
 	if (destination) this->destination.assign(destination); else
 		this->destination = project->getDestination();
 
-	if (multiplex() < 0) return -2;
+	ret = multiplex();
+	if (ret == -1) {
+		cout << "TMM::sendTo - Unable to find a stream to multiplex." << endl;
+	}
+	if (ret < 0) return -2;
 
 	return 0;
 }

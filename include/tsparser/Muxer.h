@@ -60,7 +60,7 @@ class Muxer {
 		unsigned char packetSize;
 		string destination;
 		bool isFileMode;
-		map<unsigned short, Stream*> streamList;
+		map<unsigned short, vector<Stream*>*> streamList;
 
 		Buffer* buffer;
 
@@ -74,7 +74,8 @@ class Muxer {
 		int reachedNextPcrSend(int64_t stc);
 		void fillAllBufferes();
 		int64_t getNextStcStreamToMultiplex(unsigned short *pid,
-											 bool *streamScheduled);
+											int *index,
+											bool *streamScheduled);
 
 		void newStcStep();
 		int processNullPackets();
@@ -105,14 +106,14 @@ class Muxer {
 		void setTTL(unsigned char t);
 
 		bool addElementaryStream(unsigned short pid, Stream* stream);
-		Stream* removeElementaryStream(unsigned short esPid);
+		bool removeElementaryStream(unsigned short pid);
 		bool removeAllElementaryStreams();
 		bool addToListOfAllPossiblePcrsFrequencies(unsigned short freq);
 		bool addPcrPid(unsigned short pid, unsigned short frequency); //pid,ms
 		bool removePcrPid(unsigned short pid);
 		map<unsigned short, unsigned short>* getPcrList();
 
-		map<unsigned short, Stream*>* getStreamList();
+		map<unsigned short, vector<Stream*>*>* getStreamList();
 
 		bool prepareMultiplexer(int64_t stcBegin);
 		int mainLoop();

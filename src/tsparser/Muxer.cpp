@@ -32,6 +32,7 @@ Muxer::~Muxer() {
 	delete buffer;
 	if (server) delete server;
 	if (streamBuffer) delete streamBuffer;
+	removeAllElementaryStreams();
 }
 
 unsigned int Muxer::gcd(unsigned int a, unsigned int b) {
@@ -176,9 +177,9 @@ bool Muxer::calculateStcStep() {
 			}
 		}
 
-		for (i = 0; i < listOfAllPossiblePcrsFrequencies.size(); i++) {
+		for (i = 0; i < listOfAllPossiblePcrsFrequencies.size(); ++i) {
 			if (listOfAllPossiblePcrsFrequencies[i] == cd) {
-				for (unsigned int j = 2; j < cd/2; j++) {
+				for (unsigned int j = 2; j < cd/2; ++j) {
 					if ((cd % j) == 0) {
 						cd /= j;
 						found = true;
@@ -216,55 +217,87 @@ int Muxer::reachedNextPcrSend(int64_t stc) {
 }
 
 void Muxer::fillAllBufferes() {
-	map<unsigned short, Stream*>::iterator it;
+	map<unsigned short, vector<Stream*>*>::iterator it;
+	vector<Stream*>::iterator itStr;
 
-	for (it = streamList.begin(); it != streamList.end(); it++) {
-		if (it->second) {
-			it->second->fillBuffer();
-		} else {
-			cout << "Muxer::fillAllBufferes - No stream available for pid = " <<
-					it->first << endl;
+	for (it = streamList.begin(); it != streamList.end(); ++it) {
+		for (itStr = it->second->begin(); itStr != it->second->end(); ++itStr) {
+			if (*itStr) {
+				(*itStr)->fillBuffer();
+			} else {
+				cout << "Muxer::fillAllBufferes - No stream available for pid = " <<
+						it->first << endl;
+			}
 		}
 	}
 }
 
 int64_t Muxer::getNextStcStreamToMultiplex(unsigned short *pid,
-											bool *streamScheduled) {
-	map<unsigned short, Stream*>::iterator it;
+										   int *index,
+										   bool *streamScheduled) {
+	map<unsigned short, vector<Stream*>*>::iterator it;
+	vector<Stream*>::iterator itStr;
 	int64_t nextSend = 0x7FFFFFFFFFFFFFFF;
+	unsigned int idx;
 
-	for (it = streamList.begin(); it != streamList.end(); it++) {
-		if (it->second->getNextSend() < nextSend) {
-			nextSend = it->second->getNextSend();
-			*pid = it->first;
-			*streamScheduled = true;
+	for (it = streamList.begin(); it != streamList.end(); ++it) {
+		idx = -1;
+		for (itStr = it->second->begin(); itStr != it->second->end(); ++itStr) {
+			idx++;
+			if ((*itStr)->getNextSend() < nextSend) {
+				nextSend = (*itStr)->getNextSend();
+				*pid = it->first;
+				*index = idx;
+				*streamScheduled = true;
+			}
 		}
 	}
 
 	return nextSend;
 }
 
+//Notice: Never use the same stream for different PIDs.
 bool Muxer::addElementaryStream(unsigned short pid, Stream* stream) {
-	streamList[pid] = stream;
+	vector<Stream*>* strList;
+	vector<Stream*>::iterator itStr;
+	map<unsigned short, vector<Stream*>*>::iterator it = streamList.begin();
+
+	if (!streamList.count(pid)) {
+		strList = new vector<Stream*>();
+		streamList.insert(
+				it, std::pair<unsigned short, vector<Stream*>*>(pid, strList));
+	} else {
+		strList = streamList[pid];
+	}
+	for (itStr = strList->begin(); itStr != strList->end(); ++itStr) {
+		if (*itStr == stream) return false;
+	}
+	strList->push_back(stream);
+
 	return true;
 }
 
-Stream* Muxer::removeElementaryStream(unsigned short pid) {
-	map<unsigned short, Stream*>::iterator itSt;
-	Stream* stream;
+bool Muxer::removeElementaryStream(unsigned short pid) {
+	map<unsigned short, vector<Stream*>*>::iterator it;
 
-	itSt = streamList.find(pid);
-	if (itSt != streamList.end()){
-		stream = itSt->second;
-		streamList.erase(itSt);
-		return stream;
+	it = streamList.find(pid);
+	if (it != streamList.end()){
+		delete it->second;
+		streamList.erase(it);
+		return true;
 	}
 
-	return NULL;
+	return false;
 }
 
 bool Muxer::removeAllElementaryStreams() {
+	map<unsigned short, vector<Stream*>*>::iterator it;
+
+	for (it = streamList.begin(); it != streamList.end(); ++it) {
+		delete (it->second);
+	}
 	streamList.clear();
+
 	return true;
 }
 
@@ -304,7 +337,7 @@ map<unsigned short, unsigned short>* Muxer::getPcrList() {
 	return &pcrList;
 }
 
-map<unsigned short, Stream*>* Muxer::getStreamList() {
+map<unsigned short, vector<Stream*>*>* Muxer::getStreamList() {
 	return &streamList;
 }
 
@@ -348,14 +381,19 @@ void Muxer::newStcStep() {
 
 int Muxer::mainLoop() {
 	int64_t nextSend;
-	unsigned short pid;
+	unsigned short pid = 0xFFFF;
+	int idx;
 	bool streamScheduled = false;
+	Stream* stream;
 
 	fillAllBufferes();
 	stcOffset = 0;
 
+	idx = -1;
 	//get next stream to multiplex
-	nextSend = getNextStcStreamToMultiplex(&pid, &streamScheduled);
+	nextSend = getNextStcStreamToMultiplex(&pid, &idx, &streamScheduled);
+	if (idx < 0) return -1;
+	stream = streamList[pid]->at(idx);
 
 	//wait for it
 	while (stc < nextSend) {
@@ -369,10 +407,10 @@ int Muxer::mainLoop() {
 		vector<Buffer*>::iterator it;
 		streamScheduled = false;
 
-		streamList[pid]->setCurrStc(stc + stcOffset);
-		if (streamList[pid]->getBuffer(&buffer)) {
+		stream->setCurrStc(stc + stcOffset);
+		if (stream->getBuffer(&buffer)) {
 			//write it as a TS
-			writeTsStream(pid, streamList[pid]->getType());
+			writeTsStream(pid, stream->getType());
 		} else {
 			bitrateErrorCounter++;
 			if (bitrateErrorCounter >= 5) {
@@ -389,10 +427,13 @@ int Muxer::mainLoop() {
 				}*/
 			}
 		}
-		streamList[pid]->disposeBuffer();
-		streamList[pid]->updateNextSend(stc + stcOffset);
-		nextSend = getNextStcStreamToMultiplex(&pid, &streamScheduled);
-		streamList[pid]->fillBuffer();
+		stream->disposeBuffer();
+		stream->updateNextSend(stc + stcOffset);
+		idx = -1;
+		nextSend = getNextStcStreamToMultiplex(&pid, &idx, &streamScheduled);
+		if (idx < 0) return -1;
+		stream = streamList[pid]->at(idx);
+		stream->fillBuffer();
 		if (stc + stcOffset < nextSend) break;
 	}
 
