@@ -62,6 +62,10 @@ class Project {
 		unsigned char transmissionMode;
 		unsigned short packetsInBuffer;
 
+		bool useTot;
+		bool useSdt;
+		bool useNit;
+
 		map<int, ProjectInfo*>* projectList;
 		//TODO: EIT (schedule)
 
@@ -77,7 +81,8 @@ class Project {
 		int configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 					  string baseDir, string initClass, unsigned int orgId,
 					  unsigned short appId, unsigned int appcode);
-
+		int configSdt(vector<pmtViewInfo*>* newTimeline, ProjectInfo* sdt);
+		int configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit);
 		void setDestination(string dest);
 		string getDestination();
 		void setProviderName(string name);
@@ -100,6 +105,12 @@ class Project {
 		unsigned char getGuardInterval();
 		unsigned char getTransmissionMode();
 		unsigned short getPacketsInBuffer();
+		void setUseTot(bool use);
+		bool getUseTot();
+		void setUseSdt(bool use);
+		bool getUseSdt();
+		void setUseNit(bool use);
+		bool getUseNit();
 
 		virtual int readFile()=0;
 

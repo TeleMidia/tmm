@@ -28,6 +28,8 @@ struct MetaData {
 
 class XMLProject : public Project {
 	#define TOT_NAME "_tot_project_"
+	#define SDT_NAME "_sdt_project_"
+	#define NIT_NAME "_nit_project_"
 	#define TIMELINE_NAME "_timeline_project_"
 
 	private:

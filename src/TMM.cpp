@@ -24,25 +24,24 @@ TMM::TMM(Project* project) {
 
 TMM::~TMM() {
 	if (muxer) delete muxer;
+	releaseSiStreamList();
 	if (patStream) delete patStream;
-	if (totStream) delete totStream;
-	if (sdtStream) delete sdtStream;
-	if (nitStream) delete nitStream;
 	if (eitStream) delete eitStream;
+}
+
+void TMM::releaseSiStreamList() {
+	map<ProjectInfo*, SectionStream*>::iterator itSi;
+	for (itSi = siStreamList.begin(); itSi != siStreamList.end(); ++itSi) {
+		if (itSi->second) delete itSi->second;
+	}
+	siStreamList.clear();
 }
 
 void TMM::init() {
 	muxer = NULL;
 	patStream = NULL;
-	totStream = NULL;
-	sdtStream = NULL;
-	nitStream = NULL;
 	eitStream = NULL;
-	useSdt = false;
-	useNit = false;
 	patVersion = 0;
-	sdtVersion = 0;
-	nitVersion = 0;
 	destination = "";
 	lastStcPrinter = 0;
 }
@@ -108,6 +107,8 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 	NPTProject* nptProj;
 	PCarousel* carProj;
 	PAit* aitProj;
+	PSdt* sdtProj;
+	PNit* nitProj;
 	PTot* totProj;
 	double nextSendOffset, timeOffset, bufOffset, preponeDiff = 0.0;
 
@@ -187,6 +188,26 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		sec->setFrequency(Stc::secondToStc(0.2));
 		sec->initiateNextSend(muxer->getCurrentStc() +
 				Stc::secondToStc(aitProj->getTransmissionDelay()));
+		sec->fillBuffer();
+		return sec;
+	case PT_SDT:
+		sdtProj = (PSdt*) proj;
+		sdtProj->setVersionNumber(sdtProj->getVersion());
+		sec = new SectionStream();
+		sdtProj->updateStream();
+		sec->addSection(sdtProj);
+		sec->setFrequency(Stc::secondToStc(1.0));
+		sec->initiateNextSend(muxer->getCurrentStc());
+		sec->fillBuffer();
+		return sec;
+	case PT_NIT:
+		nitProj = (PNit*) proj;
+		nitProj->setVersionNumber(nitProj->getVersion());
+		sec = new SectionStream();
+		nitProj->updateStream();
+		sec->addSection(nitProj);
+		sec->setFrequency(Stc::secondToStc(1.0));
+		sec->initiateNextSend(muxer->getCurrentStc());
 		sec->fillBuffer();
 		return sec;
 	case PT_TOT:
@@ -378,7 +399,7 @@ int TMM::multiplex() {
 
 		ret = muxer->mainLoop();
 
-		if (!totStream) {
+		if (!project->getUseTot()) {
 			if (lastStcPrinter != (unsigned int) Stc::stcToSecond(muxer->getCurrentStc())/5) {
 				lastStcPrinter = Stc::stcToSecond(muxer->getCurrentStc())/5;
 				time(&now);
@@ -390,6 +411,19 @@ int TMM::multiplex() {
 	}
 
 	return ret;
+}
+
+bool TMM::releaseStreamFromList(ProjectInfo* proj) {
+	map<ProjectInfo*, SectionStream*>::iterator itSi;
+	itSi = siStreamList.find(proj);
+	if (itSi != siStreamList.find(proj)) {
+		if (itSi->second) {
+			delete itSi->second;
+			siStreamList.erase(itSi);
+			return true;
+		}
+	}
+	return false;
 }
 
 void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
@@ -419,96 +453,6 @@ void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 		muxer->addPcrPid((*itPmt)->pv->getPcrPid(), (*itPmt)->pv->getPcrFrequency());
 		++itPmt;
 	}
-}
-
-int TMM::updateSdt(vector<pmtViewInfo*>* newTimeline, Sdt** sdt) {
-	vector<pmtViewInfo*>::iterator itPmt;
-
-	if ((*sdt) == NULL) return -1;
-	(*sdt)->releaseAllServiceInformation();
-	(*sdt)->setCurrentNextIndicator(1);
-	(*sdt)->setOriginalNetworkId(project->getOriginalNetworkId());
-	(*sdt)->setTableIdExtension(project->getTsid());
-	itPmt = newTimeline->begin();
-	while (itPmt != newTimeline->end()) {
-		ServiceInformation* si = new ServiceInformation();
-		Service* service = new Service();
-		service->setServiceName((*itPmt)->pv->getServiceName());
-		service->setProviderName(project->getProviderName());
-		if ((*itPmt)->pv->getEitProj()) {
-			si->eitPresentFollowingFlag = true;
-		} else {
-			si->eitPresentFollowingFlag = false;
-		}
-		si->eitScheduleFlag = false;
-		si->freeCaMode = 0;
-		si->runningStatus = 4; //Running
-		si->serviceId = (*itPmt)->pv->getProgramNumber();
-		si->descriptorList.push_back(service);
-		(*sdt)->addServiceInformation(si);
-		++itPmt;
-	}
-
-	return 0;
-}
-
-int TMM::updateNit(vector<pmtViewInfo*>* newTimeline, Nit** nit) {
-	vector<pmtViewInfo*>::iterator itPmt;
-	unsigned int serviceId = 65536;
-
-	if ((*nit) == NULL) return -1;
-
-	(*nit)->releaseAllDescriptors();
-	(*nit)->releaseAllTransportInformation();
-	(*nit)->setCurrentNextIndicator(1);
-	(*nit)->setTableIdExtension(project->getOriginalNetworkId());
-	NetworkName* netName = new NetworkName();
-	netName->setNetworkName(project->getProviderName());
-	(*nit)->addDescriptor(netName);
-	SystemManagement* sysMan = new SystemManagement();
-	(*nit)->addDescriptor(sysMan);
-	TransportInformation* ti = new TransportInformation();
-	ti->transportStreamId = project->getTsid();
-	ti->originalNetworkId = (*nit)->getTableIdExtension();
-	ServiceList* sl = new ServiceList();
-	itPmt = newTimeline->begin();
-	while (itPmt != newTimeline->end()) {
-		sl->addService((*itPmt)->pv->getProgramNumber(), DIGITAL_TELEVISION_SERVICE);
-		++itPmt;
-	}
-	ti->descriptorList.push_back(sl);
-	TerrestrialDeliverySystem* tds = new TerrestrialDeliverySystem();
-	tds->setGuardInterval(project->getGuardInterval());
-	tds->setTransmissionMode(project->getTransmissionMode());
-	tds->addFrequency(project->getBroadcastFrequency());
-	ti->descriptorList.push_back(tds);
-	itPmt = newTimeline->begin();
-	while (itPmt != newTimeline->end()) {
-		if ((*itPmt)->pv->getProgramNumber() < serviceId) {
-			serviceId = (*itPmt)->pv->getProgramNumber();
-		}
-		++itPmt;
-	}
-	if (serviceId != 65536) {
-		PartialReception* pr = new PartialReception();
-		pr->addServiceId(serviceId);
-		ti->descriptorList.push_back(pr);
-	}
-	TSInformation* tsinfo = new TSInformation();
-	tsinfo->setRemoteControlKeyId(project->getVirtualChannel());
-	tsinfo->setTsName(project->getTsName());
-	itPmt = newTimeline->begin();
-	while (itPmt != newTimeline->end()) {
-		TransmissionType* tt = new TransmissionType();
-		tt->transmissionTypeInfo = 0x0F; // ???
-		tt->serviceIdList.insert((*itPmt)->pv->getProgramNumber());
-		tsinfo->addTransmissionTypeList(tt);
-		++itPmt;
-	}
-	ti->descriptorList.push_back(tsinfo);
-	(*nit)->addTransportInformation(ti);
-
-	return 0;
 }
 
 int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
@@ -592,11 +536,10 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	ProjectInfo* proj;
 	PEit* eitProj;
 	vector<pmtViewInfo*>::iterator itPmt;
+	map<ProjectInfo*, SectionStream*>::iterator itSi;
 	int ret;
 	int tc;
 	int64_t currStc;
-
-	if (project->getProviderName() != "Unnamed provider") useNit = true;
 
 	//Program Association Table & Program Map Table begin
 	if (pat) delete pat;
@@ -605,14 +548,13 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	pat->setVersionNumber(0);
 	pat->setSectionSyntaxIndicator(1);
 	pat->setTableIdExtension(project->getTsid());
-	if (useNit) pat->addPmt(0, 0x10);
+	if (project->getUseNit()) pat->addPmt(0, 0x10);
 	itPmt = newTimeline->begin();
 	while (itPmt != newTimeline->end()) {
 		pat->addPmt((*itPmt)->pv->getProgramNumber(),
 					(*itPmt)->pv->getPid());
 		ret = createPmt(NULL, (*itPmt)->pv, &pmt);
 		if (ret < 0) return -1;
-		if ((*itPmt)->pv->getServiceName() != "Unnamed service") useSdt = true;
 		sec = new SectionStream();
 		pmt->updateStream();
 		sec->addSection(pmt);
@@ -633,52 +575,43 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	//Program Association Table & Program Map Table end
 
 	//Time Offset Table begins
-	if (totStream) {
-		delete totStream;
-		totStream = NULL;
-	}
-
 	proj = getFirstProject(PT_TOT);
+	releaseStreamFromList(proj);
 	if (proj) {
-		totStream = (SectionStream*) createStream(proj);
-		muxer->addElementaryStream(0x14, totStream);
+		siStreamList[proj] = (SectionStream*) createStream(proj);
+		muxer->addElementaryStream(0x14, siStreamList[proj]);
 	}
 
 	//Time Offset Table ends
 
 	//Service Descriptor Table begins
-	if (useSdt) {
-		Sdt* sdt = new Sdt();
-		sdt->setVersionNumber(++sdtVersion);
-		ret = updateSdt(newTimeline, &sdt);
-		if (ret < 0) {
-			if (sdt) delete sdt;
-			return -2;
+	if (project->getUseSdt()) {
+		proj = getFirstProject(PT_SDT);
+		if (proj) {
+			releaseStreamFromList(proj);
+			ret = project->configSdt(newTimeline, proj);
+			if (ret < 0) {
+				return -2;
+			}
+			siStreamList[proj] = (SectionStream*) createStream(proj);
+			muxer->addElementaryStream(0x11, siStreamList[proj]);
 		}
-		if (sdtStream) delete sdtStream;
-		sdtStream = new SectionStream();
-		sdt->updateStream();
-		sdtStream->addSection(sdt);
-		sdtStream->fillBuffer();
-		sdtStream->setFrequency(Stc::secondToStc(1.0));
-		sdtStream->initiateNextSend(muxer->getCurrentStc());
-		muxer->addElementaryStream(0x11, sdtStream);
 	}
 	//Service Descriptor Table ends
 
 
 	//Network Information Table begins
-	if (useNit) {
-		Nit* nit = new Nit();
-		updateNit(newTimeline, &nit);
-		if (nitStream) delete nitStream;
-		nitStream = new SectionStream();
-		nit->updateStream();
-		nitStream->addSection(nit);
-		nitStream->fillBuffer();
-		nitStream->setFrequency(Stc::secondToStc(1.0));
-		nitStream->initiateNextSend(muxer->getCurrentStc());
-		muxer->addElementaryStream(0x10, nitStream);
+	if (project->getUseNit()) {
+		proj = getFirstProject(PT_NIT);
+		if (proj) {
+			releaseStreamFromList(proj);
+			ret = project->configNit(newTimeline, proj);
+			if (ret < 0) {
+				return -2;
+			}
+			siStreamList[proj] = (SectionStream*) createStream(proj);
+			muxer->addElementaryStream(0x10, siStreamList[proj]);
+		}
 	}
 	//Network Information Table ends
 
@@ -735,6 +668,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 	vector<pmtViewInfo*>::iterator itPmtCurr;
 	vector<pmtViewInfo*>::iterator itPmtNew;
 	map<int, ProjectInfo*>::iterator itProj;
+	map<ProjectInfo*, SectionStream*>::iterator itSi;
 	ProjectInfo* proj;
 	PEit* eitProj;
 	SectionStream *sec;
@@ -852,49 +786,57 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 	}
 
 	//Service Descriptor Table begins
-	if (sdtStream) {
-		if (patChanged) {
-			Sdt* sdt = new Sdt();
-			sdt->setVersionNumber(++sdtVersion);
-			ret = updateSdt(newTimeline, &sdt);
-			if (ret < 0) {
-				if (sdt) delete sdt;
-				return -2;
+	if (project->getUseSdt()) {
+		proj = getFirstProject(PT_SDT);
+		if (proj) {
+			if (patChanged) {
+				((PSdt*)proj)->setVersion(((PSdt*)proj)->getVersion() + 1);
+				((PSdt*)proj)->setVersionNumber(((PSdt*)proj)->getVersion());
+				ret = project->configSdt(newTimeline, proj);
+				if (ret < 0) {
+					return -2;
+				}
+				siStreamList[proj]->releaseSectionList();
+				siStreamList[proj]->releaseBufferList();
+				((PSdt*)proj)->updateStream();
+				siStreamList[proj]->addSection((PSdt*)proj);
+				siStreamList[proj]->fillBuffer();
 			}
-			sdtStream->releaseSectionList();
-			sdtStream->releaseBufferList();
-			sdt->updateStream();
-			sdtStream->addSection(sdt);
-			sdtStream->fillBuffer();
+			muxer->addElementaryStream(0x11, siStreamList[proj]);
 		}
-		muxer->addElementaryStream(0x11, sdtStream);
 	}
 	//Service Descriptor Table ends
 
 	//Network Information Table begins
-	if (nitStream) {
-		if (patChanged) {
-			Nit* nit = new Nit();
-			nit->setVersionNumber(++nitVersion);
-			ret = updateNit(newTimeline, &nit);
-			if (ret < 0) {
-				if (nit) delete nit;
-				return -2;
+	if (project->getUseNit()) {
+		proj = getFirstProject(PT_NIT);
+		if (proj) {
+			if (patChanged) {
+				((PNit*)proj)->setVersion(((PNit*)proj)->getVersion() + 1);
+				((PNit*)proj)->setVersionNumber(((PNit*)proj)->getVersion());
+				ret = project->configNit(newTimeline, proj);
+				if (ret < 0) {
+					return -2;
+				}
+				siStreamList[proj]->releaseSectionList();
+				siStreamList[proj]->releaseBufferList();
+				((PNit*)proj)->updateStream();
+				siStreamList[proj]->addSection((PNit*)proj);
+				siStreamList[proj]->fillBuffer();
 			}
-			nitStream->releaseSectionList();
-			nitStream->releaseBufferList();
-			nit->updateStream();
-			nitStream->addSection(nit);
-			nitStream->fillBuffer();
+			muxer->addElementaryStream(0x10, siStreamList[proj]);
 		}
-		muxer->addElementaryStream(0x10, nitStream);
 	}
 	//Network Information Table ends
 
 	//Time Offset Table begins
 
-	if (totStream && getFirstProject(PT_TOT)) {
-		muxer->addElementaryStream(0x14, totStream);
+	proj = getFirstProject(PT_TOT);
+	if (project->getUseTot() && proj) {
+		itSi = siStreamList.find(proj);
+		if (itSi != siStreamList.end()) {
+			muxer->addElementaryStream(0x14, siStreamList[proj]);
+		}
 	}
 	//Time Offset Table ends
 

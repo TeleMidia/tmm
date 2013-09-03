@@ -34,21 +34,16 @@ class TMM {
 
 	private:
 		void init();
+		void releaseSiStreamList();
 
 	protected:
 		Project *project;
 		Muxer* muxer;
 		string destination;
 		SectionStream* patStream;
-		SectionStream* totStream;
-		SectionStream* sdtStream;
-		SectionStream* nitStream;
 		SectionStream* eitStream;
-		bool useSdt;
-		bool useNit;
+		map<ProjectInfo*, SectionStream*> siStreamList;
 		unsigned char patVersion;
-		unsigned char sdtVersion;
-		unsigned char nitVersion;
 		unsigned int lastStcPrinter;
 
 		ProjectInfo* getFirstProject(char projectType);
@@ -57,10 +52,9 @@ class TMM {
 		Stream *createStream(ProjectInfo* proj);
 		bool createStreamList(vector<pmtViewInfo*>* currentTimeline,
 							  vector<pmtViewInfo*>* newTimeline);
+		bool releaseStreamFromList(ProjectInfo* proj);
 
 		void processPcrsInUse(vector<pmtViewInfo*>* newTimeline);
-		int updateSdt(vector<pmtViewInfo*>* newTimeline, Sdt** sdt);
-		int updateNit(vector<pmtViewInfo*>* newTimeline, Nit** nit);
 		int createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt);
 		int createSiTables(vector<pmtViewInfo*>* newTimeline);
 		int restoreSiTables(vector<pmtViewInfo*>* currentTimeline,

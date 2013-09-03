@@ -541,6 +541,7 @@ int XMLProject::readFile() {
 					}
 
 					for (m = e->FirstChild(); m; m = m->NextSibling()) {
+						PSdt* pSdt = NULL;
 						f = m->ToElement();
 						if (strcmp(m->Value(), "pmt") == 0) {
 							PMTView* pmtView = new PMTView();
@@ -561,11 +562,6 @@ int XMLProject::readFile() {
 								return -4;
 							}
 							pmtView->setProgramNumber(num);
-							if (f->QueryAttribute("pid", &num) != XML_NO_ERROR) {
-								cout << "pmt: attribute 'pid' not found." << endl;
-								return -4;
-							}
-							pmtView->setPid(num);
 							if (f->QueryAttribute("pcrpid", &num) != XML_NO_ERROR) {
 								cout << "pmt: attribute 'pcrpid' not found." << endl;
 								return -4;
@@ -583,6 +579,15 @@ int XMLProject::readFile() {
 							}
 							if (value1.size()) {
 								pmtView->setServiceName(value1);
+								if (!useSdt) {
+									int id2;
+									value1 = SDT_NAME;
+									if (!createNewId(value1)) return -3;
+									pSdt = new PSdt();
+									id2 = getId(value1);
+									(*projectList)[id2] = pSdt;
+								}
+								useSdt = true;
 							} else {
 								pmtView->setServiceName("Unnamed service");
 							}
@@ -596,10 +601,23 @@ int XMLProject::readFile() {
 									pmtView->setServiceType(SRV_TYPE_DATA2);
 								} else if (value1 == "oneseg") {
 									pmtView->setServiceType(SRV_TYPE_ONESEG);
+									pmtView->setPid(0x1FC8);
 								} else {
 									cout << "pmt: 'servicetype' not recognized ("
 										 << value1 << ")" << endl;
 									return -6;
+								}
+							}
+							if (pmtView->getServiceType() != SRV_TYPE_ONESEG) {
+								if (f->QueryAttribute("pid", &num) != XML_NO_ERROR) {
+									cout << "pmt: attribute 'pid' not found." << endl;
+									return -4;
+								}
+								pmtView->setPid(num);
+							} else {
+								if (f->QueryAttribute("pid", &num) == XML_NO_ERROR) {
+									cout << "pmt: the one-seg service overrode your 'pid' " <<
+											"value to 0x1FC8." << endl;
 								}
 							}
 							value1 = getAttribute(f, "eitid");
@@ -642,6 +660,7 @@ int XMLProject::readFile() {
 
 				if ((strcmp(n->Value(), "output") == 0) && (hasInput)) {
 					PTot* pTot = NULL;
+					PNit* pNit = NULL;
 					bool systimeAttrib = false;
 					id = getId(TOT_NAME);
 					if (id >= 0) {
@@ -680,6 +699,15 @@ int XMLProject::readFile() {
 					}
 					if (value1.size()) {
 						providerName = value1;
+						if (!useNit) {
+							int id2;
+							value1 = NIT_NAME;
+							if (!createNewId(value1)) return -3;
+							pNit = new PNit();
+							id2 = getId(value1);
+							(*projectList)[id2] = pNit;
+						}
+						useNit = true;
 					} else {
 						providerName.assign("Unnamed provider");
 					}
@@ -845,7 +873,10 @@ int XMLProject::readFile() {
 						}
 						pTot->setUtcOffset(num * 3600);
 					}
-					if (pTot) (*projectList)[id] = pTot;
+					if (pTot) {
+						(*projectList)[id] = pTot;
+						useTot = true;
+					}
 
 					Timeline* timeline = NULL;
 					id = getId(TIMELINE_NAME);

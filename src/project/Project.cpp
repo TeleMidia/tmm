@@ -19,6 +19,9 @@ Project::Project() {
 	vbvBuffer = 1.0;
 	ttl = 16;
 	packetsInBuffer = 40;
+	useTot = false;
+	useSdt = false;
+	useNit = false;
 }
 
 Project::~Project() {
@@ -112,6 +115,98 @@ int Project::configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 	dlist->push_back(gal);
 
 	ait->addApplicationInfo(orgId, appId, appcode, dlist);
+
+	return 0;
+}
+
+int Project::configSdt(vector<pmtViewInfo*>* newTimeline, ProjectInfo* sdt) {
+	vector<pmtViewInfo*>::iterator itPmt;
+	PSdt* pSdt = (PSdt*)sdt;
+
+	if (sdt == NULL) return -1;
+	pSdt->releaseAllServiceInformation();
+	pSdt->setCurrentNextIndicator(1);
+	pSdt->setOriginalNetworkId(originalNetworkId);
+	pSdt->setTableIdExtension(tsid);
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		ServiceInformation* si = new ServiceInformation();
+		Service* service = new Service();
+		service->setServiceName((*itPmt)->pv->getServiceName());
+		service->setProviderName(providerName);
+		if ((*itPmt)->pv->getEitProj()) {
+			si->eitPresentFollowingFlag = true;
+		} else {
+			si->eitPresentFollowingFlag = false;
+		}
+		si->eitScheduleFlag = false;
+		si->freeCaMode = 0;
+		si->runningStatus = 4; //Running
+		si->serviceId = (*itPmt)->pv->getProgramNumber();
+		si->descriptorList.push_back(service);
+		pSdt->addServiceInformation(si);
+		++itPmt;
+	}
+
+	return 0;
+}
+
+int Project::configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit) {
+	vector<pmtViewInfo*>::iterator itPmt;
+	PNit* pNit = (PNit*)nit;
+	unsigned int serviceId = 65536;
+
+	if (pNit == NULL) return -1;
+
+	pNit->releaseAllDescriptors();
+	pNit->releaseAllTransportInformation();
+	pNit->setCurrentNextIndicator(1);
+	pNit->setTableIdExtension(originalNetworkId);
+	NetworkName* netName = new NetworkName();
+	netName->setNetworkName(providerName);
+	pNit->addDescriptor(netName);
+	SystemManagement* sysMan = new SystemManagement();
+	pNit->addDescriptor(sysMan);
+	TransportInformation* ti = new TransportInformation();
+	ti->transportStreamId = tsid;
+	ti->originalNetworkId = pNit->getTableIdExtension();
+	ServiceList* sl = new ServiceList();
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		sl->addService((*itPmt)->pv->getProgramNumber(), DIGITAL_TELEVISION_SERVICE);
+		++itPmt;
+	}
+	ti->descriptorList.push_back(sl);
+	TerrestrialDeliverySystem* tds = new TerrestrialDeliverySystem();
+	tds->setGuardInterval(guardInterval);
+	tds->setTransmissionMode(transmissionMode);
+	tds->addFrequency(broadcastFrequency);
+	ti->descriptorList.push_back(tds);
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		if ((*itPmt)->pv->getProgramNumber() < serviceId) {
+			serviceId = (*itPmt)->pv->getProgramNumber();
+		}
+		++itPmt;
+	}
+	if (serviceId != 65536) {
+		PartialReception* pr = new PartialReception();
+		pr->addServiceId(serviceId);
+		ti->descriptorList.push_back(pr);
+	}
+	TSInformation* tsinfo = new TSInformation();
+	tsinfo->setRemoteControlKeyId(virtualChannel);
+	tsinfo->setTsName(tsName);
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		TransmissionType* tt = new TransmissionType();
+		tt->transmissionTypeInfo = 0x0F; // ???
+		tt->serviceIdList.insert((*itPmt)->pv->getProgramNumber());
+		tsinfo->addTransmissionTypeList(tt);
+		++itPmt;
+	}
+	ti->descriptorList.push_back(tsinfo);
+	pNit->addTransportInformation(ti);
 
 	return 0;
 }
@@ -227,6 +322,30 @@ ProjectInfo* Project::findProject(int id) {
 	}
 
 	return NULL;
+}
+
+void Project::setUseTot(bool use) {
+	useTot = use;
+}
+
+bool Project::getUseTot() {
+	return useTot;
+}
+
+void Project::setUseSdt(bool use) {
+	useSdt = use;
+}
+
+bool Project::getUseSdt() {
+	return useSdt;
+}
+
+void Project::setUseNit(bool use) {
+	useNit = use;
+}
+
+bool Project::getUseNit() {
+	return useNit;
 }
 
 }
