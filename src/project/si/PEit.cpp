@@ -6,14 +6,12 @@
  */
 
 #include "project/si/PEit.h"
+#include <cstdio>
 
 namespace br {
 namespace pucrio {
 namespace telemidia {
 namespace tool {
-
-unsigned int PEit::turn;
-unsigned int PEit::turnCount;
 
 PEit::PEit() {
 	init();
@@ -26,8 +24,6 @@ PEit::PEit(int id) {
 
 void PEit::init() {
 	projectType = PT_EIT_PF;
-	turn = 0;
-	turnCount = 0;
 	lastEventId = -1;
 	offsetAdjusted = false;
 }
@@ -51,15 +47,6 @@ void PEit::adjustUtcOffset(int uos) {
 	offsetAdjusted = true;
 }
 
-void PEit::setTurnNumber(unsigned int num) {
-	turnNumber = num;
-}
-
-void PEit::setTurnCount(unsigned int count) {
-	turnCount = count;
-	turn = 0;
-}
-
 void PEit::setStcBegin(int64_t stc) {
 	stcBegin = stc;
 }
@@ -79,10 +66,6 @@ int PEit::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 	time_t dateTime;
 	double elapsedTime;
 	int eventId = -1;
-
-	if ((turn % turnCount) != turnNumber) return 0;
-	turn++;
-	if (turn == turnCount) turn = 0;
 
 	elapsedTime = Stc::stcToSecond(stc - stcBegin);
 	dateTime = timeBegin + (elapsedTime + 0.5f);
@@ -106,6 +89,12 @@ int PEit::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 						if (eventId != lastEventId) {
 							versionNumber++;
 							lastEventId = eventId;
+							/*tm *t=localtime(&dateTime);
+							cout << tableIdExtension << ": " << eventId << ", " <<
+								Stc::stcToSecond(stc - stcBegin) << ", ";
+								printf("%04d-%02d-%02d %02d:%02d:%02d\n",
+								t->tm_year+1900,t->tm_mon+1,t->tm_mday,
+								t->tm_hour,t->tm_min,t->tm_sec);*/
 						}
 						break;
 					}

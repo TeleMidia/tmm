@@ -11,6 +11,7 @@
 #include "inputdata/InputData.h"
 #include "npt/NPTProject.h"
 #include "carousel/PCarousel.h"
+#include "si/PPat.h"
 #include "si/PAit.h"
 #include "si/PTot.h"
 #include "si/PSdt.h"
@@ -81,6 +82,7 @@ class Project {
 		int configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 					  string baseDir, string initClass, unsigned int orgId,
 					  unsigned short appId, unsigned int appcode);
+		int configAitService(ProjectInfo* ait, unsigned short serviceId);
 		int configSdt(vector<pmtViewInfo*>* newTimeline, ProjectInfo* sdt);
 		int configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit);
 		void setDestination(string dest);

@@ -14,6 +14,7 @@ namespace tool {
 
 Project::Project() {
 	projectList = new map<int, ProjectInfo*>;
+	(*projectList)[0] = new PPat();
 	stcBegin = SYSTEM_CLOCK_FREQUENCY * 10;
 	isLoop = false;
 	vbvBuffer = 1.0;
@@ -88,7 +89,8 @@ int Project::configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 	ocp->componentTag = ctag;
 	ocp->originalNetworkId = originalNetworkId;
 	ocp->transportStreamId = tsid;
-	//ocp->serviceId = ; TODO: Depends on the service that it's broadcasted.
+	//ocp->serviceId: use configAitService() to define this field,
+	//because it depends on the service that it's broadcasted.
 	tp->setOcProtocol(ocp);
 	dlist->push_back(tp);
 
@@ -115,6 +117,26 @@ int Project::configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 	dlist->push_back(gal);
 
 	ait->addApplicationInfo(orgId, appId, appcode, dlist);
+
+	return 0;
+}
+
+int Project::configAitService(ProjectInfo* ait, unsigned short serviceId) {
+	vector<MpegDescriptor*>::iterator itDesc;
+	PAit* pAit = (PAit*)ait;
+	vector<MpegDescriptor*>* dlist = pAit->getDescriptorList();
+
+	for (itDesc = dlist->begin(); itDesc != dlist->end(); ++itDesc) {
+		if ((*itDesc)->getDescriptorTag() == 0x02) {
+			TransportProtocol* tp = (TransportProtocol*)(*itDesc);
+			if (tp) {
+				ObjectCarouselProtocol* ocp = tp->getOcProtocol();
+				if (ocp) {
+					ocp->serviceId = serviceId;
+				}
+			}
+		}
+	}
 
 	return 0;
 }

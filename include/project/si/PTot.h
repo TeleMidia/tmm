@@ -59,6 +59,7 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		short getUtc();
 		void setDaylightSavingTime(bool dst);
 		bool getDaylightSavingTime();
+		int getOffset();
 		void setOffset(int os);
 		int getUtcOffset();
 		void setUtcOffset(int uos);

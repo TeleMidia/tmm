@@ -35,6 +35,7 @@ class XMLProject : public Project {
 	private:
 		XMLDocument* xmldoc;
 
+		void init();
 		string getAttribute(XMLElement* e, string name);
 		string getElementText(XMLElement* e);
 

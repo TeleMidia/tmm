@@ -25,8 +25,6 @@ namespace tool {
 class PEit : public ProjectInfo, public Eit, public Subscriber {
 
 	private:
-		static unsigned int turn;
-		static unsigned int turnCount;
 		void init();
 
 	protected:
@@ -44,8 +42,6 @@ class PEit : public ProjectInfo, public Eit, public Subscriber {
 		virtual ~PEit();
 
 		void adjustUtcOffset(int uos);
-		void setTurnNumber(unsigned int num);
-		void setTurnCount(unsigned int count);
 		void setStcBegin(int64_t stc);
 		void setTimeBegin(time_t dateTime);
 		time_t getTimeBegin();

@@ -241,6 +241,10 @@ bool PTot::getDaylightSavingTime() {
 	return daylightSavingTime;
 }
 
+int PTot::getOffset() {
+	return offset;
+}
+
 void PTot::setOffset(int os) {
 	offset = os;
 }

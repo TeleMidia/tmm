@@ -40,10 +40,7 @@ class TMM {
 		Project *project;
 		Muxer* muxer;
 		string destination;
-		SectionStream* patStream;
-		SectionStream* eitStream;
 		map<ProjectInfo*, SectionStream*> siStreamList;
-		unsigned char patVersion;
 		unsigned int lastStcPrinter;
 
 		ProjectInfo* getFirstProject(char projectType);

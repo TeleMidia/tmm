@@ -13,26 +13,17 @@ namespace telemidia {
 namespace tool {
 
 XMLProject::XMLProject() : Project() {
-	xmldoc = new XMLDocument();
-	projectName.assign("Untitled project");
-	projectDescription.clear();
-	idIndex = 0;
+	init();
 }
 
 XMLProject::XMLProject(string filename) : Project() {
-	xmldoc = new XMLDocument();
+	init();
 	this->filename = filename;
-	projectName.assign("Untitled project");
-	projectDescription.clear();
-	idIndex = 0;
 }
 
 XMLProject::XMLProject(const char* filename) : Project() {
-	xmldoc = new XMLDocument();
+	init();
 	this->filename.assign(filename);
-	projectName.assign("Untitled project");
-	projectDescription.clear();
-	idIndex = 0;
 }
 
 XMLProject::~XMLProject() {
@@ -43,6 +34,12 @@ XMLProject::~XMLProject() {
 		delete (*it);
 		++it;
 	}
+}
+
+void XMLProject::init() {
+	xmldoc = new XMLDocument();
+	projectName.assign("Untitled project");
+	idIndex = 1;
 }
 
 string XMLProject::getAttribute(XMLElement* e, string name) {
