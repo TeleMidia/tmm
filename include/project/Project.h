@@ -70,6 +70,8 @@ class Project {
 		map<int, ProjectInfo*>* projectList;
 		//TODO: EIT (schedule)
 
+		bool changeToProjectDir();
+
 	public:
 		Project();
 		virtual ~Project();

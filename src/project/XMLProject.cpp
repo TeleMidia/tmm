@@ -91,6 +91,8 @@ int XMLProject::readFile() {
 		return -2;
 	}
 
+	changeToProjectDir();
+
 	XMLNode *n, *m, *o, *p;
 	XMLElement *top, *e, *f, *g = NULL, *h;
 	string value, value1, value2;

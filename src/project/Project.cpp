@@ -38,6 +38,19 @@ Project::~Project() {
 	}
 }
 
+bool Project::changeToProjectDir() {
+	char* currDir = getcwd(NULL, 0);
+	if (currDir) {
+		string currDirString;
+		currDirString.assign(currDir);
+		unsigned found = filename.find_last_of("/\\");
+		currDirString += getUriSlash() + filename.substr(0,found);
+		chdir(currDirString.c_str());
+		return true;
+	}
+	return false;
+}
+
 bool Project::mountCarousels() {
 	char number[11];
 	string path, tempPath;
