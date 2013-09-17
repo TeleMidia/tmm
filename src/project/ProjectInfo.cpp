@@ -16,6 +16,8 @@ ProjectInfo::ProjectInfo() {
 	projectType = PT_UNKNOWN;
 	version = 0;
 	transmissionDelay = 0.0;
+	layer = 0x02;
+	layerConfigured = false;
 }
 
 ProjectInfo::~ProjectInfo() {
@@ -52,6 +54,22 @@ double ProjectInfo::getTransmissionDelay() {
 
 void ProjectInfo::setTransmissionDelay(double delay) {
 	transmissionDelay = delay;
+}
+
+void ProjectInfo::setLayer(unsigned char layer) {
+	this->layer = layer;
+}
+
+unsigned char ProjectInfo::getLayer() {
+	return layer;
+}
+
+void ProjectInfo::setLayerConfigured(bool set) {
+	layerConfigured = set;
+}
+
+bool ProjectInfo::getLayerConfigured() {
+	return layerConfigured;
 }
 
 }

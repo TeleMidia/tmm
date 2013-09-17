@@ -29,8 +29,8 @@ namespace telemidia {
 namespace tool {
 
 class TMM {
-	#define PREPONETICKS_AUDIO 0.4
-	#define PREPONETICKS_VIDEO 0.5
+	#define PREPONETICKS_AUDIO 0.2
+	#define PREPONETICKS_VIDEO 1.0
 
 	private:
 		void init();

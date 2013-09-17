@@ -99,6 +99,10 @@ int XMLProject::readFile() {
 	int num, id;
 	double dnum;
 
+	PTot* pTot = NULL;
+	PNit* pNit = NULL;
+	PSdt* pSdt = NULL;
+
 	e = xmldoc->FirstChildElement("tmm");
 	if (e) {
 		value = getAttribute(e, "projectname");
@@ -421,6 +425,18 @@ int XMLProject::readFile() {
 								cout << "The id = " << value1 << " doesn't exists." << endl;
 								return -8;
 							}
+							value1 = getAttribute(f, "layer");
+							if (value1.size()) {
+								num = toLayer(value1);
+								if (num != 0xFF) {
+									eit->setLayer((unsigned char)num);
+									eit->setLayerConfigured(true);
+								} else {
+									cout << "eit: 'layer' not recognized ("
+										 << value1 << ")" << endl;
+									return -6;
+								}
+							}
 							for (o = f->FirstChild(); o; o = o->NextSibling()) {
 								g = o->ToElement();
 								if (strcmp(o->Value(), "event") == 0) {
@@ -540,7 +556,6 @@ int XMLProject::readFile() {
 					}
 
 					for (m = e->FirstChild(); m; m = m->NextSibling()) {
-						PSdt* pSdt = NULL;
 						f = m->ToElement();
 						if (strcmp(m->Value(), "pmt") == 0) {
 							PMTView* pmtView = new PMTView();
@@ -594,6 +609,7 @@ int XMLProject::readFile() {
 							if (value1.size()) {
 								if (value1 == "tv") {
 									pmtView->setServiceType(SRV_TYPE_TV);
+									pmtView->setLayer(HIERARCHY_B);
 								} else if (value1 == "data1") {
 									pmtView->setServiceType(SRV_TYPE_DATA1);
 								} else if (value1 == "data2") {
@@ -601,11 +617,13 @@ int XMLProject::readFile() {
 								} else if (value1 == "oneseg") {
 									pmtView->setServiceType(SRV_TYPE_ONESEG);
 									pmtView->setPid(0x1FC8);
+									pmtView->setLayer(HIERARCHY_A);
 								} else {
 									cout << "pmt: 'servicetype' not recognized ("
 										 << value1 << ")" << endl;
 									return -6;
 								}
+								pmtView->setLayerConfigured(true);
 							}
 							if (pmtView->getServiceType() != SRV_TYPE_ONESEG) {
 								if (f->QueryAttribute("pid", &num) != XML_NO_ERROR) {
@@ -615,8 +633,22 @@ int XMLProject::readFile() {
 								pmtView->setPid(num);
 							} else {
 								if (f->QueryAttribute("pid", &num) == XML_NO_ERROR) {
-									cout << "pmt: the one-seg service overrode your 'pid' " <<
-											"value to 0x1FC8." << endl;
+									if (num != 0x1FC8) {
+										cout << "pmt: the one-seg service overrode your 'pid' " <<
+												"value to 0x1FC8." << endl;
+									}
+								}
+							}
+							value1 = getAttribute(f, "layer");
+							if (value1.size()) {
+								num = toLayer(value1);
+								if (num != 0xFF) {
+									pmtView->setLayer((unsigned char)num);
+									pmtView->setLayerConfigured(true);
+								} else {
+									cout << "pmt: 'layer' not recognized ("
+										 << value1 << ")" << endl;
+									return -6;
 								}
 							}
 							value1 = getAttribute(f, "eitid");
@@ -629,6 +661,10 @@ int XMLProject::readFile() {
 								proj = findProject(num);
 								if (proj) {
 									pmtView->setEitProj(proj);
+									if (!proj->getLayerConfigured()) {
+										proj->setLayer(pmtView->getLayer());
+										proj->setLayerConfigured(true);
+									}
 								} else return -7;
 							}
 							for (o = f->FirstChild(); o; o = o->NextSibling()) {
@@ -650,6 +686,28 @@ int XMLProject::readFile() {
 									if (g->QueryAttribute("ctag", &num) == XML_NO_ERROR) {
 										pmtView->addDesiredComponentTag(esPid, num);
 									}
+									if (pmtView->getServiceType() >= 0) {
+										switch (pmtView->getServiceType()) {
+										case SRV_TYPE_TV:
+											pmtView->addPidToLayer(esPid, HIERARCHY_B);
+											break;
+										case SRV_TYPE_ONESEG:
+											pmtView->addPidToLayer(esPid, HIERARCHY_A);
+											break;
+										}
+									}
+									value1 = getAttribute(g, "layer");
+									if (value1.size()) {
+										num = toLayer(value1);
+										if (num != 0xFF) {
+											pmtView->addPidToLayer(esPid, (unsigned char)num);
+											pmtView->setLayerConfigured(true);
+										} else {
+											cout << "pmt: 'layer' not recognized ("
+												 << value1 << ")" << endl;
+											return -6;
+										}
+									}
 								}
 							}
 							(*projectList)[id] = pmtView;
@@ -658,8 +716,6 @@ int XMLProject::readFile() {
 				}
 
 				if ((strcmp(n->Value(), "output") == 0) && (hasInput)) {
-					PTot* pTot = NULL;
-					PNit* pNit = NULL;
 					bool systimeAttrib = false;
 					id = getId(TOT_NAME);
 					if (id >= 0) {
@@ -876,6 +932,71 @@ int XMLProject::readFile() {
 						(*projectList)[id] = pTot;
 						useTot = true;
 					}
+					if (useTot) {
+						value1 = getAttribute(e, "totlayer");
+						if (value1.size()) {
+							num = toLayer(value1);
+							if (num != 0xFF) {
+								pTot->setLayer((unsigned char)num);
+								pTot->setLayerConfigured(true);
+							} else {
+								cout << "output: 'totlayer' not recognized ("
+									 << value1 << ")" << endl;
+								return -6;
+							}
+						}
+					}
+					if (useNit) {
+						value1 = getAttribute(e, "nitlayer");
+						if (value1.size()) {
+							num = toLayer(value1);
+							if (num != 0xFF) {
+								pNit->setLayer((unsigned char)num);
+								pNit->setLayerConfigured(true);
+							} else {
+								cout << "output: 'nitlayer' not recognized ("
+									 << value1 << ")" << endl;
+								return -6;
+							}
+						}
+					}
+					if (useSdt) {
+						value1 = getAttribute(e, "sdtlayer");
+						if (value1.size()) {
+							num = toLayer(value1);
+							if (num != 0xFF) {
+								pSdt->setLayer((unsigned char)num);
+								pSdt->setLayerConfigured(true);
+							} else {
+								cout << "output: 'sdtlayer' not recognized ("
+									 << value1 << ")" << endl;
+								return -6;
+							}
+						}
+					}
+					value1 = getAttribute(e, "patlayer");
+					if (value1.size()) {
+						num = toLayer(value1);
+						if (num != 0xFF) {
+							proj = (*projectList)[0];
+							proj->setLayer((unsigned char)num);
+							proj->setLayerConfigured(true);
+						} else {
+							cout << "output: 'patlayer' not recognized ("
+								 << value1 << ")" << endl;
+							return -6;
+						}
+					}
+
+					if (e->QueryAttribute("packetsize", &num) == XML_NO_ERROR) {
+						if ((num == 188) || (num == 204)) {
+							packetSize = num;
+						} else {
+							cout << "output: 'packetsize' not recognized ("
+								 << value1 << ")" << endl;
+							return -6;
+						}
+					}
 
 					Timeline* timeline = NULL;
 					id = getId(TIMELINE_NAME);
@@ -944,7 +1065,7 @@ int XMLProject::readFile() {
 										  0,
 					 					  NULL,
 										  -1);
-				}
+				} //end if "output"
 			}
 		} else {
 			return -10;

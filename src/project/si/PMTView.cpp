@@ -126,6 +126,22 @@ bool PMTView::getComponentTag(unsigned short pid, unsigned char* tag) {
 	return false;
 }
 
+bool PMTView::addPidToLayer(unsigned short pid, unsigned char layer) {
+	layerList[pid] = layer;
+	return true;
+}
+
+unsigned char PMTView::getLayerPid(unsigned short pid) {
+	if (layerList.count(pid)) {
+		return layerList[pid];
+	}
+	return 0xFF;
+}
+
+void PMTView::cleanLayerList() {
+	layerList.clear();
+}
+
 bool PMTView::deleteAllStreams() {
 	for (unsigned int i = 0; i < streamList.size(); i++) {
 		if (streamList[i]) delete streamList[i];
@@ -154,6 +170,10 @@ int PMTView::getProjectPid(ProjectInfo* proj) {
 		++it;
 	}
 	return -1;
+}
+
+map<unsigned short, unsigned char>* PMTView::getLayerList() {
+	return &layerList;
 }
 
 bool PMTView::isDesiredComponentTagInUse(unsigned char ctag) {

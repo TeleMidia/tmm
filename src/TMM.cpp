@@ -367,7 +367,7 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 
 int TMM::multiplexSetup() {
 	if (muxer) delete muxer;
-	muxer = new Muxer(project->getPacketsInBuffer());
+	muxer = new Muxer(project->getPacketSize(), project->getPacketsInBuffer());
 	muxer->setTTL(project->getTTL());
 
 	muxer->setDestination(destination);
@@ -417,11 +417,14 @@ int TMM::multiplex() {
 			//begin to switch elementary streams
 			createStreamList(currTimeline, newTimeline);
 			muxer->removeAllElementaryStreams();
+			muxer->clearPidToLayerList();
 			itPmt = newTimeline->begin();
 			while (itPmt != newTimeline->end()) {
 				itStream = (*itPmt)->pv->getStreamList()->begin();
 				while (itStream != (*itPmt)->pv->getStreamList()->end()) {
 					muxer->addElementaryStream(itStream->first, itStream->second);
+					muxer->addPidToLayer(itStream->first,
+							(*itPmt)->pv->getLayerPid(itStream->first));
 					++itStream;
 				}
 				++itPmt;
@@ -605,10 +608,13 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 		sec->initiateNextSend(muxer->getCurrentStc() + 1);
 		(*itPmt)->pv->setPmtStream(sec);
 		muxer->addElementaryStream((*itPmt)->pv->getPid(), sec);
+		muxer->addPidToLayer((*itPmt)->pv->getPid(),
+							(*itPmt)->pv->getLayerPid((*itPmt)->pv->getPid()));
 		++itPmt;
 	}
 	siStreamList[proj] = (SectionStream*) createStream(proj);
 	muxer->addElementaryStream(0x00, siStreamList[proj]);
+	muxer->addPidToLayer(0x00, proj->getLayer());
 	//Program Association Table & Program Map Table end
 
 	//Time Offset Table begins
@@ -617,6 +623,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	if (proj) {
 		siStreamList[proj] = (SectionStream*) createStream(proj);
 		muxer->addElementaryStream(0x14, siStreamList[proj]);
+		muxer->addPidToLayer(0x14, proj->getLayer());
 	}
 
 	//Time Offset Table ends
@@ -632,6 +639,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 			}
 			siStreamList[proj] = (SectionStream*) createStream(proj);
 			muxer->addElementaryStream(0x11, siStreamList[proj]);
+			muxer->addPidToLayer(0x11, proj->getLayer());
 		}
 	}
 	//Service Descriptor Table ends
@@ -648,6 +656,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 			}
 			siStreamList[proj] = (SectionStream*) createStream(proj);
 			muxer->addElementaryStream(0x10, siStreamList[proj]);
+			muxer->addPidToLayer(0x10, proj->getLayer());
 		}
 	}
 	//Network Information Table ends
@@ -663,6 +672,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 			releaseStreamFromList(proj);
 			siStreamList[proj] = (SectionStream*) createStream(proj);
 			muxer->addElementaryStream(0x12, siStreamList[proj]);
+			muxer->addPidToLayer(0x12, proj->getLayer());
 		}
 		++itPmt;
 	}
@@ -721,11 +731,13 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 			itSi->second->addSection((PPat*)proj);
 			itSi->second->fillBuffer();
 			muxer->addElementaryStream(0x00, siStreamList[proj]);
+			muxer->addPidToLayer(0x00, proj->getLayer());
 		}
 		patChanged = true;
 	} else {
 		//add the previous one
 		muxer->addElementaryStream(0x00, siStreamList[proj]);
+		muxer->addPidToLayer(0x00, proj->getLayer());
 	}
 
 	//PMTs ('proj' still in use bellow)
@@ -762,6 +774,8 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 				sec->initiateNextSend(siStreamList[proj]->getNextSend() + 1);
 				(*itPmtNew)->pv->setPmtStream(sec);
 				muxer->addElementaryStream((*itPmtNew)->pv->getPid(), sec);
+				muxer->addPidToLayer((*itPmtNew)->pv->getPid(),
+										(*itPmtNew)->pv->getLayer());
 			} else {
 				//update it
 				(*itPmtNew)->pv->setVersion((*itPmtCurr)->pv->getVersion() + 1);
@@ -783,12 +797,16 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 				sec->initiateNextSend(siStreamList[proj]->getNextSend() + 1);
 				(*itPmtNew)->pv->setPmtStream(sec);
 				muxer->addElementaryStream((*itPmtCurr)->pv->getPid(), sec);
+				muxer->addPidToLayer((*itPmtCurr)->pv->getPid(),
+										(*itPmtCurr)->pv->getLayer());
 			}
 		} else {
 			//it's the same PMT
 			(*itPmtNew)->pv->setVersion((*itPmtCurr)->pv->getVersion());
 			muxer->addElementaryStream((*itPmtCurr)->pv->getPid(),
 					(*itPmtCurr)->pv->getPmtStream());
+			muxer->addPidToLayer((*itPmtCurr)->pv->getPid(),
+									(*itPmtCurr)->pv->getLayer());
 		}
 		++itPmtNew;
 		found = false;
@@ -811,6 +829,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 				siStreamList[proj]->fillBuffer();
 			}
 			muxer->addElementaryStream(0x11, siStreamList[proj]);
+			muxer->addPidToLayer(0x11, proj->getLayer());
 		}
 	}
 	//Service Descriptor Table ends
@@ -832,6 +851,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 				siStreamList[proj]->fillBuffer();
 			}
 			muxer->addElementaryStream(0x10, siStreamList[proj]);
+			muxer->addPidToLayer(0x10, proj->getLayer());
 		}
 	}
 	//Network Information Table ends
@@ -843,6 +863,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 		itSi = siStreamList.find(proj);
 		if (itSi != siStreamList.end()) {
 			muxer->addElementaryStream(0x14, siStreamList[proj]);
+			muxer->addPidToLayer(0x14, proj->getLayer());
 		}
 	}
 	//Time Offset Table ends
@@ -883,6 +904,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 				}
 			}
 			muxer->addElementaryStream(0x12, siStreamList[proj]);
+			muxer->addPidToLayer(0x12, proj->getLayer());
 		}
 		++itPmtNew;
 	}

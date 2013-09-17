@@ -20,6 +20,7 @@
 #include "si/PMTView.h"
 #include "timeline/Timeline.h"
 #include "Stc.h"
+#include "../tsparser/ISDBTInformation.h"
 
 #include <inttypes.h>
 #include <iostream>
@@ -31,6 +32,7 @@
 
 using namespace std;
 using namespace br::pucrio::telemidia::mpeg2::dsmcc;
+using namespace br::pucrio::telemidia::tool::isdbt;
 
 namespace br {
 namespace pucrio {
@@ -66,6 +68,8 @@ class Project {
 		bool useTot;
 		bool useSdt;
 		bool useNit;
+
+		unsigned char packetSize;
 
 		map<int, ProjectInfo*>* projectList;
 		//TODO: EIT (schedule)
@@ -115,6 +119,10 @@ class Project {
 		bool getUseSdt();
 		void setUseNit(bool use);
 		bool getUseNit();
+		void setPacketSize(unsigned char size);
+		unsigned char getPacketSize();
+
+		static unsigned char toLayer(string layer);
 
 		virtual int readFile()=0;
 

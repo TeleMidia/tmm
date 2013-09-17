@@ -10,6 +10,7 @@
 
 #include "Stc.h"
 #include "TSPacket.h"
+#include "ISDBTInformation.h"
 #include "Stream.h"
 #include "socket/MulticastServer.h"
 
@@ -20,6 +21,7 @@
 
 using namespace std;
 using namespace br::pucrio::telemidia::mpeg2;
+using namespace br::pucrio::telemidia::tool::isdbt;
 
 namespace br {
 namespace pucrio {
@@ -62,6 +64,9 @@ class Muxer {
 		bool isFileMode;
 		map<unsigned short, vector<Stream*>*> streamList;
 
+		ISDBTInformation isdbtInfo;
+		map<unsigned short, unsigned char> pidToLayerList;
+
 		Buffer* buffer;
 
 		unsigned int bitrateErrorCounter;
@@ -84,9 +89,10 @@ class Muxer {
 		int writeTsStream(unsigned short pid, unsigned char type);
 		void calculateBitrate();
 		int writeStream(char* pktBuffer);
+		int fillPacket204(char* stream, unsigned short pid);
 
 	public:
-		Muxer(unsigned short packetsInBuffer);
+		Muxer(unsigned char packetSize, unsigned short packetsInBuffer);
 		virtual ~Muxer();
 
 		//Greatest Common Divisor
@@ -114,6 +120,10 @@ class Muxer {
 		map<unsigned short, unsigned short>* getPcrList();
 
 		map<unsigned short, vector<Stream*>*>* getStreamList();
+
+		bool addPidToLayer(unsigned short pid, unsigned char layer);
+		map<unsigned short, unsigned char>* getPidToLayerList();
+		void clearPidToLayerList();
 
 		bool prepareMultiplexer(int64_t stcBegin);
 		int mainLoop();

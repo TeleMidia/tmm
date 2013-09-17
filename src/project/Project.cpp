@@ -23,6 +23,7 @@ Project::Project() {
 	useTot = false;
 	useSdt = false;
 	useNit = false;
+	packetSize = 188;
 }
 
 Project::~Project() {
@@ -49,6 +50,28 @@ bool Project::changeToProjectDir() {
 		return true;
 	}
 	return false;
+}
+
+unsigned char Project::toLayer(string layer) {
+	if (layer == "none") {
+		return NULL_TSP;
+	} else if (tolower(layer.c_str()[0]) == 'a') {
+		return HIERARCHY_A;
+	} else if (tolower(layer.c_str()[0]) == 'b') {
+		return HIERARCHY_B;
+	} else if (tolower(layer.c_str()[0]) == 'c') {
+		return HIERARCHY_C;
+	} else {
+		return 0xFF;
+	}
+}
+
+void Project::setPacketSize(unsigned char size) {
+	packetSize = size;
+}
+
+unsigned char Project::getPacketSize() {
+	return packetSize;
 }
 
 bool Project::mountCarousels() {

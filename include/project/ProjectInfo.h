@@ -44,6 +44,8 @@ class ProjectInfo {
 		char projectType;
 		unsigned char version;
 		double transmissionDelay;
+		unsigned char layer;
+		bool layerConfigured;
 
 	public:
 		ProjectInfo();
@@ -57,6 +59,10 @@ class ProjectInfo {
 		unsigned char getVersion();
 		double getTransmissionDelay();
 		void setTransmissionDelay(double delay);
+		void setLayer(unsigned char layer);
+		unsigned char getLayer();
+		void setLayerConfigured(bool set);
+		bool getLayerConfigured();
 
 };
 

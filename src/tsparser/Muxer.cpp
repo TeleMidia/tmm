@@ -12,10 +12,10 @@ namespace pucrio {
 namespace telemidia {
 namespace tool {
 
-Muxer::Muxer(unsigned short packetsInBuffer) {
+Muxer::Muxer(unsigned char packetSize, unsigned short packetsInBuffer) {
 	stc = SYSTEM_CLOCK_FREQUENCY * 10;
 	tsBitrate = 19000000;
-	packetSize = TSPacket::TS_PACKET_SIZE;
+	this->packetSize = packetSize;
 	stcOffset = 0;
 	pFile = NULL;
 	bitrateErrorCounter = 0;
@@ -341,6 +341,22 @@ map<unsigned short, vector<Stream*>*>* Muxer::getStreamList() {
 	return &streamList;
 }
 
+bool Muxer::addPidToLayer(unsigned short pid, unsigned char layer) {
+	if (!pidToLayerList.count(pid)) {
+		pidToLayerList[pid] = layer;
+		return true;
+	}
+	return false;
+}
+
+map<unsigned short, unsigned char>* Muxer::getPidToLayerList() {
+	return &pidToLayerList;
+}
+
+void Muxer::clearPidToLayerList() {
+	pidToLayerList.clear();
+}
+
 bool Muxer::prepareMultiplexer(int64_t stcBegin) {
 
 	if (!calculateStcStep()) return false;
@@ -471,7 +487,9 @@ int Muxer::writeTsPcr(int64_t pcr, unsigned short pid) {
 	}
 	packet->setContinuityCounter(pktControl[pid]);
 	packet->getStream(&pktBuffer);
-	//if (packetSize == 204) addRS();
+	if (packetSize == 204) {
+		fillPacket204(pktBuffer, pid);
+	}
 
 	rw = writeStream(pktBuffer);
 
@@ -537,7 +555,9 @@ int Muxer::writeTsStream(unsigned short pid, unsigned char type) {
 		//the payloadLength actually used calling packet->getStream()
 		payloadLength = packet->getStream(&pktBuffer);
 		pos += payloadLength;
-		//if (packetSize == 204) addRS();
+		if (packetSize == 204) {
+			fillPacket204(pktBuffer, pid);
+		}
 		rw = writeStream(pktBuffer);
 
 		delete packet;
@@ -553,6 +573,33 @@ int Muxer::writeTsStream(unsigned short pid, unsigned char type) {
 		}
 	}
 	return rw;
+}
+
+int Muxer::fillPacket204(char* stream, unsigned short pid) {
+	char* isdbtInfoStream;
+	map<unsigned short, unsigned char>::iterator itLayer;
+
+	itLayer = pidToLayerList.find(pid);
+	if (itLayer != pidToLayerList.end()) {
+		isdbtInfo.setLayerIndicator(itLayer->second);
+	} else {
+		if (pid == 8191) {
+			isdbtInfo.setLayerIndicator(NULL_TSP);
+		} else {
+			isdbtInfo.setLayerIndicator(HIERARCHY_B);
+		}
+	}
+	//isdbtInfo.setFrameIndicator(); ???
+	isdbtInfo.updateStream();
+	isdbtInfo.getStream(&isdbtInfoStream);
+	memcpy(stream + 188, isdbtInfoStream, 8);
+	isdbtInfo.incrementTSPCounter();
+
+	//addRS();
+
+	memset(stream + 196, 0xFF, 8);
+
+	return 204;
 }
 
 int Muxer::processNullPackets() {
@@ -581,7 +628,9 @@ int Muxer::processNullPackets() {
 		packet->setPid(8191);
 		packet->getStream(&pktBuffer);
 
-		//if (packetSize == 204) addRS();
+		if (packetSize == 204) {
+			fillPacket204(pktBuffer, 8191);
+		}
 		writeStream(pktBuffer);
 		delete packet;
 		pktNumSinceLastStep++;
