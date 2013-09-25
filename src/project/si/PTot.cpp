@@ -32,6 +32,7 @@ void PTot::init() {
  	utc = Tot::localTimezone();
 	daylightSavingTime = true;
  	projectType = PT_TOT;
+ 	layer = 0x01; //HIERARCHY_A
  	countryCode.assign("BRA");
  	countryRegionId = 3;//Brazil: RJ
 }

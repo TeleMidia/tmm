@@ -499,6 +499,7 @@ void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 	itPmt = newTimeline->begin();
 	while (itPmt != newTimeline->end()) {
 		muxer->addPcrPid((*itPmt)->pv->getPcrPid(), (*itPmt)->pv->getPcrFrequency());
+		muxer->addPidToLayer((*itPmt)->pv->getPcrPid(), (*itPmt)->pv->getLayer());
 		++itPmt;
 	}
 }
@@ -609,7 +610,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 		(*itPmt)->pv->setPmtStream(sec);
 		muxer->addElementaryStream((*itPmt)->pv->getPid(), sec);
 		muxer->addPidToLayer((*itPmt)->pv->getPid(),
-							(*itPmt)->pv->getLayerPid((*itPmt)->pv->getPid()));
+							(*itPmt)->pv->getLayer());
 		++itPmt;
 	}
 	siStreamList[proj] = (SectionStream*) createStream(proj);

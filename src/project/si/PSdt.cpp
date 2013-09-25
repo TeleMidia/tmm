@@ -14,6 +14,7 @@ namespace tool {
 
 PSdt::PSdt() {
 	projectType = PT_SDT;
+	layer = 0x01; //HIERARCHY_A
 }
 
 PSdt::~PSdt() {

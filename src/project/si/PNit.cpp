@@ -14,6 +14,7 @@ namespace tool {
 
 PNit::PNit() {
 	projectType = PT_NIT;
+	layer = 0x01; //HIERARCHY_A
 }
 
 PNit::~PNit() {

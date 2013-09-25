@@ -16,7 +16,7 @@ ProjectInfo::ProjectInfo() {
 	projectType = PT_UNKNOWN;
 	version = 0;
 	transmissionDelay = 0.0;
-	layer = 0x02;
+	layer = 0x02; //HIERARCHY_B
 	layerConfigured = false;
 }
 
