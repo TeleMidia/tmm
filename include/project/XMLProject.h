@@ -31,6 +31,7 @@ class XMLProject : public Project {
 	#define SDT_NAME "_sdt_project_"
 	#define NIT_NAME "_nit_project_"
 	#define TIMELINE_NAME "_timeline_project_"
+	#define IIP_NAME "_iip_project_"
 
 	private:
 		XMLDocument* xmldoc;
@@ -43,9 +44,24 @@ class XMLProject : public Project {
 		vector<MetaData*> metaDataList;
 		map<string, int> idList;
 		int idIndex;
+		PSdt* pSdt;
 
 		bool createNewId(string id);
 		int getId(string id);
+		int createAndGetId(ProjectInfo* proj, string name);
+
+		int parseAV(XMLNode* m, XMLElement* f);
+		int parseNPT(XMLNode* m,XMLElement* f);
+		int parseCarousel(XMLNode* m, XMLElement* f);
+		int parseAIT(XMLNode* m, XMLElement* f);
+		int parseEIT(XMLNode* m, XMLElement* f);
+		int parsePMT(XMLNode* m, XMLElement* f);
+
+		int processInputs(XMLElement *top);
+		int processOutput(XMLElement *top);
+
+		int readHead(XMLElement *top);
+		int readBody(XMLElement *top);
 
 	public:
 		XMLProject();

@@ -1,64 +1,71 @@
 /*
- * SectionStream.cpp
+ * RawStream.cpp
  *
- *  Created on: 25/03/2013
+ *  Created on: 26/09/2013
  *      Author: Felippe Nagato
  */
 
-#include "SectionStream.h"
+#include "RawStream.h"
 
 namespace br {
 namespace pucrio {
 namespace telemidia {
 namespace tool {
 
-SectionStream::SectionStream() {
-	type = 1;
+RawStream::RawStream() {
+	type = 1; //Section type
 	currPos = 0;
 	maxBitrate = 30000;
-	destroySections = true;
+	destroyBlocks = true;
 }
 
-SectionStream::~SectionStream() {
-	releaseSectionList();
+RawStream::~RawStream() {
+	releaseBlockList();
 }
 
-void SectionStream::releaseSectionList() {
-	vector<PrivateSection*>::iterator it;
-	it = sectionList.begin();
-	while (it != sectionList.end()) {
-		if (destroySections && (*it)) delete (*it);
+void RawStream::releaseBlockList() {
+	vector<pair<char*,int>*>::iterator it;
+
+	it = blockList.begin();
+	while (it != blockList.end()) {
+		if (*it) {
+			if (destroyBlocks) {
+				delete (*it)->first;
+			}
+			delete (*it);
+		}
 		++it;
 	}
-	sectionList.clear();
+	blockList.clear();
 	currPos = 0;
 }
 
-void SectionStream::setDestroySections(bool destroy) {
-	destroySections = destroy;
+void RawStream::setDestroyBlocks(bool destroy) {
+	destroyBlocks = destroy;
 }
 
-bool SectionStream::getBuffer(Buffer** buffer) {
+bool RawStream::getBuffer(Buffer** buffer) {
 	if (bufferList.empty() && !subscriberList.empty()) {
-		notify(currStc, &sectionList);
-		maxBufferLength = sectionList.size();
+		notify(currStc, &blockList);
+		maxBufferLength = blockList.size();
 		fillBuffer();
-		releaseSectionList();
+		releaseBlockList();
 	}
 	return Stream::getBuffer(buffer);
 }
 
-void SectionStream::fillBuffer() {
-	vector<PrivateSection*>::iterator it;
+void RawStream::fillBuffer() {
+	vector<pair<char*,int>*>::iterator it;
 	char* stream;
 	Buffer* buf;
 	int len;
 
-	if (sectionList.empty()) return;
+	if (blockList.empty()) return;
 
 	while (bufferList.size() < maxBufferLength) {
-		if (currPos < sectionList.size()) {
-			len = sectionList[currPos]->getStream(&stream);
+		if (currPos < blockList.size()) {
+			stream = blockList.at(currPos)->first;
+			len = blockList.at(currPos)->second;
 			buf = new Buffer();
 			buf->pos = 0;
 			buf->buffer = new char[len];
@@ -72,22 +79,34 @@ void SectionStream::fillBuffer() {
 	}
 }
 
-void SectionStream::addSection(PrivateSection* sec) {
-	sectionList.push_back(sec);
-}
-
-bool SectionStream::addSection(char* stream, int length) {
-	PrivateSection* sec;
-	sec = new PrivateSection();
-	sec->addData(stream, length);
-	if (sec->isConsolidated()) {
-		sectionList.push_back(sec);
+bool RawStream::addBlock(char* stream, int length) {
+	if (stream && length) {
+		char* myStream = new char[length];
+		pair<char*,int>* myp = new pair<char*,int>;
+		memcpy(myStream, stream, length);
+		myp->first = myStream;
+		myp->second = length;
+		blockList.push_back(myp);
 		return true;
 	}
 	return false;
 }
 
-bool SectionStream::addSection(string filename) {
+void RawStream::addSection(PrivateSection* sec) {
+	char* myStream;
+	char* stream;
+	int length;
+	pair<char*,int>* myp = new pair<char*,int>;
+
+	length = sec->getStream(&stream);
+	myStream = new char[length];
+	memcpy(myStream, stream, length);
+	myp->first = myStream;
+	myp->second = length;
+	blockList.push_back(myp);
+}
+
+bool RawStream::addSection(string filename) {
 	FILE * pFile;
 	size_t size, result, secPos = 0;
 	unsigned short secLen;
@@ -107,7 +126,7 @@ bool SectionStream::addSection(string filename) {
 		while (secPos < size) {
 			secLen = (((buffer[secPos + 1] & 0x0F) << 8) | (buffer[secPos + 2] & 0xFF));
 			secLen = secLen + 3;
-			addSection(buffer + secPos, secLen);
+			addBlock(buffer + secPos, secLen);
 			secPos += secLen;
 		}
 	}
@@ -121,5 +140,6 @@ bool SectionStream::addSection(string filename) {
 }
 }
 }
+
 
 

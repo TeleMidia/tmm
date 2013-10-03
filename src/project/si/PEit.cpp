@@ -59,7 +59,7 @@ time_t PEit::getTimeBegin() {
 	return timeBegin;
 }
 
-int PEit::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
+int PEit::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 	map<unsigned short, EventInfo*>::iterator it;
 	map<unsigned short, EventInfo*>::reverse_iterator rit;
 	unsigned char sn;
@@ -142,7 +142,16 @@ int PEit::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 		eit->setOriginalNetworkId(originalNetworkId);
 		eit->setDestroyEvents(false);
 		eit->updateStream();
-		list->push_back(eit);
+
+		char* tempStream;
+		pair<char*,int>* myp = new pair<char*,int>;
+		int length = eit->getStream(&tempStream);
+		myp->first = new char[length];
+		memcpy(myp->first, tempStream, length);
+		myp->second = length;
+		list->push_back(myp);
+
+		delete eit;
 	}
 
 	return 0;

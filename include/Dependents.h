@@ -8,13 +8,13 @@
 #ifndef DEPENDENTS_H_
 #define DEPENDENTS_H_
 
-#include "PrivateSection.h"
+#include "Stream.h"
 #include <iostream>
 #include <set>
 #include <vector>
 
 using namespace std;
-using namespace br::pucrio::telemidia::mpeg2;
+using namespace br::pucrio::telemidia::tool;
 
 class Subscriber {
 
@@ -25,8 +25,8 @@ class Subscriber {
 	public:
 		virtual ~Subscriber(){};
 
-		virtual int encodeSections(int64_t stc,
-								   vector<PrivateSection*>* list) = 0;
+		virtual int encode(int64_t stc,
+							vector<pair<char*,int>*>* list) = 0;
 };
 
 class Publisher {
@@ -36,10 +36,10 @@ class Publisher {
 	protected:
 		set<Subscriber*> subscriberList;
 
-		virtual void notify(int64_t stc, vector<PrivateSection*>* list) {
+		virtual void notify(int64_t stc, vector<pair<char*,int>*>* list) {
 			set<Subscriber*>::iterator it;
 			for (it = subscriberList.begin(); it != subscriberList.end(); it++) {
-				(*it)->encodeSections(stc, list);
+				(*it)->encode(stc, list);
 			}
 		}
 

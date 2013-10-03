@@ -36,7 +36,7 @@ void ProjectInfo::setProjectType(char type) {
 	this->projectType = type;
 }
 
-char ProjectInfo::getProjectType() {
+unsigned char ProjectInfo::getProjectType() {
 	return projectType;
 }
 

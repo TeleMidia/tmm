@@ -46,7 +46,7 @@ class NPTProject : public ProjectInfo, public Subscriber {
 		NPTProject(int id);
 		virtual ~NPTProject();
 
-		int encodeSections(int64_t stc, vector<PrivateSection*>* list);
+		int encode(int64_t stc, vector<pair<char*,int>*>* list);
 
 		bool addReference(int id, char cid, int64_t absStart, int64_t absEnd,
 						  int64_t nptStart, int64_t nptEnd, short numerator,

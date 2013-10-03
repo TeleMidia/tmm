@@ -34,6 +34,8 @@ class ProjectInfo {
 	#define PT_EIT_PF		0x0B //Present and following
 	#define PT_EIT_S		0x0C //Schedule
 	#define PT_PAT			0x0D
+
+	#define PT_IIP			0xFD
 	#define PT_PES			0xFE
 	#define PT_SECTION		0xFF
 
@@ -41,7 +43,7 @@ class ProjectInfo {
 
 	protected:
 		int id;
-		char projectType;
+		unsigned char projectType;
 		unsigned char version;
 		double transmissionDelay;
 		unsigned char layer;
@@ -54,7 +56,7 @@ class ProjectInfo {
 		void setId(int id);
 		int getId();
 		void setProjectType(char type);
-		char getProjectType();
+		unsigned char getProjectType();
 		void setVersion(unsigned char ver);
 		unsigned char getVersion();
 		double getTransmissionDelay();

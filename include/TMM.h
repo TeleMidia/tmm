@@ -10,11 +10,12 @@
 
 #include "util/functions.h"
 #include "project/Project.h"
+#include "project/isdbt/PIIP.h"
 #include "tsparser/TSFileReader.h"
 #include "tsparser/TSInfo.h"
 #include "tsparser/Muxer.h"
 #include "PESStream.h"
-#include "SectionStream.h"
+#include "RawStream.h"
 #include "si/descriptor/CarouselIdentifier.h"
 #include "si/descriptor/StreamIdentifier.h"
 #include <iostream>
@@ -32,6 +33,13 @@ class TMM {
 	#define PREPONETICKS_AUDIO 0.2
 	#define PREPONETICKS_VIDEO 1.0
 
+	#define DEFAULT_PAT_PID 0x0000
+	#define DEFAULT_NIT_PID 0x0010
+	#define DEFAULT_SDT_PID 0x0011
+	#define DEFAULT_EIT_PID 0x0012
+	#define DEFAULT_TOT_PID 0x0014
+	#define DEFAULT_IIP_PID 0x1FF0
+
 	private:
 		void init();
 		void releaseSiStreamList();
@@ -40,12 +48,15 @@ class TMM {
 		Project *project;
 		Muxer* muxer;
 		string destination;
-		map<ProjectInfo*, SectionStream*> siStreamList;
+		map<ProjectInfo*, Stream*> siAndIsdbtStreamList;
 		unsigned int lastStcPrinter;
 
-		ProjectInfo* getFirstProject(char projectType);
-		ProjectInfo* getFirstProjectReversed(char projectType);
+		ProjectInfo* getFirstProject(unsigned char projectType);
+		ProjectInfo* getFirstProjectReversed(unsigned char projectType);
 		bool loadProject();
+
+		RawStream* prepareNewRawStream(ProjectInfo* proj, int64_t freq,
+										int64_t nextSend, bool destroyBlocks);
 		Stream *createStream(ProjectInfo* proj);
 		bool createStreamList(vector<pmtViewInfo*>* currentTimeline,
 							  vector<pmtViewInfo*>* newTimeline);
@@ -53,13 +64,22 @@ class TMM {
 
 		void processPcrsInUse(vector<pmtViewInfo*>* newTimeline);
 		int createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt);
+		int createIsdbtInfo();
 		int createSiTables(vector<pmtViewInfo*>* newTimeline);
+		int restoreIsdbtInfo();
 		int restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 							vector<pmtViewInfo*>* newTimeline);
+		void addStreamToMuxer(Stream* stream, unsigned short pid, unsigned char layer);
 
 		int multiplex();
 		int getTSInfo(InputData *inputList);
 		int multiplexSetup();
+
+		bool getCarouselComponentTagFromService(PMTView* pv, ProjectInfo* carouselProj,
+				unsigned char* ctag);
+
+		bool updateComponentTagList(vector<pmtViewInfo*>* currentTimeline,
+				vector<pmtViewInfo*>* newTimeline);
 
 	public:
 		TMM();

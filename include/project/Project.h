@@ -18,6 +18,7 @@
 #include "si/PNit.h"
 #include "si/PEit.h"
 #include "si/PMTView.h"
+#include "isdbt/PIIP.h"
 #include "timeline/Timeline.h"
 #include "Stc.h"
 #include "../tsparser/ISDBTInformation.h"
@@ -88,7 +89,8 @@ class Project {
 		int configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 					  string baseDir, string initClass, unsigned int orgId,
 					  unsigned short appId, unsigned int appcode);
-		int configAitService(ProjectInfo* ait, unsigned short serviceId);
+		int configAitService(ProjectInfo* ait, unsigned short serviceId,
+				unsigned char ctag);
 		int configSdt(vector<pmtViewInfo*>* newTimeline, ProjectInfo* sdt);
 		int configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit);
 		void setDestination(string dest);

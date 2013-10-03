@@ -267,7 +267,7 @@ void PTot::setCountryRegionId(unsigned char id) {
 	countryRegionId = id; //ABNT NBR 15608-3:2008 page 39
 }
 
-int PTot::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
+int PTot::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 	time_t dt;
 	double elapsedTime = 0.0;
 	char localTimeOffset, dst;
@@ -324,9 +324,13 @@ int PTot::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 	LocalTimeOffset* lto = new LocalTimeOffset();
 	lto->addLocalTimeData(ltd);
 	addDescriptor(lto);
-	updateStream();
 
-	list->push_back(this);
+	int length = updateStream();
+	pair<char*,int>* streamData = new pair<char*,int>;
+	streamData->first = stream;
+	streamData->second = length;
+
+	list->push_back(streamData);
 
 	return 0;
 }

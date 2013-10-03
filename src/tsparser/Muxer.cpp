@@ -583,7 +583,7 @@ int Muxer::fillPacket204(char* stream, unsigned short pid) {
 	if (itLayer != pidToLayerList.end()) {
 		isdbtInfo.setLayerIndicator(itLayer->second);
 	} else {
-		if (pid == 8191) {
+		if (pid == 0x1FFF) {
 			isdbtInfo.setLayerIndicator(NULL_TSP);
 		} else {
 			isdbtInfo.setLayerIndicator(HIERARCHY_B);

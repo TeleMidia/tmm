@@ -76,7 +76,7 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		static time_t daylightStart(unsigned short year);
 		static time_t daylightEnd(unsigned short year);
 
-		int encodeSections(int64_t stc, vector<PrivateSection*>* list);
+		int encode(int64_t stc, vector<pair<char*,int>*>* list);
 
 };
 

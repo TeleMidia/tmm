@@ -131,7 +131,8 @@ int Project::configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 	dlist->push_back(tp);
 
 	Application* appDesc = new Application();
-	appDesc->addAppProfile(0x8001, 0x01, 0x00, 0x00);
+	//appDesc->addAppProfile(0x8001, 0x01, 0x00, 0x00); //GLOBO
+	appDesc->addAppProfile(0x00, 0x00, 0x00, 0x00); //SBT
 	appDesc->setServiceBoundFlag(true);
 	appDesc->setVisibility(0x03);
 	appDesc->setApplicationPriority(0x01);
@@ -144,32 +145,47 @@ int Project::configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 	appName->setAppName(lang, aName);
 	dlist->push_back(appName);
 
-	GingaApplication* ga = new GingaApplication(0x06);
-	dlist->push_back(ga);
-
-	GingaApplicationLocation* gal = new GingaApplicationLocation(0x07);
-	gal->setBaseDirectory(baseDir);
-	gal->setInitialClass(initClass);
-	dlist->push_back(gal);
+	GingaApplication* ga = NULL;
+	GingaApplicationLocation* gal = NULL;
+	if (ait->getTableIdExtension() == AT_GINGA_NCL) {
+		ga = new GingaApplication(0x06);
+		gal = new GingaApplicationLocation(0x07);
+	} else if (ait->getTableIdExtension() == AT_GINGA_J) {
+		ga = new GingaApplication(0x03);
+		gal = new GingaApplicationLocation(0x04);
+	}
+	if (ga) dlist->push_back(ga);
+	if (gal) {
+		gal->setBaseDirectory(baseDir);
+		gal->setInitialClass(initClass);
+		dlist->push_back(gal);
+	}
 
 	ait->addApplicationInfo(orgId, appId, appcode, dlist);
 
 	return 0;
 }
 
-int Project::configAitService(ProjectInfo* ait, unsigned short serviceId) {
+int Project::configAitService(ProjectInfo* ait, unsigned short serviceId,
+		unsigned char ctag) {
 	vector<MpegDescriptor*>::iterator itDesc;
+	vector<AppInformation*>::iterator itApp;
 	PAit* pAit = (PAit*)ait;
-	vector<MpegDescriptor*>* dlist = pAit->getDescriptorList();
+	vector<AppInformation*>* appList = pAit->getAppInformationList();
 
-	for (itDesc = dlist->begin(); itDesc != dlist->end(); ++itDesc) {
-		if ((*itDesc)->getDescriptorTag() == 0x02) {
-			TransportProtocol* tp = (TransportProtocol*)(*itDesc);
-			if (tp) {
-				ObjectCarouselProtocol* ocp = tp->getOcProtocol();
-				if (ocp) {
-					ocp->serviceId = serviceId;
+	for (itApp = appList->begin(); itApp != appList->end(); ++itApp) {
+		for (itDesc = (*itApp)->appDescriptorList->begin();
+				itDesc != (*itApp)->appDescriptorList->end(); ++itDesc) {
+			if ((*itDesc)->getDescriptorTag() == 0x02) {
+				TransportProtocol* tp = (TransportProtocol*)(*itDesc);
+				if (tp) {
+					ObjectCarouselProtocol* ocp = tp->getOcProtocol();
+					if (ocp) {
+						ocp->serviceId = serviceId;
+						ocp->componentTag = ctag;
+					}
 				}
+				return 0;
 			}
 		}
 	}
@@ -178,7 +194,10 @@ int Project::configAitService(ProjectInfo* ait, unsigned short serviceId) {
 }
 
 int Project::configSdt(vector<pmtViewInfo*>* newTimeline, ProjectInfo* sdt) {
+	map<unsigned short, PMTView*> orderedPmtList;
+	map<unsigned short, PMTView*>::iterator itOrd;
 	vector<pmtViewInfo*>::iterator itPmt;
+
 	PSdt* pSdt = (PSdt*)sdt;
 
 	if (sdt == NULL) return -1;
@@ -188,11 +207,16 @@ int Project::configSdt(vector<pmtViewInfo*>* newTimeline, ProjectInfo* sdt) {
 	pSdt->setTableIdExtension(tsid);
 	itPmt = newTimeline->begin();
 	while (itPmt != newTimeline->end()) {
+		orderedPmtList[(*itPmt)->pv->getPid()] = (*itPmt)->pv;
+		++itPmt;
+	}
+	itOrd = orderedPmtList.begin();
+	while (itOrd != orderedPmtList.end()) {
 		ServiceInformation* si = new ServiceInformation();
 		Service* service = new Service();
-		service->setServiceName((*itPmt)->pv->getServiceName());
+		service->setServiceName(itOrd->second->getServiceName());
 		service->setProviderName(providerName);
-		if ((*itPmt)->pv->getEitProj()) {
+		if (itOrd->second->getEitProj()) {
 			si->eitPresentFollowingFlag = true;
 		} else {
 			si->eitPresentFollowingFlag = false;
@@ -200,21 +224,28 @@ int Project::configSdt(vector<pmtViewInfo*>* newTimeline, ProjectInfo* sdt) {
 		si->eitScheduleFlag = false;
 		si->freeCaMode = 0;
 		si->runningStatus = 4; //Running
-		si->serviceId = (*itPmt)->pv->getProgramNumber();
+		si->serviceId = itOrd->second->getProgramNumber();
 		si->descriptorList.push_back(service);
 		pSdt->addServiceInformation(si);
-		++itPmt;
+		++itOrd;
 	}
 
 	return 0;
 }
 
 int Project::configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit) {
+	map<unsigned short, PMTView*> orderedPmtList;
+	map<unsigned short, PMTView*>::iterator itOrd;
 	vector<pmtViewInfo*>::iterator itPmt;
 	PNit* pNit = (PNit*)nit;
-	unsigned int serviceId = 65536;
 
 	if (pNit == NULL) return -1;
+
+	itPmt = newTimeline->begin();
+	while (itPmt != newTimeline->end()) {
+		orderedPmtList[(*itPmt)->pv->getPid()] = (*itPmt)->pv;
+		++itPmt;
+	}
 
 	pNit->releaseAllDescriptors();
 	pNit->releaseAllTransportInformation();
@@ -229,10 +260,10 @@ int Project::configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit) {
 	ti->transportStreamId = tsid;
 	ti->originalNetworkId = pNit->getTableIdExtension();
 	ServiceList* sl = new ServiceList();
-	itPmt = newTimeline->begin();
-	while (itPmt != newTimeline->end()) {
-		sl->addService((*itPmt)->pv->getProgramNumber(), DIGITAL_TELEVISION_SERVICE);
-		++itPmt;
+	itOrd = orderedPmtList.begin();
+	while (itOrd != orderedPmtList.end()) {
+		sl->addService(itOrd->second->getProgramNumber(), DIGITAL_TELEVISION_SERVICE);
+		++itOrd;
 	}
 	ti->descriptorList.push_back(sl);
 	TerrestrialDeliverySystem* tds = new TerrestrialDeliverySystem();
@@ -240,18 +271,13 @@ int Project::configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit) {
 	tds->setTransmissionMode(transmissionMode);
 	tds->addFrequency(broadcastFrequency);
 	ti->descriptorList.push_back(tds);
-	itPmt = newTimeline->begin();
-	while (itPmt != newTimeline->end()) {
-		if ((*itPmt)->pv->getProgramNumber() < serviceId) {
-			serviceId = (*itPmt)->pv->getProgramNumber();
-		}
-		++itPmt;
-	}
-	if (serviceId != 65536) {
+
+	if (orderedPmtList.size()) {
 		PartialReception* pr = new PartialReception();
-		pr->addServiceId(serviceId);
+		pr->addServiceId(orderedPmtList.begin()->second->getProgramNumber());
 		ti->descriptorList.push_back(pr);
 	}
+
 	TSInformation* tsinfo = new TSInformation();
 	tsinfo->setRemoteControlKeyId(virtualChannel);
 	tsinfo->setTsName(tsName);

@@ -1,12 +1,12 @@
 /*
- * SectionStream.h
+ * RawStream.h
  *
- *  Created on: 25/03/2013
+ *  Created on: 26/09/2013
  *      Author: Felippe Nagato
  */
 
-#ifndef SECTIONSTREAM_H_
-#define SECTIONSTREAM_H_
+#ifndef RAWSTREAM_H_
+#define RAWSTREAM_H_
 
 #include "Stream.h"
 #include "Dependents.h"
@@ -23,27 +23,27 @@ namespace pucrio {
 namespace telemidia {
 namespace tool {
 
-class SectionStream : public Stream, public Publisher {
+class RawStream : public Stream, public Publisher {
 
 	private:
 
 	protected:
-		vector<PrivateSection*> sectionList;
+		vector<pair<char*,int>*> blockList;
 		unsigned int currPos;
-		bool destroySections;
+		bool destroyBlocks;
 
 	public:
-		SectionStream();
-		virtual ~SectionStream();
+		RawStream();
+		virtual ~RawStream();
 
 		bool getBuffer(Buffer** buffer);
 		void fillBuffer();
 
-		void releaseSectionList();
-		void setDestroySections(bool destroy);
+		void releaseBlockList();
+		void setDestroyBlocks(bool destroy);
 
+		bool addBlock(char* stream, int length);
 		void addSection(PrivateSection* sec);
-		bool addSection(char* stream, int length);
 		bool addSection(string filename);
 
 };
@@ -54,4 +54,4 @@ class SectionStream : public Stream, public Publisher {
 }
 
 
-#endif /* SECTIONSTREAM_H_ */
+#endif /* ANYSTREAM_H_ */

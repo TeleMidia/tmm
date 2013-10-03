@@ -28,7 +28,6 @@ class PEit : public ProjectInfo, public Eit, public Subscriber {
 		void init();
 
 	protected:
-		unsigned int turnNumber;
 		int64_t stcBegin; // for reference purpose
 		time_t timeBegin; // date and time when the muxer starts (from project)
 		int lastEventId;
@@ -46,7 +45,7 @@ class PEit : public ProjectInfo, public Eit, public Subscriber {
 		void setTimeBegin(time_t dateTime);
 		time_t getTimeBegin();
 
-		int encodeSections(int64_t stc, vector<PrivateSection*>* list);
+		int encode(int64_t stc, vector<pair<char*,int>*>* list);
 
 };
 

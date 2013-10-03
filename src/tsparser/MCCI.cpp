@@ -17,6 +17,12 @@ MCCI::MCCI() {
 	stream = new char[20];
 	currentCI = NULL;
 	nextCI = NULL;
+	ACDataEffectivePosition = 0x01;
+	initializationTimingIndicator = 0x0F;
+	systemIdentifier = 0x00;
+	countDownIndex = 0x0F;
+	switchOnControlFlag = false;
+	phaseCorrection = 0x07;
 }
 
 MCCI::~MCCI() {
@@ -135,6 +141,45 @@ unsigned int MCCI::getCrc32() {
 	return crc32;
 }
 
+bool MCCI::copyCurrentToNext() {
+	ConfigurationInformation* ci;
+
+	nextMode = currentMode;
+	nextGuardInterval = currentGuardInterval;
+	if (currentCI) {
+		ci = new ConfigurationInformation;
+		ci->partialReceptionFlag = currentCI->partialReceptionFlag;
+		ci->tpLayerA = NULL;
+		ci->tpLayerB = NULL;
+		ci->tpLayerC = NULL;
+		if (currentCI->tpLayerA) {
+			ci->tpLayerA = new TransmissionParameters;
+			ci->tpLayerA->codingRateOfInnerCode = currentCI->tpLayerA->codingRateOfInnerCode;
+			ci->tpLayerA->lengthOfTimeInterleaving = currentCI->tpLayerA->lengthOfTimeInterleaving;
+			ci->tpLayerA->modulationScheme = currentCI->tpLayerA->modulationScheme;
+			ci->tpLayerA->numberOfSegments = currentCI->tpLayerA->numberOfSegments;
+		}
+		if (currentCI->tpLayerB) {
+			ci->tpLayerB = new TransmissionParameters;
+			ci->tpLayerB->codingRateOfInnerCode = currentCI->tpLayerB->codingRateOfInnerCode;
+			ci->tpLayerB->lengthOfTimeInterleaving = currentCI->tpLayerB->lengthOfTimeInterleaving;
+			ci->tpLayerB->modulationScheme = currentCI->tpLayerB->modulationScheme;
+			ci->tpLayerB->numberOfSegments = currentCI->tpLayerB->numberOfSegments;
+		}
+		if (currentCI->tpLayerC) {
+			ci->tpLayerC = new TransmissionParameters;
+			ci->tpLayerC->codingRateOfInnerCode = currentCI->tpLayerC->codingRateOfInnerCode;
+			ci->tpLayerC->lengthOfTimeInterleaving = currentCI->tpLayerC->lengthOfTimeInterleaving;
+			ci->tpLayerC->modulationScheme = currentCI->tpLayerC->modulationScheme;
+			ci->tpLayerC->numberOfSegments = currentCI->tpLayerC->numberOfSegments;
+		}
+		nextCI = ci;
+		return true;
+	}
+
+	return false;
+}
+
 int MCCI::updateStream() {
 	ConfigurationInformation* ci;
 	int pos = 0;
@@ -154,7 +199,7 @@ int MCCI::updateStream() {
 	pos++;
 
 	stream[pos] = (systemIdentifier << 6) & 0xC0;
-	stream[pos] = stream[pos] | ((countDownIndex << 4) & 0x3C);
+	stream[pos] = stream[pos] | ((countDownIndex << 2) & 0x3C);
 	stream[pos] = stream[pos] | ((switchOnControlFlag << 1) & 0x02);
 
 	ci = currentCI;
@@ -206,7 +251,10 @@ int MCCI::updateStream() {
 				stream[pos] = (ci->tpLayerC->lengthOfTimeInterleaving << 5) & 0xE0;
 				stream[pos] = stream[pos] | ((ci->tpLayerC->numberOfSegments << 1) & 0x1E);
 			} else {
-				stream[pos++] = 0xFF;
+				stream[pos] = stream[pos] | 0x3F;
+
+				pos++;
+
 				stream[pos] = 0xFE;
 			}
 		} else {

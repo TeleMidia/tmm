@@ -72,6 +72,7 @@ int IIP::updateStream() {
 	stream[pos++] = IIPPacketPointer & 0xFF;
 
 	if (mcci) {
+		mcci->updateStream();
 		tempStreamLength = mcci->getStream(&tempStream);
 		memcpy(stream + pos, tempStream, tempStreamLength);
 		pos += tempStreamLength;
@@ -79,7 +80,6 @@ int IIP::updateStream() {
 		cout << "IIP::updateStream - Error: No MCCI to encode." << endl;
 		return -1;
 	}
-
 	stream[pos++] = IIPBranchNumber & 0xFF;
 	stream[pos++] = lastIIPBranchNumber & 0xFF;
 	stream[pos++] = nsiLength & 0xFF;

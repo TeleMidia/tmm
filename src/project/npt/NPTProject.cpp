@@ -201,7 +201,7 @@ void NPTProject::setFirstReferenceOffset(double offset) {
 	firstReferenceOffset = offset;
 }
 
-int NPTProject::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
+int NPTProject::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 	NPTReference* nptRef = NULL;
 	NPTEndpoint* nptEP = NULL;
 	Reference* ref;
@@ -269,10 +269,18 @@ int NPTProject::encodeSections(int64_t stc, vector<PrivateSection*>* list) {
 		dsmccSection->setLastSectionNumber(0x00);
 		dsmccSection->setVersionNumber(0);//TODO: changes in descriptors must change this
 		dsmccSection->updateStream();
-		list->push_back(dsmccSection);
-	} else {
-		delete (dsmccSection);
+
+		char* tempStream;
+		pair<char*,int>* myp = new pair<char*,int>;
+		int length = dsmccSection->getStream(&tempStream);
+		myp->first = new char[length];
+		memcpy(myp->first, tempStream, length);
+		myp->second = length;
+		list->push_back(myp);
 	}
+
+	delete (dsmccSection);
+
 	return 0;
 }
 

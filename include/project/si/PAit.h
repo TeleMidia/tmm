@@ -25,10 +25,13 @@ class PAit : public ProjectInfo, public Ait {
 	private:
 
 	protected:
-
+		ProjectInfo* carouselProj;
 	public:
-		PAit(){projectType = PT_AIT;};
-		virtual ~PAit(){};
+		PAit();
+		virtual ~PAit();
+
+		void setCarouselProj(ProjectInfo* proj);
+		ProjectInfo* getCarouselProj();
 
 };
 

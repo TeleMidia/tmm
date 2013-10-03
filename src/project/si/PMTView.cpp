@@ -16,7 +16,7 @@ PMTView::PMTView() {
 	ProjectInfo();
 	pmtStream = NULL;
 	projectType = PT_PMTVIEW;
-	serviceType = -1;
+	serviceType = SRV_TYPE_TV;
 	eitProj = NULL;
 }
 

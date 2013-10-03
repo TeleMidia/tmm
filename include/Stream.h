@@ -25,6 +25,7 @@ struct Buffer {
 	 char* buffer;
 	 unsigned int pos;
 	 unsigned int size;
+	 unsigned int originalSize;
 	 bool startIndicator;
 };
 
@@ -37,11 +38,11 @@ class Stream {
 		unsigned int maxBufferLength;
 
 		int64_t nextSend;
-		unsigned int frequency;
+		unsigned int frequency; //Value in STC unit (27 MHz).
 		unsigned int maxBitrate;
 		unsigned int maxBytesRate;
 
-		//0 - PES
+		//0 - PES or IIP
 		//1 - Section
 		unsigned char type;
 
