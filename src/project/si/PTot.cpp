@@ -34,7 +34,7 @@ void PTot::init() {
  	projectType = PT_TOT;
  	layer = 0x01; //HIERARCHY_A
  	countryCode.assign("BRA");
- 	countryRegionId = 3;//Brazil: RJ
+ 	countryRegionId = 3;//Brazil: RJ - ABNT NBR 15608-3:2008 page 39
 }
 
 void PTot::printDateTime(time_t now, string format, bool local) {
@@ -69,7 +69,7 @@ char PTot::dayOfWeek(time_t date) {
 time_t PTot::makeUtcDate(string dateTime) {
 	int dd, mo, yy, hh, mm, ss, uh = 0, um = 0, r;
 	struct tm when = {0};
-	short utcRef;
+	short utcRef; //in minutes
 
 	r = sscanf(dateTime.c_str(), "%d-%d-%dT%d:%d:%d-%d:%d",
 			&yy, &mo, &dd, &hh, &mm, &ss, &uh, &um);
@@ -91,8 +91,7 @@ time_t PTot::makeUtcDate(string dateTime) {
 	unsigned found = dateTime.find('+');
 	if (found==std::string::npos) utcRef *= -1;
 
-	return mktime(&when) + (int64_t)(((Tot::localTimezone() - utcRef) * 60) -
-						   (Tot::localTimezone() * 60)); //utc;
+	return (mktime(&when) - (utcRef * 60)) + (Tot::localTimezone() * 60); //utc;
 }
 
 time_t PTot::makeUtcDate(unsigned short yy, unsigned short mo,
@@ -264,7 +263,7 @@ void PTot::setCountryCode(string country) {
 }
 
 void PTot::setCountryRegionId(unsigned char id) {
-	countryRegionId = id; //ABNT NBR 15608-3:2008 page 39
+	countryRegionId = id;
 }
 
 int PTot::encode(int64_t stc, vector<pair<char*,int>*>* list) {
@@ -274,7 +273,7 @@ int PTot::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 
 	elapsedTime = updateDateTime(stc);
 	cout << "tot = ";
-	printDateTime(dateTime, "", true);
+	printDateTime(dateTime - utcOffset, "", true);
 	cout << " ~ elapsed time = " << (int64_t) elapsedTime << endl;
 
 	releaseAllDescriptors();
