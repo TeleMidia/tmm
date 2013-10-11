@@ -395,7 +395,6 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 									project->configAitService(itProjNew->second,
 											(*itPmtNew)->pv->getProgramNumber(),
 											ctag);
-									//TODO: update AIT stream!!!
 									//The stream will be created below.
 								}
 							}

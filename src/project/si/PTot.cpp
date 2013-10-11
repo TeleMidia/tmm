@@ -13,10 +13,12 @@ namespace telemidia {
 namespace tool {
 
 PTot::PTot() {
+	ProjectInfo();
 	init();
 }
 
 PTot::PTot(int id) {
+	ProjectInfo();
 	this->id = id;
 	init();
 }

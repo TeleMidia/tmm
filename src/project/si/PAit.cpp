@@ -13,6 +13,7 @@ namespace telemidia {
 namespace tool {
 
 PAit::PAit() {
+	ProjectInfo();
 	projectType = PT_AIT;
 	layer = 0x02; //HIERARCHY_B
 	carouselProj = NULL;

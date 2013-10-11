@@ -13,6 +13,7 @@ namespace telemidia {
 namespace tool {
 
 PSdt::PSdt() {
+	ProjectInfo();
 	projectType = PT_SDT;
 	layer = 0x01; //HIERARCHY_A
 }

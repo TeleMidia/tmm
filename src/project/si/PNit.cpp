@@ -13,6 +13,7 @@ namespace telemidia {
 namespace tool {
 
 PNit::PNit() {
+	ProjectInfo();
 	projectType = PT_NIT;
 	layer = 0x01; //HIERARCHY_A
 }

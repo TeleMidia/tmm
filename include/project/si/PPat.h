@@ -27,7 +27,10 @@ class PPat : public ProjectInfo, public Pat {
 	protected:
 
 	public:
-		PPat(){projectType = PT_PAT;};
+		PPat(){
+			ProjectInfo();
+			projectType = PT_PAT;
+		};
 		virtual ~PPat(){};
 
 };

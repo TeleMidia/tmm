@@ -14,10 +14,12 @@ namespace telemidia {
 namespace tool {
 
 PEit::PEit() {
+	ProjectInfo();
 	init();
 }
 
 PEit::PEit(int id) {
+	ProjectInfo();
 	init();
 	this->id = id;
 }

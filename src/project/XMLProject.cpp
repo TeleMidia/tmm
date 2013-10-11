@@ -557,6 +557,9 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 			delete pmtView;
 			return ret;
 		}
+		/*
+		 * Program number -> ABNTNBR 15603-2, Annex H.3
+		 */
 		if (f->QueryAttribute("programnumber", &num) != XML_NO_ERROR) {
 			cout << "pmt: attribute 'programnumber' not found." << endl;
 			return -4;
