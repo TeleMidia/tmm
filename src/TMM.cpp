@@ -542,7 +542,7 @@ int TMM::multiplex() {
 			if (lastStcPrinter != (unsigned int) Stc::stcToSecond(muxer->getCurrentStc())/5) {
 				lastStcPrinter = Stc::stcToSecond(muxer->getCurrentStc())/5;
 				time(&now);
-				PTot::printDateTime(now, "", true);
+				PTot::printDateTime(now, "");
 				cout << " ~ elapsed time = " <<
 					(int64_t) Stc::stcToSecond(muxer->getRelativeStc()) << endl;
 			}

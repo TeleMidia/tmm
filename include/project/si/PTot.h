@@ -32,7 +32,7 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 
 	protected:
 		int64_t stcBegin; // for reference purpose
-		int offset;
+		int offset; //Offset used to correct the time discrepancy caused by stcBegin.
 		int utcOffset;
 
 		bool useCurrentTime; // if TOT should use system time
@@ -47,7 +47,7 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		PTot(int id);
 		virtual ~PTot();
 
-		static void printDateTime(time_t now, string format, bool local);
+		static void printDateTime(time_t now, string format);
 
 		void setStcBegin(int64_t stc);
 		void setUseCurrentTime(bool ct);

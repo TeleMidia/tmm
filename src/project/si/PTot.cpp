@@ -39,28 +39,23 @@ void PTot::init() {
  	countryRegionId = 3;//Brazil: RJ - ABNT NBR 15608-3:2008 page 39
 }
 
-void PTot::printDateTime(time_t now, string format, bool local) {
+void PTot::printDateTime(time_t now, string format) {
+	short utc = Tot::localTimezone();
 	struct tm tstruct;
 	char buf[80];
 
 	if (!format.length()) format.assign("%Y-%m-%d %X");
-	if (local) {
-		tstruct = *localtime(&now);
-	} else {
-		tstruct = *gmtime(&now);
-	}
+	now += (((int)utc)*60);
+	tstruct = *gmtime(&now);
 	strftime(buf, sizeof(buf), format.c_str(), &tstruct);
 	cout << buf;
-	if (local) {
-		short utc = Tot::localTimezone();
-		cout << " UTC";
-		if (utc >= 0) cout << "+"; else {
-			cout << "-";
-			utc *= -1;
-		}
-		cout << (short)(utc/60) << ":";
-		printf("%02d", utc%60);
+	cout << " UTC";
+	if (utc >= 0) cout << "+"; else {
+		cout << "-";
+		utc *= -1;
 	}
+	cout << (short)(utc/60) << ":";
+	printf("%02d", utc%60);
 }
 
 char PTot::dayOfWeek(time_t date) {
@@ -157,6 +152,10 @@ time_t PTot::nextTimeChange(time_t dateTime, char *dst) {
 	time_t dBegin, dEnd;
 	tstruct = *gmtime(&dateTime);
 	year = tstruct.tm_year + 1900;
+	dEnd = daylightEnd(year - 1) - 3600;
+	if (dEnd - dateTime > 0) {
+		year -= 1;
+	}
 	dBegin = daylightStart(year);
 	dEnd = daylightEnd(year);
 
@@ -167,7 +166,7 @@ time_t PTot::nextTimeChange(time_t dateTime, char *dst) {
 		}
 	}
 
-	if ((dBegin - dateTime) >= 0) {
+	if ((dBegin - dateTime) > 0) {
 		*dst = 0;
 		return dBegin;
 	} else {
@@ -274,9 +273,6 @@ int PTot::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 	char localTimeOffset, dst;
 
 	elapsedTime = updateDateTime(stc);
-	cout << "tot = ";
-	printDateTime(dateTime - utcOffset, "", true);
-	cout << " ~ elapsed time = " << (int64_t) elapsedTime << endl;
 
 	releaseAllDescriptors();
 	currentNextIndicator = 1;
@@ -284,7 +280,7 @@ int PTot::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 	sectionNumber = 0;
 	privateIndicator = 1;
 	LocalTimeData* ltd = new LocalTimeData();
-	ltd->timeOfChange = nextTimeChange(dateTime, &dst) + 3600;
+	ltd->timeOfChange = nextTimeChange(dateTime, &dst);
 	ltd->countryCode = countryCode;
 	ltd->countryRegionId = countryRegionId;
 
@@ -296,6 +292,7 @@ int PTot::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 		} else {
 			daylightSavingTime = true;
 		}
+		ltd->localTimeOffsetPolarity = 0;
 		if (countryRegionId > 3) ltd->localTimeOffsetPolarity = 1;
 		localTimeOffset = 0;
 		if ((countryRegionId == 1) || (countryRegionId == 4) ||
@@ -319,7 +316,11 @@ int PTot::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 	ltd->localTimeOffset = dt;
 	dt = 0;
 	if (daylightSavingTime) {
-		if (!dst) dt = Tot::makeUtcTime(1, 0, 0);
+		if (!dst) {
+			dt = Tot::makeUtcTime(1, 0, 0);
+		} else {
+			dateTime += 3600;
+		}
 	}
 	ltd->nextTimeOffset = dt;
 	LocalTimeOffset* lto = new LocalTimeOffset();
@@ -332,6 +333,10 @@ int PTot::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 	streamData->second = length;
 
 	list->push_back(streamData);
+
+	cout << "tot = ";
+	printDateTime(dateTime - utcOffset, "");
+	cout << " ~ elapsed time = " << (int64_t) elapsedTime << endl;
 
 	return 0;
 }
