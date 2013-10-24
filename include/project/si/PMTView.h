@@ -10,6 +10,8 @@
 
 #include "Stream.h"
 #include "Stc.h"
+#include "si/descriptor/Aac.h"
+#include "si/descriptor/Iso639Language.h"
 #include "tsparser/TSInfo.h"
 #include "project/ProjectInfo.h"
 #include "project/inputdata/InputData.h"
@@ -47,6 +49,7 @@ class PMTView : public ProjectInfo {
 		map<unsigned short, unsigned char> componentTagList; //(pid, ctag)
 		map<unsigned short, unsigned char> desiredComponentTagList; //(pid, ctag)
 		map<unsigned short, unsigned char> layerList; //(pid, layer)
+		map<unsigned short, MpegDescriptor*> esDescriptorList; //(pid, descriptor)
 
 	public:
 		PMTView();
@@ -77,12 +80,15 @@ class PMTView : public ProjectInfo {
 		bool getComponentTag(unsigned short pid, unsigned char* tag);
 		bool addPidToLayer(unsigned short pid, unsigned char layer);
 		unsigned char getLayerPid(unsigned short pid);
+		bool addEsDescriptor(unsigned short pid, MpegDescriptor* md);
 		void cleanLayerList();
 		bool deleteAllStreams();
+		bool releaseEsDescriptorList();
 		map<unsigned short, ProjectInfo*>* getProjectInfoList();
 		map<unsigned short, Stream*>* getStreamList();
 		map<unsigned short, unsigned char>* getComponentTagList();
 		map<unsigned short, unsigned char>* getLayerList();
+		map<unsigned short, MpegDescriptor*>* getEsDescriptorList();
 		int getProjectPid(ProjectInfo* proj);
 		bool fulfillComponentTagList(PMTView* previousPmtView);
 		bool isDesiredComponentTagInUse(unsigned char ctag);

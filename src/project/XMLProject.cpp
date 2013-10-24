@@ -544,8 +544,8 @@ int XMLProject::parseEIT(XMLNode* m, XMLElement* f) {
 
 int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 	ProjectInfo* proj;
-	XMLNode *o;
-	XMLElement *g;
+	XMLNode *o, *p;
+	XMLElement *g, *h;
 	string value;
 	int num, ret;
 
@@ -700,6 +700,37 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 						cout << "pmt: 'layer' not recognized ("
 							 << value << ")" << endl;
 						return -6;
+					}
+				}
+				for (p = g->FirstChild(); p; p = p->NextSibling()) {
+					int aacValue;
+					h = p->ToElement();
+					if (strcmp(p->Value(), "aac") == 0) {
+						if (h->QueryAttribute("profileandlevel", &aacValue) != XML_NO_ERROR) {
+							cout << "pmt: attribute 'profileandlevel' not found." << endl;
+							return -4;
+						}
+						Aac* aac = new Aac();
+						aac->setProfileAndLevel(aacValue);
+						if (h->QueryAttribute("aactype", &num) == XML_NO_ERROR) {
+							aac->setAacTypeFlag(true);
+							aac->setAacType(aacValue);
+						}
+						pmtView->addEsDescriptor(esPid, aac);
+					}
+					if (strcmp(p->Value(), "iso639language") == 0) {
+						value = getAttribute(h, "language");
+						if (value.size() != 3) {
+							cout << "pmt: attribute 'language' not found or invalid." << endl;
+							return -4;
+						}
+						if (h->QueryAttribute("audiotype", &aacValue) != XML_NO_ERROR) {
+							cout << "pmt: attribute 'audiotype' not found." << endl;
+							return -4;
+						}
+						Iso639Language* iso639Language = new Iso639Language();
+						iso639Language->addIso639Language(value, aacValue);
+						pmtView->addEsDescriptor(esPid, iso639Language);
 					}
 				}
 			}

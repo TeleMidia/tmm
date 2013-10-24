@@ -598,6 +598,7 @@ void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 	map<unsigned short, ProjectInfo*>* pi;
 	map<unsigned short, ProjectInfo*>::iterator itPi;
+	map<unsigned short, MpegDescriptor*>::iterator itDesc;
 	InputData* indata = NULL;
 	unsigned char st;
 	CarouselIdentifier* cidesc = NULL;
@@ -660,6 +661,13 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 		}
 
 		++itPi;
+	}
+
+	itDesc = newPmtView->getEsDescriptorList()->begin();
+	while (itDesc != newPmtView->getEsDescriptorList()->end()) {
+		descLen = itDesc->second->getStream(&descStream);
+		(*pmt)->addEsDescriptor(itDesc->first, descStream, descLen);
+		++itDesc;
 	}
 
 	return 0;
@@ -862,7 +870,9 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 		itPmtCurr = currentTimeline->begin();
 		while (itPmtCurr != currentTimeline->end()) {
 			if (((*itPmtNew)->pv->getPid() == (*itPmtCurr)->pv->getPid()) && // Is it necessary?
-					((*itPmtNew)->pv->getId() == (*itPmtCurr)->pv->getId())) {
+					((*itPmtNew)->pv->getId() == (*itPmtCurr)->pv->getId()) &&
+					((*itPmtNew)->pv->getEsDescriptorList()->size() ==
+							(*itPmtCurr)->pv->getEsDescriptorList()->size())) {
 				found = true; //Identical
 				break;
 			}

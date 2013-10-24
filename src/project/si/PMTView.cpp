@@ -22,6 +22,7 @@ PMTView::PMTView() {
 
 PMTView::~PMTView() {
 	deleteAllStreams();
+	releaseEsDescriptorList();
 	if (pmtStream) delete pmtStream;
 }
 
@@ -138,6 +139,17 @@ unsigned char PMTView::getLayerPid(unsigned short pid) {
 	return 0xFF;
 }
 
+bool PMTView::addEsDescriptor(unsigned short pid, MpegDescriptor* md) {
+	if (!esDescriptorList.count(pid)) {
+		esDescriptorList[pid] = md;
+	} else {
+		MpegDescriptor* tmd = esDescriptorList[pid];
+		if (tmd) delete tmd;
+		esDescriptorList[pid] = md;
+	}
+	return true;
+}
+
 void PMTView::cleanLayerList() {
 	layerList.clear();
 }
@@ -147,6 +159,17 @@ bool PMTView::deleteAllStreams() {
 		if (streamList[i]) delete streamList[i];
 	}
 	streamList.clear();
+	return true;
+}
+
+bool PMTView::releaseEsDescriptorList() {
+	map<unsigned short, MpegDescriptor*>::iterator it;
+	it = esDescriptorList.begin();
+	while (it != esDescriptorList.end()) {
+		if (it->second) delete it->second;
+		++it;
+	}
+	esDescriptorList.clear();
 	return true;
 }
 
@@ -174,6 +197,10 @@ int PMTView::getProjectPid(ProjectInfo* proj) {
 
 map<unsigned short, unsigned char>* PMTView::getLayerList() {
 	return &layerList;
+}
+
+map<unsigned short, MpegDescriptor*>* PMTView::getEsDescriptorList() {
+	return &esDescriptorList;
 }
 
 bool PMTView::isDesiredComponentTagInUse(unsigned char ctag) {
