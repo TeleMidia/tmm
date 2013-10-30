@@ -28,6 +28,7 @@ void PEit::init() {
 	projectType = PT_EIT_PF;
 	lastEventId = -1;
 	offsetAdjusted = false;
+	layer = 0x01; //HIERARCHY_A
 }
 
 PEit::~PEit() {
