@@ -824,7 +824,22 @@ int XMLProject::processOutput(XMLElement *top) {
 			if (e->QueryAttribute("bitrate", &num) == XML_NO_ERROR) {
 				tsBitrate = num;
 			} else {
-				tsBitrate = 19000000;
+				tsBitrate = 18000000;
+			}
+			if (e->QueryAttribute("layerratea", &num) == XML_NO_ERROR) {
+				layerBitrateA = num;
+			} else {
+				layerBitrateA = 500000;
+			}
+			if (e->QueryAttribute("layerrateb", &num) == XML_NO_ERROR) {
+				layerBitrateB = num;
+			} else {
+				layerBitrateB = 17500000;
+			}
+			if (e->QueryAttribute("layerratec", &num) == XML_NO_ERROR) {
+				layerBitrateC = num;
+			} else {
+				layerBitrateC = 0;
 			}
 			value1 = getAttribute(e, "name");
 			if (value1.size() > 20) {
@@ -1113,34 +1128,204 @@ int XMLProject::processOutput(XMLElement *top) {
 				ret = createAndGetId(piip, IIP_NAME);
 				if (ret < 0) return ret;
 
+				TransmissionParameters* tp;
 				MCCI* mcci = new MCCI();
 				ConfigurationInformation* ci = new ConfigurationInformation;
-				TransmissionParameters* tp = new TransmissionParameters;
 				ci->partialReceptionFlag = true;
-				tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_5_6;
-				tp->modulationScheme = MCCI_MODULATION_SCHEME_QPSK;
-				tp->numberOfSegments = 0x01;
-				tp->lengthOfTimeInterleaving = 0x02;
-				ci->tpLayerA = tp;
+				value1 = getAttribute(e, "partialreception");
+				if (value1.size()) {
+					if (value1 == "true") {
+						ci->partialReceptionFlag = true;
+					} else {
+						ci->partialReceptionFlag = false;
+					}
+				}
+				value1 = getAttribute(e, "modulationlayera");
+				if (value1.size()) {
+					tp = new TransmissionParameters;
+					if (value1 == "dqpsk") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_DQPSK;
+					} else if (value1 == "qpsk") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_QPSK;
+					} else if (value1 == "16qam") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_16QAM;
+					} else if (value1 == "64qam") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_64QAM;
+					} else {
+						cout << "output: 'modulationlayera' not recognized ("
+							 << value1 << ")" << endl;
+						delete tp;
+						delete mcci;
+						delete piip;
+						return -6;
+					}
+					value1 = getAttribute(e, "codingratelayera");
+					if (value1.size()) {
+						if (value1 == "7/8") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_7_8;
+						} else if (value1 == "5/6") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_5_6;
+						} else if (value1 == "3/4") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_3_4;
+						} else if (value1 == "2/3") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_2_3;
+						} else if (value1 == "1/2") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_1_2;
+						} else {
+							cout << "output: 'codingratelayera' not recognized ("
+								 << value1 << ")" << endl;
+							delete tp;
+							delete mcci;
+							delete piip;
+							return -6;
+						}
+					} else {
+						tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_5_6;
+					}
+					if (e->QueryAttribute("numsegmentlayera", &num) == XML_NO_ERROR) {
+						tp->numberOfSegments = num;
+					} else {
+						tp->numberOfSegments = 0x01;
+					}
+					if (e->QueryAttribute("interleavinglayera", &num) == XML_NO_ERROR) {
+						tp->lengthOfTimeInterleaving = num;
+					} else {
+						tp->lengthOfTimeInterleaving = 0x02;
+					}
+					ci->tpLayerA = tp;
+				} else {
+					ci->tpLayerA = NULL;
+				}
 
-				tp = new TransmissionParameters;
-				tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_3_4;
-				tp->modulationScheme = MCCI_MODULATION_SCHEME_64QAM;
-				tp->numberOfSegments = 0x0C;
-				tp->lengthOfTimeInterleaving = 0x02;
-				ci->tpLayerB = tp;
+				value1 = getAttribute(e, "modulationlayerb");
+				if (value1.size()) {
+					tp = new TransmissionParameters;
+					if (value1 == "dqpsk") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_DQPSK;
+					} else if (value1 == "qpsk") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_QPSK;
+					} else if (value1 == "16qam") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_16QAM;
+					} else if (value1 == "64qam") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_64QAM;
+					} else {
+						cout << "output: 'modulationlayerb' not recognized ("
+							 << value1 << ")" << endl;
+						delete tp;
+						delete mcci;
+						delete piip;
+						return -6;
+					}
+					value1 = getAttribute(e, "codingratelayerb");
+					if (value1.size()) {
+						if (value1 == "7/8") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_7_8;
+						} else if (value1 == "5/6") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_5_6;
+						} else if (value1 == "3/4") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_3_4;
+						} else if (value1 == "2/3") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_2_3;
+						} else if (value1 == "1/2") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_1_2;
+						} else {
+							cout << "output: 'codingratelayerb' not recognized ("
+								 << value1 << ")" << endl;
+							delete tp;
+							delete mcci;
+							delete piip;
+							return -6;
+						}
+					} else {
+						tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_3_4;
+					}
+					if (e->QueryAttribute("numsegmentlayerb", &num) == XML_NO_ERROR) {
+						tp->numberOfSegments = num;
+					} else {
+						tp->numberOfSegments = 0x0C;
+					}
+					if (e->QueryAttribute("interleavinglayerb", &num) == XML_NO_ERROR) {
+						tp->lengthOfTimeInterleaving = num;
+					} else {
+						tp->lengthOfTimeInterleaving = 0x02;
+					}
+					ci->tpLayerB = tp;
+				} else {
+					ci->tpLayerB = NULL;
+				}
 
-				ci->tpLayerC = NULL;
+				value1 = getAttribute(e, "modulationlayerc");
+				if (value1.size()) {
+					tp = new TransmissionParameters;
+					if (value1 == "dqpsk") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_DQPSK;
+					} else if (value1 == "qpsk") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_QPSK;
+					} else if (value1 == "16qam") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_16QAM;
+					} else if (value1 == "64qam") {
+						tp->modulationScheme = MCCI_MODULATION_SCHEME_64QAM;
+					} else {
+						cout << "output: 'modulationlayerc' not recognized ("
+							 << value1 << ")" << endl;
+						delete tp;
+						delete mcci;
+						delete piip;
+						return -6;
+					}
+					value1 = getAttribute(e, "codingratelayerc");
+					if (value1.size()) {
+						if (value1 == "7/8") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_7_8;
+						} else if (value1 == "5/6") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_5_6;
+						} else if (value1 == "3/4") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_3_4;
+						} else if (value1 == "2/3") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_2_3;
+						} else if (value1 == "1/2") {
+							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_1_2;
+						} else {
+							cout << "output: 'codingratelayerc' not recognized ("
+								 << value1 << ")" << endl;
+							delete tp;
+							delete mcci;
+							delete piip;
+							return -6;
+						}
+					} else {
+						tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_3_4;
+					}
+					if (e->QueryAttribute("numsegmentlayerc", &num) == XML_NO_ERROR) {
+						tp->numberOfSegments = num;
+					} else {
+						tp->numberOfSegments = 0x00;
+					}
+					if (e->QueryAttribute("interleavinglayerc", &num) == XML_NO_ERROR) {
+						tp->lengthOfTimeInterleaving = num;
+					} else {
+						tp->lengthOfTimeInterleaving = 0x02;
+					}
+					ci->tpLayerC = tp;
+				} else {
+					ci->tpLayerC = NULL;
+				}
 
-				mcci->setCurrentGuardInterval(guardInterval);
-				mcci->setCurrentMode(transmissionMode + 1);//TODO: Terrestrial Delivery System Descriptor <> MCCI
-				mcci->setCurrentCI(ci);
+				if (ci->tpLayerA || ci->tpLayerB || ci->tpLayerC) {
+					mcci->setCurrentGuardInterval(guardInterval);
+					//TODO: Terrestrial Delivery System Descriptor <> MCCI
+					mcci->setCurrentMode(transmissionMode + 1);
+					mcci->setCurrentCI(ci);
+					mcci->copyCurrentToNext();
+					piip->setMcci(mcci);
 
-				mcci->copyCurrentToNext();
-
-				piip->setMcci(mcci);
-
-				(*projectList)[piip->getId()] = piip;
+					(*projectList)[piip->getId()] = piip;
+				} else {
+					cout << "output: hierarchical layers hasn't been defined." << endl;
+					delete mcci;
+					delete piip;
+					return -4;
+				}
 			}
 		}
 	}

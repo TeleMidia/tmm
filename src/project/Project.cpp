@@ -335,6 +335,18 @@ int Project::getTsid() {
 	return tsid;
 }
 
+int Project::getLayerBitrateA() {
+	return layerBitrateA;
+}
+
+int Project::getLayerBitrateB() {
+	return layerBitrateB;
+}
+
+int Project::getLayerBitrateC() {
+	return layerBitrateC;
+}
+
 void Project::setTsBitrate(int rate) {
 	tsBitrate = rate;
 }

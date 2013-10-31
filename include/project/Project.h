@@ -54,6 +54,9 @@ class Project {
 		string providerName;
 		int tsid;
 		int tsBitrate;
+		int layerBitrateA;
+		int layerBitrateB;
+		int layerBitrateC;
 		int64_t stcBegin; //27 MHz - Minimum value = 270000000 (10s)
 		double vbvBuffer;
 		unsigned char ttl;
@@ -99,6 +102,9 @@ class Project {
 		string getProviderName();
 		void setTsid(int id);
 		int getTsid();
+		int getLayerBitrateA();
+		int getLayerBitrateB();
+		int getLayerBitrateC();
 		void setTsBitrate(int rate);
 		int getTsBitrate();
 		void setStcBegin(int64_t stc);

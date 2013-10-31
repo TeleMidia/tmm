@@ -58,12 +58,24 @@ class Muxer {
 		unsigned short packetsInBuffer;
 		unsigned char ttl;
 
+		unsigned int layerRateA;
+		unsigned int layerRateB;
+		unsigned int layerRateC;
+		unsigned int pktNumSinceLastStepLayerA;
+		unsigned int pktNumSinceLastStepLayerB;
+		unsigned int pktNumSinceLastStepLayerC;
+		unsigned int pktPerStepIntervalLayerA;
+		unsigned int pktPerStepIntervalLayerB;
+		unsigned int pktPerStepIntervalLayerC;
+
 		unsigned int tsBitrate;
 		unsigned char packetSize;
 		string destination;
 		bool isFileMode;
 		map<unsigned short, vector<Stream*>*> streamList;
 
+		bool odfmFrameEven;
+		unsigned short ofdmFrameSize, ofdmFrameCounter;
 		ISDBTInformation isdbtInfo;
 		map<unsigned short, unsigned char> pidToLayerList;
 
@@ -98,6 +110,13 @@ class Muxer {
 		//Greatest Common Divisor
 		static unsigned int gcd(unsigned int a, unsigned int b);
 
+		void setLayerRateA(unsigned int rate);
+		unsigned int getLayerRateA();
+		void setLayerRateB(unsigned int rate);
+		unsigned int getLayerRateB();
+		void setLayerRateC(unsigned int rate);
+		unsigned int getLayerRateC();
+
 		void setTsBitrate(unsigned int rate);
 		unsigned int getTsBitrate();
 		void setPacketSize(unsigned char size);
@@ -121,6 +140,7 @@ class Muxer {
 
 		map<unsigned short, vector<Stream*>*>* getStreamList();
 
+		void setOfdmFrameSize(unsigned short size);
 		bool addPidToLayer(unsigned short pid, unsigned char layer);
 		map<unsigned short, unsigned char>* getPidToLayerList();
 		void clearPidToLayerList();

@@ -455,7 +455,34 @@ int TMM::multiplexSetup() {
 	muxer->setTTL(project->getTTL());
 
 	muxer->setDestination(destination);
+	muxer->setLayerRateA(project->getLayerBitrateA());
+	muxer->setLayerRateB(project->getLayerBitrateB());
+	muxer->setLayerRateC(project->getLayerBitrateC());
 	muxer->setTsBitrate(project->getTsBitrate());
+
+	PIIP* piip = (PIIP*) getFirstProjectReversed(PT_IIP);
+	if ((project->getPacketSize() == 204) && piip) {
+		if (piip->getMcci()) {
+			unsigned short ofdmFrameSize;
+			unsigned char guard = piip->getMcci()->getCurrentGuardInterval();
+			unsigned char mode = piip->getMcci()->getCurrentMode();
+			if ((mode == 1) && (guard == MCCI_GUARD_INTERVAL_1_4)) ofdmFrameSize = 1280;
+			if ((mode == 1) && (guard == MCCI_GUARD_INTERVAL_1_8)) ofdmFrameSize = 1152;
+			if ((mode == 1) && (guard == MCCI_GUARD_INTERVAL_1_16)) ofdmFrameSize = 1088;
+			if ((mode == 1) && (guard == MCCI_GUARD_INTERVAL_1_32)) ofdmFrameSize = 1056;
+			if ((mode == 2) && (guard == MCCI_GUARD_INTERVAL_1_4)) ofdmFrameSize = 2560;
+			if ((mode == 2) && (guard == MCCI_GUARD_INTERVAL_1_8)) ofdmFrameSize = 2304;
+			if ((mode == 2) && (guard == MCCI_GUARD_INTERVAL_1_16)) ofdmFrameSize = 2176;
+			if ((mode == 2) && (guard == MCCI_GUARD_INTERVAL_1_32)) ofdmFrameSize = 2112;
+			if ((mode == 3) && (guard == MCCI_GUARD_INTERVAL_1_4)) ofdmFrameSize = 5120;
+			if ((mode == 3) && (guard == MCCI_GUARD_INTERVAL_1_8)) ofdmFrameSize = 4608;
+			if ((mode == 3) && (guard == MCCI_GUARD_INTERVAL_1_16)) ofdmFrameSize = 4352;
+			if ((mode == 3) && (guard == MCCI_GUARD_INTERVAL_1_32)) ofdmFrameSize = 4224;
+			muxer->setOfdmFrameSize(ofdmFrameSize); //ARIB-STD-B31 v1.6-E2 page 116.
+		} else {
+			return -2;
+		}
+	}
 
 	//add all pcr frequencies used in project
 	map<int, ProjectInfo*>::iterator itPvl = project->getProjectList()->begin();

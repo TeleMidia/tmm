@@ -14,7 +14,7 @@ namespace tool {
 
 Muxer::Muxer(unsigned char packetSize, unsigned short packetsInBuffer) {
 	stc = SYSTEM_CLOCK_FREQUENCY * 10;
-	tsBitrate = 19000000;
+	tsBitrate = 18000000;
 	this->packetSize = packetSize;
 	stcOffset = 0;
 	pFile = NULL;
@@ -25,6 +25,10 @@ Muxer::Muxer(unsigned char packetSize, unsigned short packetsInBuffer) {
 	this->packetsInBuffer = packetsInBuffer;
 	streamBuffer = new char[streamBufferSize];
 	streamBufferLength = 0;
+	layerRateA = 500000;
+	layerRateB = 17500000;
+	layerRateC = 0;
+	ofdmFrameSize = 4352; //for guard interval 1/16 and transmission mode 3.
 }
 
 Muxer::~Muxer() {
@@ -37,6 +41,30 @@ Muxer::~Muxer() {
 
 unsigned int Muxer::gcd(unsigned int a, unsigned int b) {
 	if (b == 0) return a; else return gcd(b, a % b);
+}
+
+void Muxer::setLayerRateA(unsigned int rate) {
+	layerRateA = rate;
+}
+
+unsigned int Muxer::getLayerRateA() {
+	return layerRateA;
+}
+
+void Muxer::setLayerRateB(unsigned int rate) {
+	layerRateB = rate;
+}
+
+unsigned int Muxer::getLayerRateB() {
+	return layerRateB;
+}
+
+void Muxer::setLayerRateC(unsigned int rate) {
+	layerRateC = rate;
+}
+
+unsigned int Muxer::getLayerRateC() {
+	return layerRateC;
 }
 
 void Muxer::setTsBitrate(unsigned int rate) {
@@ -341,6 +369,10 @@ map<unsigned short, vector<Stream*>*>* Muxer::getStreamList() {
 	return &streamList;
 }
 
+void Muxer::setOfdmFrameSize(unsigned short size) {
+	ofdmFrameSize = size;
+}
+
 bool Muxer::addPidToLayer(unsigned short pid, unsigned char layer) {
 	if (!pidToLayerList.count(pid)) {
 		pidToLayerList[pid] = layer;
@@ -361,7 +393,17 @@ bool Muxer::prepareMultiplexer(int64_t stcBegin) {
 
 	if (!calculateStcStep()) return false;
 
+	odfmFrameEven = false;
+	ofdmFrameCounter = 0;
 	pktNumSinceLastStep = 0;
+	pktNumSinceLastStepLayerA = 0;
+	pktNumSinceLastStepLayerB = 0;
+	pktNumSinceLastStepLayerC = 0;
+	if ((packetSize == 204) && (tsBitrate != (layerRateA + layerRateB + layerRateC))) {
+		cout << "Muxer::prepareMultiplexer - Hierarchical layers bitrate is not" <<
+				" consistent with global TS rate." << endl;
+		return false;
+	}
 	calculateBitrate();
 	stcOffset = 0;
 
@@ -392,6 +434,9 @@ bool Muxer::prepareMultiplexer(int64_t stcBegin) {
 void Muxer::newStcStep() {
 	stc += stcStep;
 	pktNumSinceLastStep = 0;
+	pktNumSinceLastStepLayerA = 0;
+	pktNumSinceLastStepLayerB = 0;
+	pktNumSinceLastStepLayerC = 0;
 	stcOffset = 0;
 }
 
@@ -582,14 +627,46 @@ int Muxer::fillPacket204(char* stream, unsigned short pid) {
 	itLayer = pidToLayerList.find(pid);
 	if (itLayer != pidToLayerList.end()) {
 		isdbtInfo.setLayerIndicator(itLayer->second);
+		switch (itLayer->second) {
+		case HIERARCHY_A:
+			pktNumSinceLastStepLayerA++;
+			break;
+		case HIERARCHY_B:
+			pktNumSinceLastStepLayerB++;
+			break;
+		case HIERARCHY_C:
+			pktNumSinceLastStepLayerC++;
+			break;
+		}
 	} else {
 		if (pid == 0x1FFF) {
-			isdbtInfo.setLayerIndicator(NULL_TSP);
+			if (pktNumSinceLastStepLayerA < pktPerStepIntervalLayerA) {
+				isdbtInfo.setLayerIndicator(HIERARCHY_A);
+				pktNumSinceLastStepLayerA++;
+			} else if (pktNumSinceLastStepLayerB < pktPerStepIntervalLayerB) {
+				isdbtInfo.setLayerIndicator(HIERARCHY_B);
+				pktNumSinceLastStepLayerB++;
+			} else if (pktNumSinceLastStepLayerC < pktPerStepIntervalLayerC) {
+				isdbtInfo.setLayerIndicator(HIERARCHY_C);
+				pktNumSinceLastStepLayerC++;
+			} else {
+				cout << "Muxer::fillPacket204 - Warning: Muxer has caused a" <<
+						" miscalculation that resulted in a weird behavior." << endl;
+				isdbtInfo.setLayerIndicator(NULL_TSP);
+			}
 		} else {
-			isdbtInfo.setLayerIndicator(HIERARCHY_B);
+			isdbtInfo.setLayerIndicator(IIP_NO_HIERARCHY);
+			cout << "Muxer::fillPacket204 - Warning: Packet PID = " <<
+					pid << " hasn't been mapped to any layer." << endl;
 		}
 	}
-	//isdbtInfo.setFrameIndicator(); ???
+	isdbtInfo.setFrameHeadPacketFlag(ofdmFrameCounter == 0);
+	isdbtInfo.setFrameIndicator(odfmFrameEven);
+	ofdmFrameCounter++;
+	if (ofdmFrameCounter == ofdmFrameSize) {
+		odfmFrameEven = !odfmFrameEven;
+		ofdmFrameCounter = 0;
+	}
 	isdbtInfo.updateStream();
 	isdbtInfo.getStream(&isdbtInfoStream);
 	memcpy(stream + 188, isdbtInfoStream, 8);
@@ -660,6 +737,13 @@ void Muxer::calculateBitrate() {
 	value = ((double) pktPerStepInterval * ((double)SYSTEM_CLOCK_FREQUENCY/stcStep)) * packetSize * 8;
 	tsBitrate = (unsigned int)(value + 0.5f);
 	pktStc = (double) stcStep * ((double) 1 / pktPerStepInterval);
+
+	value = (((double) layerRateA / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / packetSize;
+	pktPerStepIntervalLayerA = (unsigned int)(value + 0.5f);
+	value = (((double) layerRateB / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / packetSize;
+	pktPerStepIntervalLayerB = (unsigned int)(value + 0.5f);
+	value = (((double) layerRateC / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / packetSize;
+	pktPerStepIntervalLayerC = (unsigned int)(value + 0.5f);
 }
 
 }
