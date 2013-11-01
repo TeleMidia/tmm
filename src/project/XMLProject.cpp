@@ -829,12 +829,12 @@ int XMLProject::processOutput(XMLElement *top) {
 			if (e->QueryAttribute("layerratea", &num) == XML_NO_ERROR) {
 				layerBitrateA = num;
 			} else {
-				layerBitrateA = 500000;
+				layerBitrateA = 450000;
 			}
 			if (e->QueryAttribute("layerrateb", &num) == XML_NO_ERROR) {
 				layerBitrateB = num;
 			} else {
-				layerBitrateB = 17500000;
+				layerBitrateB = 17550000;
 			}
 			if (e->QueryAttribute("layerratec", &num) == XML_NO_ERROR) {
 				layerBitrateC = num;

@@ -14,7 +14,6 @@ namespace tool {
 
 Muxer::Muxer(unsigned char packetSize, unsigned short packetsInBuffer) {
 	stc = SYSTEM_CLOCK_FREQUENCY * 10;
-	tsBitrate = 18000000;
 	this->packetSize = packetSize;
 	stcOffset = 0;
 	pFile = NULL;
@@ -25,8 +24,9 @@ Muxer::Muxer(unsigned char packetSize, unsigned short packetsInBuffer) {
 	this->packetsInBuffer = packetsInBuffer;
 	streamBuffer = new char[streamBufferSize];
 	streamBufferLength = 0;
-	layerRateA = 500000;
-	layerRateB = 17500000;
+	tsBitrate = 18000000;
+	layerRateA = 450000;
+	layerRateB = 17550000;
 	layerRateC = 0;
 	ofdmFrameSize = 4352; //for guard interval 1/16 and transmission mode 3.
 }
