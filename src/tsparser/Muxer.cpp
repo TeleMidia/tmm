@@ -25,10 +25,11 @@ Muxer::Muxer(unsigned char packetSize, unsigned short packetsInBuffer) {
 	streamBuffer = new char[streamBufferSize];
 	streamBufferLength = 0;
 	tsBitrate = 18000000;
-	layerRateA = 450000;
-	layerRateB = 17550000;
+	layerRateA = 500000;
+	layerRateB = 17500000;
 	layerRateC = 0;
 	ofdmFrameSize = 4352; //for guard interval 1/16 and transmission mode 3.
+	//packetCounter = 0;
 }
 
 Muxer::~Muxer() {
@@ -222,7 +223,11 @@ bool Muxer::calculateStcStep() {
 			return false;
 		}
 
-		stcStep = Stc::secondToStc((double) cd / 1000);
+		if (packetSize == 204) {
+			stcStep = Stc::secondToStc(0.0273105);
+		} else {
+			stcStep = Stc::secondToStc((double) cd / 1000000);
+		}
 
 		return true;
 	}
@@ -329,8 +334,8 @@ bool Muxer::removeAllElementaryStreams() {
 	return true;
 }
 
-bool Muxer::addToListOfAllPossiblePcrsFrequencies(unsigned short freq) {
-	vector<unsigned short>::iterator it;
+bool Muxer::addToListOfAllPossiblePcrsFrequencies(unsigned int freq) {
+	vector<unsigned int>::iterator it;
 
 	if (freq < 10) return false;
 
@@ -344,8 +349,8 @@ bool Muxer::addToListOfAllPossiblePcrsFrequencies(unsigned short freq) {
 	return true;
 }
 
-bool Muxer::addPcrPid(unsigned short pid, unsigned short frequency) {
-	if (frequency < 10) return false;
+bool Muxer::addPcrPid(unsigned short pid, unsigned int frequency) {
+	if (frequency < 10000) return false;
 	if (pcrList.count(pid)) return true;
 	pcrList[pid] = frequency;
 	nextPcrSendList[pid] = stc;
@@ -361,7 +366,7 @@ bool Muxer::removePcrPid(unsigned short pid) {
 	return false;
 }
 
-map<unsigned short, unsigned short>* Muxer::getPcrList() {
+map<unsigned short, unsigned int>* Muxer::getPcrList() {
 	return &pcrList;
 }
 
@@ -395,16 +400,16 @@ bool Muxer::prepareMultiplexer(int64_t stcBegin) {
 
 	odfmFrameEven = false;
 	ofdmFrameCounter = 0;
-	pktNumSinceLastStep = 0;
-	pktNumSinceLastStepLayerA = 0;
-	pktNumSinceLastStepLayerB = 0;
-	pktNumSinceLastStepLayerC = 0;
-	if ((packetSize == 204) && (tsBitrate != (layerRateA + layerRateB + layerRateC))) {
+	resetPacketCounters();
+	if ((packetSize == 204) && (tsBitrate < (layerRateA + layerRateB + layerRateC))) {
 		cout << "Muxer::prepareMultiplexer - Hierarchical layers bitrate is not" <<
 				" consistent with global TS rate." << endl;
 		return false;
 	}
-	calculateBitrate();
+	if (calculateBitrate() < 0) {
+		cout << "Muxer::prepareMultiplexer - PCR value too low." << endl;
+	}
+
 	stcOffset = 0;
 
 	if (stcBegin < SYSTEM_CLOCK_FREQUENCY * 10) stc = SYSTEM_CLOCK_FREQUENCY * 10;
@@ -431,12 +436,15 @@ bool Muxer::prepareMultiplexer(int64_t stcBegin) {
 	return true;
 }
 
-void Muxer::newStcStep() {
-	stc += stcStep;
+void Muxer::resetPacketCounters() {
 	pktNumSinceLastStep = 0;
 	pktNumSinceLastStepLayerA = 0;
 	pktNumSinceLastStepLayerB = 0;
 	pktNumSinceLastStepLayerC = 0;
+}
+
+void Muxer::newStcStep() {
+	stc += stcStep;
 	stcOffset = 0;
 }
 
@@ -468,7 +476,7 @@ int Muxer::mainLoop() {
 		vector<Buffer*>::iterator it;
 		streamScheduled = false;
 
-		stream->setCurrStc(stc + stcOffset);
+		stream->setCurrStc(stc);
 		if (stream->getBuffer(&buffer)) {
 			//write it as a TS
 			writeTsStream(pid, stream->getType());
@@ -489,26 +497,29 @@ int Muxer::mainLoop() {
 			}
 		}
 		stream->disposeBuffer();
-		stream->updateNextSend(stc + stcOffset);
+		stream->updateNextSend(stc);
 		idx = -1;
 		nextSend = getNextStcStreamToMultiplex(&pid, &idx, &streamScheduled);
 		if (idx < 0) return -1;
 		stream = streamList[pid]->at(idx);
 		stream->fillBuffer();
-		if (stc + stcOffset < nextSend) break;
+		if (stc < nextSend) break;
 	}
 
 	return 0;
 }
 
+//When this function is called, newStep() must be called too.
 int Muxer::processPcr() {
 	int reachedPcrPid;
 
-	reachedPcrPid = reachedNextPcrSend(stc + stcOffset);
+	resetPacketCounters();
+
+	reachedPcrPid = reachedNextPcrSend(stc);
 	while (reachedPcrPid >= 0) {
 		//send a PCR now
-		writeTsPcr(stc + stcOffset, reachedPcrPid);
-		reachedPcrPid = reachedNextPcrSend(stc + stcOffset);
+		writeTsPcr(stc, reachedPcrPid);
+		reachedPcrPid = reachedNextPcrSend(stc);
 	}
 	return reachedPcrPid;
 }
@@ -540,9 +551,7 @@ int Muxer::writeTsPcr(int64_t pcr, unsigned short pid) {
 
 	delete packet;
 
-	nextPcrSendList[pid] += pcrList[pid] * 27000;
-	pktNumSinceLastStep++;
-	stcOffset = (int64_t) ((pktStc * pktNumSinceLastStep) + 0.5f);
+	nextPcrSendList[pid] += pcrList[pid] * 27;
 
 	return rw;
 }
@@ -565,12 +574,12 @@ int Muxer::writeTsStream(unsigned short pid, unsigned char type) {
 		packet = NULL;
 		tsaf = NULL;
 
-		reachedPcrPid = reachedNextPcrSend(stc + stcOffset);
+		reachedPcrPid = reachedNextPcrSend((stc - stcStep) + stcOffset);
 		if (reachedPcrPid == pid) {
 			//adaptation field and payload
-			tsaf = new TSAdaptationField(stc + stcOffset);
-			nextPcrSendList[pid] += pcrList[pid] * 27000;
-			processPcr();
+			tsaf = new TSAdaptationField(stc);
+			nextPcrSendList[pid] += pcrList[pid] * 27;
+			resetPacketCounters();
 			newStcStep();
 		} else if (reachedPcrPid >= 0) {
 			//adaptation field only
@@ -606,13 +615,14 @@ int Muxer::writeTsStream(unsigned short pid, unsigned char type) {
 		rw = writeStream(pktBuffer);
 
 		delete packet;
-		pktNumSinceLastStep++;
-		stcOffset = (int64_t) ((pktStc * pktNumSinceLastStep) + 0.5f);
+
 		if (pktNumSinceLastStep == pktPerStepInterval) {
 			//particular case when this values become equal: a pcr is not sent.
 			//but if you try to send it, jitters occur during all TS.
-			if (reachedNextPcrSend(stc + stcOffset) == -1) {
-				//processPcr();
+			if (reachedNextPcrSend(stc) == -1) {
+				if (processPcr() >= 0) {
+					cout << "Muxer::writeTsStream - Untreated case." << endl;
+				}
 				newStcStep();
 			}
 		}
@@ -650,8 +660,6 @@ int Muxer::fillPacket204(char* stream, unsigned short pid) {
 				isdbtInfo.setLayerIndicator(HIERARCHY_C);
 				pktNumSinceLastStepLayerC++;
 			} else {
-				cout << "Muxer::fillPacket204 - Warning: Muxer has caused a" <<
-						" miscalculation that resulted in a weird behavior." << endl;
 				isdbtInfo.setLayerIndicator(NULL_TSP);
 			}
 		} else {
@@ -683,21 +691,9 @@ int Muxer::processNullPackets() {
 	map<unsigned short, int64_t>::iterator it;
 	TSPacket* packet;
 	char* pktBuffer;
-	int rw = 0, pcrCount = 0;
+	int rw = 0;
 
-	it = nextPcrSendList.begin();
-	while (it != nextPcrSendList.end()) {
-		if (stc >= it->second) {
-			pcrCount++;
-		}
-		++it;
-	}
-
-	if (pktPerStepInterval - (pktNumSinceLastStep + pcrCount) > pktPerStepInterval) {
-		cout << "Ops! stcOffset to long!" << endl;
-	}
-
-	while (pktNumSinceLastStep < (pktPerStepInterval - pcrCount)) {
+	while (pktNumSinceLastStep < pktPerStepInterval) {
 
 		packet = new TSPacket(0, NULL, 0, NULL);
 		packet->setAdaptationFieldControl(1);
@@ -710,8 +706,6 @@ int Muxer::processNullPackets() {
 		}
 		writeStream(pktBuffer);
 		delete packet;
-		pktNumSinceLastStep++;
-		stcOffset = (int64_t) ((pktStc * pktNumSinceLastStep) + 0.5f);
 	}
 
 	return rw;
@@ -726,24 +720,31 @@ int Muxer::writeStream(char* pktBuffer) {
 		cout << "Muxer::writeStream - Packet not sent." << endl;
 		return -2;
 	}
+	//packetCounter++;
+	pktNumSinceLastStep++;
+	stcOffset = (int64_t) ((pktStc * pktNumSinceLastStep) + 0.5f);
 	return rw;
 }
 
-void Muxer::calculateBitrate() {
+int Muxer::calculateBitrate() {
 	double value;
-	pktPerSec = (unsigned int)(((double)(tsBitrate / 8) / packetSize) + 0.5f);
-	value = (((double) tsBitrate / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / packetSize;
+
+	pktPerSec = (unsigned int)(((double)(tsBitrate / 8) / 188) + 0.5f);
+	value = (((double) tsBitrate / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / 188;
 	pktPerStepInterval = (unsigned int)(value + 0.5f);
-	value = ((double) pktPerStepInterval * ((double)SYSTEM_CLOCK_FREQUENCY/stcStep)) * packetSize * 8;
-	tsBitrate = (unsigned int)(value + 0.5f);
+	if (pktPerStepInterval < 5) return -1;
+	value = ((double) pktPerStepInterval * ((double)SYSTEM_CLOCK_FREQUENCY/stcStep)) * 188 * 8;
+	tsBitrate = (unsigned int)(value + 0.5f); //new rounded bitrate.
 	pktStc = (double) stcStep * ((double) 1 / pktPerStepInterval);
 
-	value = (((double) layerRateA / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / packetSize;
+	value = (((double) layerRateA / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / 188;
 	pktPerStepIntervalLayerA = (unsigned int)(value + 0.5f);
-	value = (((double) layerRateB / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / packetSize;
+	value = (((double) layerRateB / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / 188;
 	pktPerStepIntervalLayerB = (unsigned int)(value + 0.5f);
-	value = (((double) layerRateC / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / packetSize;
+	value = (((double) layerRateC / 8) * ((double) stcStep / SYSTEM_CLOCK_FREQUENCY)) / 188;
 	pktPerStepIntervalLayerC = (unsigned int)(value + 0.5f);
+
+	return 0;
 }
 
 }

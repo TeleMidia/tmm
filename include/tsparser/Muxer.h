@@ -33,8 +33,8 @@ class Muxer {
 	private:
 
 	protected:
-		vector<unsigned short> listOfAllPossiblePcrsFrequencies;
-		map<unsigned short, unsigned short> pcrList;
+		vector<unsigned int> listOfAllPossiblePcrsFrequencies;
+		map<unsigned short, unsigned int> pcrList;
 		map<unsigned short, int64_t> nextPcrSendList;
 		unsigned int pcrFrequency;
 
@@ -47,6 +47,7 @@ class Muxer {
 		int64_t stcOffset;
 		int64_t stcBegin;
 		char pktControl[8192];
+		//int64_t packetCounter; //for debug purpose
 
 		SocketServer* server;
 		Stc stc_s; 		//for streaming output
@@ -94,12 +95,13 @@ class Muxer {
 											int *index,
 											bool *streamScheduled);
 
+		void resetPacketCounters();
 		void newStcStep();
 		int processNullPackets();
 		int processPcr();
 		int writeTsPcr(int64_t pcr, unsigned short pid);
 		int writeTsStream(unsigned short pid, unsigned char type);
-		void calculateBitrate();
+		int calculateBitrate();
 		int writeStream(char* pktBuffer);
 		int fillPacket204(char* stream, unsigned short pid);
 
@@ -133,10 +135,10 @@ class Muxer {
 		bool addElementaryStream(unsigned short pid, Stream* stream);
 		bool removeElementaryStream(unsigned short pid);
 		bool removeAllElementaryStreams();
-		bool addToListOfAllPossiblePcrsFrequencies(unsigned short freq);
-		bool addPcrPid(unsigned short pid, unsigned short frequency); //pid,ms
+		bool addToListOfAllPossiblePcrsFrequencies(unsigned int freq);
+		bool addPcrPid(unsigned short pid, unsigned int frequency); //pid,us
 		bool removePcrPid(unsigned short pid);
-		map<unsigned short, unsigned short>* getPcrList();
+		map<unsigned short, unsigned int>* getPcrList();
 
 		map<unsigned short, vector<Stream*>*>* getStreamList();
 

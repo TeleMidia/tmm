@@ -519,6 +519,10 @@ int TMM::multiplex() {
 		proj = getFirstProjectReversed(PT_TIMELINE);
 		if (proj) {
 			newTimeline = ((Timeline*)proj)->currTimeline(muxer->getRelativeStc(), &condRet);
+			if (!newTimeline) {
+				cout << "TMM::multiplex - Unexpected error: No timeline." << endl;
+				return -1;
+			}
 		} else {
 			cout << "TMM::multiplex - No timeline available in project." << endl;
 			return -1;
@@ -593,7 +597,7 @@ bool TMM::releaseStreamFromList(ProjectInfo* proj) {
 }
 
 void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
-	map<unsigned short, unsigned short>::iterator itPcrsInMuxer;
+	map<unsigned short, unsigned int>::iterator itPcrsInMuxer;
 	vector<pmtViewInfo*>::iterator itPmt;
 
 	itPcrsInMuxer = muxer->getPcrList()->begin();
@@ -616,7 +620,15 @@ void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 	}
 	itPmt = newTimeline->begin();
 	while (itPmt != newTimeline->end()) {
-		muxer->addPcrPid((*itPmt)->pv->getPcrPid(), (*itPmt)->pv->getPcrFrequency());
+		if (project->getPacketSize() == 204) {
+			if ((*itPmt)->pv->getServiceType() == SRV_TYPE_TV) {
+				muxer->addPcrPid((*itPmt)->pv->getPcrPid(), 54621);
+			} else {
+				muxer->addPcrPid((*itPmt)->pv->getPcrPid(), 109242);
+			}
+		} else {
+			muxer->addPcrPid((*itPmt)->pv->getPcrPid(), (*itPmt)->pv->getPcrFrequency());
+		}
 		muxer->addPidToLayer((*itPmt)->pv->getPcrPid(), (*itPmt)->pv->getLayer());
 		++itPmt;
 	}

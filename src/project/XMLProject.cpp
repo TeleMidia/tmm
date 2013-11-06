@@ -575,9 +575,13 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 		}
 		pmtView->setPcrPid(num);
 		if (f->QueryAttribute("pcrfrequency", &num) == XML_NO_ERROR) {
+			if (num < 10000) {
+				cout << "pmt: 'pcrfrequency' value is too low (microseconds)." << endl;
+				return -12;
+			}
 			pmtView->setPcrFrequency(num);
 		} else {
-			pmtView->setPcrFrequency(60);
+			pmtView->setPcrFrequency(60000);
 		}
 		value = getAttribute(f, "name");
 		if (value.size() > 20) {
@@ -829,12 +833,12 @@ int XMLProject::processOutput(XMLElement *top) {
 			if (e->QueryAttribute("layerratea", &num) == XML_NO_ERROR) {
 				layerBitrateA = num;
 			} else {
-				layerBitrateA = 450000;
+				layerBitrateA = 500000;
 			}
 			if (e->QueryAttribute("layerrateb", &num) == XML_NO_ERROR) {
 				layerBitrateB = num;
 			} else {
-				layerBitrateB = 17550000;
+				layerBitrateB = 17500000;
 			}
 			if (e->QueryAttribute("layerratec", &num) == XML_NO_ERROR) {
 				layerBitrateC = num;
@@ -1325,6 +1329,27 @@ int XMLProject::processOutput(XMLElement *top) {
 					delete mcci;
 					delete piip;
 					return -4;
+				}
+
+				if (tsBitrate != 29958294) {
+					cout << "output: The muxer overrode your 'bitrate' " <<
+								"value to 29958294 bps due to ISDB-T standard." << endl;
+					tsBitrate = 29958294;
+				}
+
+				map<int, ProjectInfo*>::iterator itProj;
+				itProj = projectList->begin();
+				while (itProj != projectList->end()) {
+					if (itProj->second->getProjectType() == PT_PMTVIEW) {
+						if (!((((PMTView*)itProj->second)->getPcrFrequency() == 54621) ||
+							(((PMTView*)itProj->second)->getPcrFrequency() == 109242))) {
+							cout << "Attention: PCR frequency values have been redefined to " <<
+									"default values in order to create a compliance TS for " <<
+									"playback as ISDB-T." << endl;
+							break;
+						}
+					}
+					++itProj;
 				}
 			}
 		}

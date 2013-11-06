@@ -66,11 +66,11 @@ unsigned short PMTView::getPcrPid() {
 	return pcrPid;
 }
 
-void PMTView::setPcrFrequency(unsigned short freq) {
+void PMTView::setPcrFrequency(unsigned int freq) {
 	pcrFrequency = freq;
 }
 
-unsigned short PMTView::getPcrFrequency() {
+unsigned int PMTView::getPcrFrequency() {
 	return pcrFrequency;
 }
 
