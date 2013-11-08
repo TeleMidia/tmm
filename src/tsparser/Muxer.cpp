@@ -29,6 +29,8 @@ Muxer::Muxer(unsigned char packetSize, unsigned short packetsInBuffer) {
 	layerRateB = 17500000;
 	layerRateC = 0;
 	ofdmFrameSize = 4352; //for guard interval 1/16 and transmission mode 3.
+	fracStcStep = 0.0;
+	fixedFracStcStep = 0.0;
 	//packetCounter = 0;
 }
 
@@ -188,19 +190,28 @@ bool Muxer::calculateStcStep() {
 	map<unsigned short, unsigned short>::iterator it;
 	unsigned int cd = 0;
 	unsigned int i = 0;
+	unsigned int lowerPcr = 1000000000;
 	bool found = false;
+	double stepValue, intpart;
 
 	if (listOfAllPossiblePcrsFrequencies.size()) {
 		if (listOfAllPossiblePcrsFrequencies.size() == 1) {
 			cd = listOfAllPossiblePcrsFrequencies[0];
+			lowerPcr = cd;
 		} else {
 			while (i < listOfAllPossiblePcrsFrequencies.size()) {
 				if (cd == 0) {
 					cd = gcd(listOfAllPossiblePcrsFrequencies[i],
 							 listOfAllPossiblePcrsFrequencies[i+1]);
+					if (listOfAllPossiblePcrsFrequencies[i] <
+							listOfAllPossiblePcrsFrequencies[i+1])
+						lowerPcr = listOfAllPossiblePcrsFrequencies[i]; else
+						lowerPcr = listOfAllPossiblePcrsFrequencies[i+1];
 					i = i + 2;
 				} else {
 					cd = gcd(cd, listOfAllPossiblePcrsFrequencies[i]);
+					if (listOfAllPossiblePcrsFrequencies[i] < lowerPcr)
+						lowerPcr = listOfAllPossiblePcrsFrequencies[i];
 					i++;
 				}
 			}
@@ -224,10 +235,17 @@ bool Muxer::calculateStcStep() {
 		}
 
 		if (packetSize == 204) {
-			stcStep = Stc::secondToStc(0.0273105);
+			stepValue = STEP_TIME * SYSTEM_CLOCK_FREQUENCY;
 		} else {
-			stcStep = Stc::secondToStc((double) cd / 1000000);
+			if (cd == lowerPcr) {
+				stepValue = (((double) cd) / 4000000) * SYSTEM_CLOCK_FREQUENCY;
+			} else {
+				stepValue = ((double) cd / 1000000) * SYSTEM_CLOCK_FREQUENCY;
+			}
 		}
+
+		stcStep = (int64_t) (stepValue);
+		fixedFracStcStep = modf(stepValue, &intpart);
 
 		return true;
 	}
@@ -446,6 +464,11 @@ void Muxer::resetPacketCounters() {
 void Muxer::newStcStep() {
 	stc += stcStep;
 	stcOffset = 0;
+	fracStcStep += fixedFracStcStep;
+	if (fracStcStep >= 1.0) {
+		fracStcStep -= 1.0;
+		stc++;
+	}
 }
 
 int Muxer::mainLoop() {
@@ -536,11 +559,7 @@ int Muxer::writeTsPcr(int64_t pcr, unsigned short pid) {
 	packet->setAdaptationFieldControl(TSPacket::NO_PAYLOAD);
 	packet->setPid(pid);
 	packet->setSectionType(false);
-	if (streamList.count(pid)) {
-		packet->setStartIndicator(0);
-	} else {
-		packet->setStartIndicator(1);
-	}
+	packet->setStartIndicator(0);
 	packet->setContinuityCounter(pktControl[pid]);
 	packet->getStream(&pktBuffer);
 	if (packetSize == 204) {
@@ -699,6 +718,7 @@ int Muxer::processNullPackets() {
 		packet->setAdaptationFieldControl(1);
 		packet->setStartIndicator(0);
 		packet->setPid(8191);
+		packet->setContinuityCounter(0);
 		packet->getStream(&pktBuffer);
 
 		if (packetSize == 204) {

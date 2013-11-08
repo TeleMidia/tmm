@@ -18,6 +18,7 @@
 #include <map>
 #include <cstdlib>
 #include <ctime>
+#include <math.h>
 
 using namespace std;
 using namespace br::pucrio::telemidia::mpeg2;
@@ -29,6 +30,8 @@ namespace telemidia {
 namespace tool {
 
 class Muxer {
+
+	#define STEP_TIME 0.01365525 //204-byte only.
 
 	private:
 
@@ -53,6 +56,8 @@ class Muxer {
 		Stc stc_s; 		//for streaming output
 		int64_t stc;   //for file output
 		int64_t stcStep;
+		double fracStcStep;
+		double fixedFracStcStep;
 		char* streamBuffer;
 		int streamBufferSize;
 		int streamBufferLength;
