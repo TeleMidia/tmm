@@ -24,6 +24,7 @@ Project::Project() {
 	useSdt = false;
 	useNit = false;
 	packetSize = 188;
+	iip = NULL;
 }
 
 Project::~Project() {
@@ -37,6 +38,8 @@ Project::~Project() {
 		}
 		delete projectList;
 	}
+
+	if (iip) delete iip;
 }
 
 bool Project::changeToProjectDir() {
@@ -333,6 +336,10 @@ void Project::setTsid(int id) {
 
 int Project::getTsid() {
 	return tsid;
+}
+
+IIP* Project::getIip() {
+	return iip;
 }
 
 int Project::getLayerBitrateA() {

@@ -35,7 +35,6 @@ class ProjectInfo {
 	#define PT_EIT_S		0x0C //Schedule
 	#define PT_PAT			0x0D
 
-	#define PT_IIP			0xFD
 	#define PT_PES			0xFE
 	#define PT_SECTION		0xFF
 

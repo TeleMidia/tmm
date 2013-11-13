@@ -116,7 +116,6 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 	PNit* nitProj;
 	PTot* totProj;
 	PEit* eitProj;
-	PIIP* iipProj;
 	double nextSendOffset, timeOffset, bufOffset, preponeDiff = 0.0;
 	int64_t currStc;
 	time_t ctime;
@@ -249,13 +248,6 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		rawstream = prepareNewRawStream(proj, Stc::secondToStc(2.0),
 			muxer->getCurrentStc(), true);
 		rawstream->attach(eitProj);
-		return rawstream;
-	case PT_IIP:
-		iipProj = (PIIP*) proj;
-		rawstream = prepareNewRawStream(proj, Stc::secondToStc(0.237),
-			muxer->getCurrentStc(), false);
-		rawstream->setType(0); //IIP
-		rawstream->attach(iipProj);
 		return rawstream;
 	default:
 		cout << "TMM::multiplex - Stream type not recognized." << endl;
@@ -460,12 +452,11 @@ int TMM::multiplexSetup() {
 	muxer->setLayerRateC(project->getLayerBitrateC());
 	muxer->setTsBitrate(project->getTsBitrate());
 
-	PIIP* piip = (PIIP*) getFirstProjectReversed(PT_IIP);
-	if ((project->getPacketSize() == 204) && piip) {
-		if (piip->getMcci()) {
+	if ((project->getPacketSize() == 204) && project->getIip()) {
+		if (project->getIip()->getMcci()) {
 			unsigned short ofdmFrameSize;
-			unsigned char guard = piip->getMcci()->getCurrentGuardInterval();
-			unsigned char mode = piip->getMcci()->getCurrentMode();
+			unsigned char guard = project->getIip()->getMcci()->getCurrentGuardInterval();
+			unsigned char mode = project->getIip()->getMcci()->getCurrentMode();
 			if ((mode == 1) && (guard == MCCI_GUARD_INTERVAL_1_4)) ofdmFrameSize = 1280;
 			if ((mode == 1) && (guard == MCCI_GUARD_INTERVAL_1_8)) ofdmFrameSize = 1152;
 			if ((mode == 1) && (guard == MCCI_GUARD_INTERVAL_1_16)) ofdmFrameSize = 1088;
@@ -479,6 +470,7 @@ int TMM::multiplexSetup() {
 			if ((mode == 3) && (guard == MCCI_GUARD_INTERVAL_1_16)) ofdmFrameSize = 4352;
 			if ((mode == 3) && (guard == MCCI_GUARD_INTERVAL_1_32)) ofdmFrameSize = 4224;
 			muxer->setOfdmFrameSize(ofdmFrameSize); //ARIB-STD-B31 v1.6-E2 page 116.
+			muxer->setIip(project->getIip());
 		} else {
 			return -2;
 		}
@@ -551,17 +543,11 @@ int TMM::multiplex() {
 			if (currTimeline) {
 				//update pat, pmts and other si tables
 				restoreSiTables(currTimeline, newTimeline);
-				if (project->getPacketSize() == 204) {
-					restoreIsdbtInfo();
-				}
 
 			} else {
 				//first time (create pat, pmts and other si tables)
 				if (createSiTables(newTimeline) == -1) {
 					return -2;
-				}
-				if (project->getPacketSize() == 204) {
-					createIsdbtInfo();
 				}
 			}
 			currTimeline = newTimeline;
@@ -713,21 +699,6 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 }
 
 //This method must be called just once.
-int TMM::createIsdbtInfo() {
-	ProjectInfo* proj;
-
-	proj = getFirstProject(PT_IIP);
-	if (proj) {
-		releaseStreamFromList(proj);
-		Stream* stream = createStream(proj);
-		siAndIsdbtStreamList[proj] = stream;
-		addStreamToMuxer(stream, DEFAULT_IIP_PID, proj->getLayer());
-	}
-
-	return 0;
-}
-
-//This method must be called just once.
 int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 	Stream* stream;
 	Pmt* pmt = NULL;
@@ -825,21 +796,6 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 		++itPmt;
 	}
 	//Event Information Table (present/following) ends
-
-	return 0;
-}
-
-int TMM::restoreIsdbtInfo() {
-	ProjectInfo* proj;
-	map<ProjectInfo*, Stream*>::iterator it;
-
-	proj = getFirstProject(PT_IIP);
-	if (proj) {
-		it = siAndIsdbtStreamList.find(proj);
-		if (it != siAndIsdbtStreamList.end()) {
-			addStreamToMuxer(it->second, DEFAULT_IIP_PID, proj->getLayer());
-		}
-	}
 
 	return 0;
 }

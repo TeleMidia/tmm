@@ -11,6 +11,7 @@
 #include "Stc.h"
 #include "TSPacket.h"
 #include "ISDBTInformation.h"
+#include "IIP.h"
 #include "Stream.h"
 #include "socket/MulticastServer.h"
 
@@ -80,6 +81,7 @@ class Muxer {
 		bool isFileMode;
 		map<unsigned short, vector<Stream*>*> streamList;
 
+		IIP* iip;
 		bool odfmFrameEven;
 		unsigned short ofdmFrameSize, ofdmFrameCounter;
 		ISDBTInformation isdbtInfo;
@@ -108,6 +110,7 @@ class Muxer {
 		int writeTsStream(unsigned short pid, unsigned char type);
 		int calculateBitrate();
 		int writeStream(char* pktBuffer);
+		int writeIIPPacket(char* stream, bool isEvenFrame);
 		int fillPacket204(char* stream, unsigned short pid);
 
 	public:
@@ -148,6 +151,7 @@ class Muxer {
 		map<unsigned short, vector<Stream*>*>* getStreamList();
 
 		void setOfdmFrameSize(unsigned short size);
+		void setIip(IIP* iip);
 		bool addPidToLayer(unsigned short pid, unsigned char layer);
 		map<unsigned short, unsigned char>* getPidToLayerList();
 		void clearPidToLayerList();

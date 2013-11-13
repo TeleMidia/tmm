@@ -31,6 +31,7 @@ Muxer::Muxer(unsigned char packetSize, unsigned short packetsInBuffer) {
 	ofdmFrameSize = 4352; //for guard interval 1/16 and transmission mode 3.
 	fracStcStep = 0.0;
 	fixedFracStcStep = 0.0;
+	iip = NULL;
 	//packetCounter = 0;
 }
 
@@ -649,6 +650,38 @@ int Muxer::writeTsStream(unsigned short pid, unsigned char type) {
 	return rw;
 }
 
+void Muxer::setIip(IIP* iip) {
+	this->iip = iip;
+}
+
+int Muxer::writeIIPPacket(char* stream, bool isEvenFrame) {
+	TSPacket* packet;
+	char* payload;
+	unsigned char len;
+
+	if (!iip) return -1;
+
+	if (iip->getMcci()) {
+		if (isEvenFrame) iip->getMcci()->setTMCCSynchronizationWord(0); else
+			iip->getMcci()->setTMCCSynchronizationWord(1);
+	}
+
+	iip->updateStream();
+	len = iip->getStream(&payload);
+
+	packet = new TSPacket(0, payload, len, NULL);
+	packet->setAdaptationFieldControl(TSPacket::PAYLOAD_ONLY);
+	packet->setPid(0x1FF0);
+	packet->setStartIndicator(1);
+	packet->setContinuityCounter(pktControl[0x1FF0]++);
+	packet->getStream(&payload);
+	memcpy(stream, payload, 188);
+
+	delete packet;
+
+	return 0;
+}
+
 int Muxer::fillPacket204(char* stream, unsigned short pid) {
 	char* isdbtInfoStream;
 	map<unsigned short, unsigned char>::iterator itLayer;
@@ -679,16 +712,22 @@ int Muxer::fillPacket204(char* stream, unsigned short pid) {
 				isdbtInfo.setLayerIndicator(HIERARCHY_C);
 				pktNumSinceLastStepLayerC++;
 			} else {
-				isdbtInfo.setLayerIndicator(NULL_TSP);
+				if (ofdmFrameCounter == (ofdmFrameSize - 2)) {
+					writeIIPPacket(stream, odfmFrameEven);
+					isdbtInfo.setLayerIndicator(IIP_NO_HIERARCHY);
+				} else {
+					isdbtInfo.setLayerIndicator(NULL_TSP);
+				}
 			}
 		} else {
-			isdbtInfo.setLayerIndicator(IIP_NO_HIERARCHY);
+			isdbtInfo.setLayerIndicator(NULL_TSP);
 			cout << "Muxer::fillPacket204 - Warning: Packet PID = " <<
 					pid << " hasn't been mapped to any layer." << endl;
 		}
 	}
 	isdbtInfo.setFrameHeadPacketFlag(ofdmFrameCounter == 0);
 	isdbtInfo.setFrameIndicator(odfmFrameEven);
+	isdbtInfo.setTSPCounter(ofdmFrameCounter);
 	ofdmFrameCounter++;
 	if (ofdmFrameCounter == ofdmFrameSize) {
 		odfmFrameEven = !odfmFrameEven;
@@ -697,7 +736,6 @@ int Muxer::fillPacket204(char* stream, unsigned short pid) {
 	isdbtInfo.updateStream();
 	isdbtInfo.getStream(&isdbtInfoStream);
 	memcpy(stream + 188, isdbtInfoStream, 8);
-	isdbtInfo.incrementTSPCounter();
 
 	//addRS();
 

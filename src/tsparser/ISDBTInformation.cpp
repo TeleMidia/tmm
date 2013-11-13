@@ -117,7 +117,7 @@ unsigned short ISDBTInformation::incrementTSPCounter() {
 	return ++TSPCounter;
 }
 
-void ISDBTInformation::setTSPCounter(unsigned char counter) {
+void ISDBTInformation::setTSPCounter(unsigned short counter) {
 	TSPCounter = counter;
 }
 

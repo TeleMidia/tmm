@@ -18,10 +18,10 @@
 #include "si/PNit.h"
 #include "si/PEit.h"
 #include "si/PMTView.h"
-#include "isdbt/PIIP.h"
 #include "timeline/Timeline.h"
 #include "Stc.h"
 #include "../tsparser/ISDBTInformation.h"
+#include "../tsparser/IIP.h"
 
 #include <inttypes.h>
 #include <iostream>
@@ -60,6 +60,8 @@ class Project {
 		int64_t stcBegin; //27 MHz - Minimum value = 270000000 (10s)
 		double vbvBuffer;
 		unsigned char ttl;
+
+		IIP* iip;
 
 		unsigned short originalNetworkId;
 		string tsName;
@@ -102,6 +104,7 @@ class Project {
 		string getProviderName();
 		void setTsid(int id);
 		int getTsid();
+		IIP* getIip();
 		int getLayerBitrateA();
 		int getLayerBitrateB();
 		int getLayerBitrateC();

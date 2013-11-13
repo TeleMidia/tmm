@@ -1127,11 +1127,7 @@ int XMLProject::processOutput(XMLElement *top) {
 								  NULL,
 								  -1);
 			if (packetSize == 204) {
-				PIIP* piip = new PIIP();
-				piip->setLayerConfigured(true);
-				ret = createAndGetId(piip, IIP_NAME);
-				if (ret < 0) return ret;
-
+				iip = new IIP();
 				TransmissionParameters* tp;
 				MCCI* mcci = new MCCI();
 				ConfigurationInformation* ci = new ConfigurationInformation;
@@ -1160,7 +1156,8 @@ int XMLProject::processOutput(XMLElement *top) {
 							 << value1 << ")" << endl;
 						delete tp;
 						delete mcci;
-						delete piip;
+						delete iip;
+						iip = NULL;
 						return -6;
 					}
 					value1 = getAttribute(e, "codingratelayera");
@@ -1180,7 +1177,8 @@ int XMLProject::processOutput(XMLElement *top) {
 								 << value1 << ")" << endl;
 							delete tp;
 							delete mcci;
-							delete piip;
+							delete iip;
+							iip = NULL;
 							return -6;
 						}
 					} else {
@@ -1217,7 +1215,8 @@ int XMLProject::processOutput(XMLElement *top) {
 							 << value1 << ")" << endl;
 						delete tp;
 						delete mcci;
-						delete piip;
+						delete iip;
+						iip = NULL;
 						return -6;
 					}
 					value1 = getAttribute(e, "codingratelayerb");
@@ -1237,7 +1236,8 @@ int XMLProject::processOutput(XMLElement *top) {
 								 << value1 << ")" << endl;
 							delete tp;
 							delete mcci;
-							delete piip;
+							delete iip;
+							iip = NULL;
 							return -6;
 						}
 					} else {
@@ -1274,7 +1274,8 @@ int XMLProject::processOutput(XMLElement *top) {
 							 << value1 << ")" << endl;
 						delete tp;
 						delete mcci;
-						delete piip;
+						delete iip;
+						iip = NULL;
 						return -6;
 					}
 					value1 = getAttribute(e, "codingratelayerc");
@@ -1294,7 +1295,8 @@ int XMLProject::processOutput(XMLElement *top) {
 								 << value1 << ")" << endl;
 							delete tp;
 							delete mcci;
-							delete piip;
+							delete iip;
+							iip = NULL;
 							return -6;
 						}
 					} else {
@@ -1321,13 +1323,13 @@ int XMLProject::processOutput(XMLElement *top) {
 					mcci->setCurrentMode(transmissionMode + 1);
 					mcci->setCurrentCI(ci);
 					mcci->copyCurrentToNext();
-					piip->setMcci(mcci);
-
-					(*projectList)[piip->getId()] = piip;
+					iip->setMcci(mcci);
+					//iip is ok
 				} else {
 					cout << "output: hierarchical layers hasn't been defined." << endl;
 					delete mcci;
-					delete piip;
+					delete iip;
+					iip = NULL;
 					return -4;
 				}
 

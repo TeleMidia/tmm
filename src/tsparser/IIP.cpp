@@ -16,7 +16,7 @@ namespace isdbt {
 IIP::IIP() {
 	stream = new char[184];
 	mcci = NULL;
-	IIPPacketPointer = 0x10F3; //?
+	IIPPacketPointer = 1;
 	IIPBranchNumber = 0;
 	lastIIPBranchNumber = 0;
 	nsiLength = 0;

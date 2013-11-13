@@ -10,7 +10,6 @@
 
 #include "util/functions.h"
 #include "project/Project.h"
-#include "project/isdbt/PIIP.h"
 #include "tsparser/TSFileReader.h"
 #include "tsparser/TSInfo.h"
 #include "tsparser/Muxer.h"
@@ -38,7 +37,6 @@ class TMM {
 	#define DEFAULT_SDT_PID 0x0011
 	#define DEFAULT_EIT_PID 0x0012
 	#define DEFAULT_TOT_PID 0x0014
-	#define DEFAULT_IIP_PID 0x1FF0
 
 	private:
 		void init();
@@ -64,9 +62,7 @@ class TMM {
 
 		void processPcrsInUse(vector<pmtViewInfo*>* newTimeline);
 		int createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt);
-		int createIsdbtInfo();
 		int createSiTables(vector<pmtViewInfo*>* newTimeline);
-		int restoreIsdbtInfo();
 		int restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 							vector<pmtViewInfo*>* newTimeline);
 		void addStreamToMuxer(Stream* stream, unsigned short pid, unsigned char layer);

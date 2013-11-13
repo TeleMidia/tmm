@@ -73,7 +73,7 @@ class ISDBTInformation {
 		void setACDataEffectiveBytes(unsigned char acDataEB);
 		unsigned char getACDataEffectiveBytes();
 		unsigned short incrementTSPCounter();
-		void setTSPCounter(unsigned char counter);
+		void setTSPCounter(unsigned short counter);
 		unsigned short getTSPCounter();
 		void setACData(char* acData, unsigned short length);
 		unsigned short getACData(char** acData);
