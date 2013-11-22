@@ -80,6 +80,10 @@ class Project {
 		map<int, ProjectInfo*>* projectList;
 		//TODO: EIT (schedule)
 
+		bool isPipe;
+		string externalApp;
+		string appParams;
+
 		bool changeToProjectDir();
 
 	public:
@@ -100,6 +104,9 @@ class Project {
 		int configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit);
 		void setDestination(string dest);
 		string getDestination();
+		bool getIsPipe();
+		string getExternalApp();
+		string getAppParams();
 		void setProviderName(string name);
 		string getProviderName();
 		void setTsid(int id);

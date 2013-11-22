@@ -25,6 +25,7 @@ Project::Project() {
 	useNit = false;
 	packetSize = 188;
 	iip = NULL;
+	isPipe = false;
 }
 
 Project::~Project() {
@@ -320,6 +321,18 @@ void Project::setDestination(string dest) {
 
 string Project::getDestination() {
 	return destination;
+}
+
+bool Project::getIsPipe() {
+	return isPipe;
+}
+
+string Project::getExternalApp() {
+	return externalApp;
+}
+
+string Project::getAppParams() {
+	return appParams;
 }
 
 void Project::setProviderName(string name) {

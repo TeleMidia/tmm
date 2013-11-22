@@ -14,6 +14,8 @@
 #include "IIP.h"
 #include "Stream.h"
 #include "socket/MulticastServer.h"
+#include "Pipe.h"
+#include "ExecApp.h"
 
 #include <iostream>
 #include <map>
@@ -79,6 +81,7 @@ class Muxer {
 		unsigned char packetSize;
 		string destination;
 		bool isFileMode;
+		bool isPipe;
 		map<unsigned short, vector<Stream*>*> streamList;
 
 		IIP* iip;
@@ -91,7 +94,11 @@ class Muxer {
 
 		unsigned int bitrateErrorCounter;
 
+		Pipe* pPipe;
 		FILE * pFile;
+		string externalApp;
+		string appParams;
+
 		int open();
 		int close();
 		int sendStreamBuffer();
@@ -133,6 +140,9 @@ class Muxer {
 		unsigned char getPacketSize();
 		void setDestination(string dest);
 		string getDestination();
+		void setIsPipe(bool isPipe);
+		void setExternalApp(string app);
+		void setAppParams(string params);
 		void setStcReference(int64_t stcBegin);
 		int64_t getCurrentStc();
 		int64_t getStcBegin();

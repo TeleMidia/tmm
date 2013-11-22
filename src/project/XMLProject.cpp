@@ -815,6 +815,12 @@ int XMLProject::processOutput(XMLElement *top) {
 				ttl = num;
 			}
 			destination = getAttribute(e, "dest");
+			value1 = getAttribute(e, "usepipe");
+			if (value1 == "true") {
+				isPipe = true;
+			}
+			externalApp = getAttribute(e, "externalapp");
+			appParams = getAttribute(e, "appparams");
 			if (e->QueryAttribute("tsid", &num) == XML_NO_ERROR) {
 				tsid = num;
 			} else {

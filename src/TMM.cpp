@@ -447,6 +447,9 @@ int TMM::multiplexSetup() {
 	muxer->setTTL(project->getTTL());
 
 	muxer->setDestination(destination);
+	muxer->setIsPipe(project->getIsPipe());
+	muxer->setExternalApp(project->getExternalApp());
+	muxer->setAppParams(project->getAppParams());
 	muxer->setLayerRateA(project->getLayerBitrateA());
 	muxer->setLayerRateB(project->getLayerBitrateB());
 	muxer->setLayerRateC(project->getLayerBitrateC());

@@ -32,6 +32,10 @@ Muxer::Muxer(unsigned char packetSize, unsigned short packetsInBuffer) {
 	fracStcStep = 0.0;
 	fixedFracStcStep = 0.0;
 	iip = NULL;
+	pPipe = NULL;
+	isPipe = false;
+	externalApp = "";
+	appParams = "";
 	//packetCounter = 0;
 }
 
@@ -108,6 +112,18 @@ string Muxer::getDestination() {
 	return destination;
 }
 
+void Muxer::setIsPipe(bool isPipe) {
+	this->isPipe = isPipe;
+}
+
+void Muxer::setExternalApp(string app) {
+	externalApp = app;
+}
+
+void Muxer::setAppParams(string params) {
+	appParams = params;
+}
+
 void Muxer::setStcReference(int64_t stcBegin) {
 	if (stcBegin < SYSTEM_CLOCK_FREQUENCY * 10) stc = SYSTEM_CLOCK_FREQUENCY * 10;
 		else stc = stcBegin;
@@ -137,10 +153,23 @@ void Muxer::setTTL(unsigned char t) {
 
 int Muxer::open() {
 	if (isFileMode) {
-		pFile = fopen(destination.c_str(), "wb");
-		if (pFile == NULL ) {
-			cout << "Muxer::open - Unable to open file: " << destination << endl;
-			return -1;
+		if (!isPipe) {
+			pFile = fopen(destination.c_str(), "wb");
+			if (pFile == NULL) {
+				cout << "Muxer::open - Unable to open file: " <<
+						destination << endl;
+				return -1;
+			}
+		} else {
+			pPipe = new Pipe("tmm." + destination);
+			if (externalApp.size()) {
+				ExecApp::execute(externalApp, appParams);
+			}
+			if (!pPipe->createPipe()) {
+				cout << "Muxer::open - Unable to open pipe: " <<
+						pPipe->getPipeName() << endl;
+				return -2;
+			}
 		}
 	} else {
 		string ip, port;
@@ -152,10 +181,11 @@ int Muxer::open() {
 		int num = atol(port.c_str());
 		server = new MulticastServer(ip.c_str(), num);
 		if (!server->createSocket()) {
-			cout << "Muxer::open - Unable to open socket: " << destination << endl;
+			cout << "Muxer::open - Unable to open socket: " <<
+					destination << endl;
 			delete server;
 			server = NULL;
-			return -2;
+			return -3;
 		}
 		server->setTTL(ttl);
 	}
@@ -164,8 +194,16 @@ int Muxer::open() {
 
 int Muxer::close() {
 	if (isFileMode) {
-		if (pFile) fclose(pFile);
-		pFile = NULL;
+		if (!isPipe) {
+			if (pFile) fclose(pFile);
+			pFile = NULL;
+		} else {
+			if (pPipe) {
+				pPipe->closePipe();
+				delete pPipe;
+			}
+			pPipe = NULL;
+		}
 	}
 	return 0;
 }
@@ -174,8 +212,12 @@ int Muxer::sendStreamBuffer() {
 	if (streamBufferLength == streamBufferSize) {
 		streamBufferLength = 0;
 		if (isFileMode) {
-			int rw;
-			rw = fwrite(streamBuffer, 1, streamBufferSize, pFile);
+			int rw = -1;
+			if (!isPipe) {
+				rw = fwrite(streamBuffer, 1, streamBufferSize, pFile);
+			} else {
+				rw = pPipe->writePipe(streamBuffer, streamBufferSize);
+			}
 			if (rw != streamBufferSize) {
 				return -1;
 			}
@@ -446,7 +488,11 @@ bool Muxer::prepareMultiplexer(int64_t stcBegin) {
 		nextPcrSendList[idx] = stc;
 	}
 
-	cout << "Destination: " << destination << endl;
+	if (isPipe) {
+		cout << "Destination: \\\\.\\pipe\\tmm." << destination << endl;
+	} else {
+		cout << "Destination: " << destination << endl;
+	}
 	cout << "STC begins at " << this->stcBegin << " (" <<
 			Stc::stcToSecond(this->stcBegin) << "s)" << endl;
 
