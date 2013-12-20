@@ -35,7 +35,7 @@ class PESStream : public Stream {
 		bool isVideoStream;
 		bool hasDts;
 		vector<int64_t> ptsDtsDiff;
-		vector<int64_t> frequencyList;
+		vector<int64_t> periodList;
 		vector<unsigned char> rangeChangeList;
 		unsigned char rangeChange, lastRangeChange;
 		bool isInRangeNow;

@@ -66,12 +66,12 @@ unsigned short PMTView::getPcrPid() {
 	return pcrPid;
 }
 
-void PMTView::setPcrFrequency(unsigned int freq) {
-	pcrFrequency = freq;
+void PMTView::setPcrPeriod(unsigned int freq) {
+	pcrPeriod = freq;
 }
 
-unsigned int PMTView::getPcrFrequency() {
-	return pcrFrequency;
+unsigned int PMTView::getPcrPeriod() {
+	return pcrPeriod;
 }
 
 void PMTView::setServiceName(string name) {

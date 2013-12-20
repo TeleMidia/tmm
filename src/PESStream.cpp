@@ -56,34 +56,34 @@ void PESStream::addBuffer() {
 	rangeChangeList.push_back(rangeChange);
 	if (pesPacket->getPtsDtsFlags() == 3) {
 		ptsDtsDiff.push_back(Stc::calcDiff90khz(pesPacket->getPts(), pesPacket->getDts()));
-		frequencyList.push_back(pesPacket->getDts());
+		periodList.push_back(pesPacket->getDts());
 		//cout << "DTS original = " << packet->getDts() << " - " << Stc::baseToSecond(packet->getDts()) << endl;
 	} else {
 		if (!isVideoStream) {
 			//Audio stream
 			ptsDtsDiff.push_back(0);
 			if (pesPacket->getPtsDtsFlags() == 2) {
-				frequencyList.push_back(pesPacket->getPts());
+				periodList.push_back(pesPacket->getPts());
 			} else {
-				frequencyList.push_back(-1);
+				periodList.push_back(-1);
 			}
 		} else {
 			//Video stream
 			ptsDtsDiff.push_back(0);
 			if (hasDts) {
-				frequencyList.push_back(-1);
+				periodList.push_back(-1);
 			} else {
 				if (pesPacket->getPtsDtsFlags() == 2) {
-					frequencyList.push_back(pesPacket->getPts());
+					periodList.push_back(pesPacket->getPts());
 				} else {
-					frequencyList.push_back(-1);
+					periodList.push_back(-1);
 				}
 			}
 		}
 	}
 }
 
-//This function is only used to find the first PTS and standard frequency.
+//This function is only used to find the first PTS and standard period.
 bool PESStream::timestampControl(PESPacket* packet) {
 	if (timestamp2 != -1) return true;
 
@@ -128,7 +128,7 @@ bool PESStream::timestampControl(PESPacket* packet) {
 			}
 		}
 		if (timestamp2 != -1) {
-			frequency = Stc::baseExtToStc((timestamp2 - timestamp1) / frameInterval, 0);
+			period = Stc::baseExtToStc((timestamp2 - timestamp1) / frameInterval, 0);
 		}
 		return true;
 	}
@@ -207,7 +207,7 @@ bool PESStream::disposeBuffer() {
 	bool ret = Stream::disposeBuffer();
 	if (ret) {
 		ptsDtsDiff.erase(ptsDtsDiff.begin());
-		frequencyList.erase(frequencyList.begin());
+		periodList.erase(periodList.begin());
 		lastRangeChange = rangeChangeList[0];
 		rangeChangeList.erase(rangeChangeList.begin());
 	}
@@ -233,31 +233,31 @@ void PESStream::updateNextSend(int64_t stc) {
 		if (isVideoStream) {
 			//Video stream
 			if (hasDts) {
-				if (frequencyList[0] == -1) {
-					nextSend += frequency;
+				if (periodList[0] == -1) {
+					nextSend += period;
 					return;
 				} else {
 					if (lastDtsAvailable == -1) {
-						lastDtsAvailable = frequencyList[0];
+						lastDtsAvailable = periodList[0];
 						lastNextSendWithDts = nextSend;
-						nextSend += frequency;
+						nextSend += period;
 					} else {
 						if (lastRangeChange != rangeChangeList[0]) {
 							lastDtsAvailable = -1;
 							lastNextSendWithDts = nextSend;
-							nextSend += frequency;
+							nextSend += period;
 						} else {
 							int64_t nextValue = lastNextSendWithDts +
-								Stc::baseExtToStc(Stc::calcDiff90khz(frequencyList[0], lastDtsAvailable), 0);
+								Stc::baseExtToStc(Stc::calcDiff90khz(periodList[0], lastDtsAvailable), 0);
 							if (nextSend > nextValue) {
-								frequency = (nextSend - nextValue);
+								period = (nextSend - nextValue);
 								//TODO: try to smooth the nextSend in frames with no DTS.
 								cout << "PESStream::updateNextSend - Standard " <<
-										"frequency to high. Frequency adjusted." << endl;
+										"period to high. Period adjusted." << endl;
 
 							}
 							nextSend = nextValue;
-							lastDtsAvailable = frequencyList[0];
+							lastDtsAvailable = periodList[0];
 							lastNextSendWithDts = nextSend;
 							//nextSend = nextValue;
 						}
@@ -268,15 +268,15 @@ void PESStream::updateNextSend(int64_t stc) {
 		}
 		//Audio stream or video stream without any DTS
 		if (lastRangeChange != rangeChangeList[0]) {
-			nextSend += frequency;
+			nextSend += period;
 		} else {
-			if (frequencyList.size() > 1) {
+			if (periodList.size() > 1) {
 				if (rangeChangeList[0] != rangeChangeList[1]) {
-					nextSend += frequency;
+					nextSend += period;
 					return;
 				}
-				if ((frequencyList[0] >= 0) && (frequencyList[1] >= 0)) {
-					nextSend += Stc::baseExtToStc(Stc::calcDiff90khz(frequencyList[1], frequencyList[0]), 0);
+				if ((periodList[0] >= 0) && (periodList[1] >= 0)) {
+					nextSend += Stc::baseExtToStc(Stc::calcDiff90khz(periodList[1], periodList[0]), 0);
 				} else {
 					cout << "PESStream::updateNextSend - Oh no!" << endl;
 				}
@@ -315,7 +315,7 @@ void PESStream::resetControls() {
 	timestamp1 = -1;
 	timestamp2 = -1;
 	ptsDtsDiff.clear();
-	frequencyList.clear();
+	periodList.clear();
 	rangeChangeList.clear();
 	releaseBufferList();
 }

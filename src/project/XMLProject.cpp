@@ -574,14 +574,14 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 			return -4;
 		}
 		pmtView->setPcrPid(num);
-		if (f->QueryAttribute("pcrfrequency", &num) == XML_NO_ERROR) {
+		if (f->QueryAttribute("pcrperiod", &num) == XML_NO_ERROR) {
 			if (num < 10000) {
-				cout << "pmt: 'pcrfrequency' value is too low (microseconds)." << endl;
+				cout << "pmt: 'pcrperiod' value is too low (microseconds)." << endl;
 				return -12;
 			}
-			pmtView->setPcrFrequency(num);
+			pmtView->setPcrPeriod(num);
 		} else {
-			pmtView->setPcrFrequency(60000);
+			pmtView->setPcrPeriod(60000);
 		}
 		value = getAttribute(f, "name");
 		if (value.size() > 20) {
@@ -820,6 +820,14 @@ int XMLProject::processOutput(XMLElement *top) {
 				isPipe = true;
 			}
 			externalApp = getAttribute(e, "externalapp");
+			if (externalApp.size()) {
+				unsigned found = externalApp.find_first_of("/\\");
+				if (found != 0) {
+					externalApp = tmmPath + getUriSlash() + externalApp;
+				} else {
+					externalApp = tmmPath + externalApp;
+				}
+			}
 			appParams = getAttribute(e, "appparams");
 			if (e->QueryAttribute("tsid", &num) == XML_NO_ERROR) {
 				tsid = num;
@@ -835,21 +843,6 @@ int XMLProject::processOutput(XMLElement *top) {
 				tsBitrate = num;
 			} else {
 				tsBitrate = 18000000;
-			}
-			if (e->QueryAttribute("layerratea", &num) == XML_NO_ERROR) {
-				layerBitrateA = num;
-			} else {
-				layerBitrateA = 500000;
-			}
-			if (e->QueryAttribute("layerrateb", &num) == XML_NO_ERROR) {
-				layerBitrateB = num;
-			} else {
-				layerBitrateB = 17500000;
-			}
-			if (e->QueryAttribute("layerratec", &num) == XML_NO_ERROR) {
-				layerBitrateC = num;
-			} else {
-				layerBitrateC = 0;
 			}
 			value1 = getAttribute(e, "name");
 			if (value1.size() > 20) {
@@ -1325,7 +1318,7 @@ int XMLProject::processOutput(XMLElement *top) {
 
 				if (ci->tpLayerA || ci->tpLayerB || ci->tpLayerC) {
 					mcci->setCurrentGuardInterval(guardInterval);
-					//TODO: Terrestrial Delivery System Descriptor <> MCCI
+					//CHECK: Terrestrial Delivery System Descriptor <> MCCI
 					mcci->setCurrentMode(transmissionMode + 1);
 					mcci->setCurrentCI(ci);
 					mcci->copyCurrentToNext();
@@ -1343,21 +1336,6 @@ int XMLProject::processOutput(XMLElement *top) {
 					cout << "output: The muxer overrode your 'bitrate' " <<
 								"value to 29958294 bps due to ISDB-T standard." << endl;
 					tsBitrate = 29958294;
-				}
-
-				map<int, ProjectInfo*>::iterator itProj;
-				itProj = projectList->begin();
-				while (itProj != projectList->end()) {
-					if (itProj->second->getProjectType() == PT_PMTVIEW) {
-						if (!((((PMTView*)itProj->second)->getPcrFrequency() == 54621) ||
-							(((PMTView*)itProj->second)->getPcrFrequency() == 109242))) {
-							cout << "Attention: PCR frequency values have been redefined to " <<
-									"default values in order to create a compliance TS for " <<
-									"playback as ISDB-T." << endl;
-							break;
-						}
-					}
-					++itProj;
 				}
 			}
 		}

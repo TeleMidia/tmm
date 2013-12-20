@@ -33,17 +33,16 @@ namespace telemidia {
 namespace tool {
 
 class Muxer {
-
-	#define STEP_TIME 0.01365525 //204-byte only.
-
 	private:
 
 	protected:
-		vector<unsigned int> listOfAllPossiblePcrsFrequencies;
+		vector<unsigned int> listOfAllPossiblePcrsPeriods;
 		map<unsigned short, unsigned int> pcrList;
 		map<unsigned short, int64_t> nextPcrSendList;
-		unsigned int pcrFrequency;
+		unsigned int pcrPeriod;
 
+		double stepTime204;
+		unsigned char transmissionMode;
 		unsigned short minorPcr;
 		unsigned short pcrPid;
 		unsigned int pktPerStepInterval;
@@ -67,15 +66,21 @@ class Muxer {
 		unsigned short packetsInBuffer;
 		unsigned char ttl;
 
-		unsigned int layerRateA;
-		unsigned int layerRateB;
-		unsigned int layerRateC;
-		unsigned int pktNumSinceLastStepLayerA;
-		unsigned int pktNumSinceLastStepLayerB;
-		unsigned int pktNumSinceLastStepLayerC;
-		unsigned int pktPerStepIntervalLayerA;
-		unsigned int pktPerStepIntervalLayerB;
-		unsigned int pktPerStepIntervalLayerC;
+		int pktNumSinceLastStepLayerA;
+		int pktNumSinceLastStepLayerB;
+		int pktNumSinceLastStepLayerC;
+		int pktPerStepIntervalLayerA;
+		int pktPerStepIntervalLayerB;
+		int pktPerStepIntervalLayerC;
+		double fixedFracPktPerStepIntervalLayerA;
+		double fixedFracPktPerStepIntervalLayerB;
+		double fixedFracPktPerStepIntervalLayerC;
+		double fracPktPerStepIntervalLayerA;
+		double fracPktPerStepIntervalLayerB;
+		double fracPktPerStepIntervalLayerC;
+		vector<char*> awaintingPktA;
+		vector<char*> awaintingPktB;
+		vector<char*> awaintingPktC;
 
 		unsigned int tsBitrate;
 		unsigned char packetSize;
@@ -87,6 +92,8 @@ class Muxer {
 		IIP* iip;
 		bool odfmFrameEven;
 		unsigned short ofdmFrameSize, ofdmFrameCounter;
+		unsigned short tspsLayerA, tspsLayerB, tspsLayerC;
+		unsigned short tspCounterLayerA, tspCounterLayerB, tspCounterLayerC;
 		ISDBTInformation isdbtInfo;
 		map<unsigned short, unsigned char> pidToLayerList;
 
@@ -118,7 +125,9 @@ class Muxer {
 		int calculateBitrate();
 		int writeStream(char* pktBuffer);
 		int writeIIPPacket(char* stream, bool isEvenFrame);
-		int fillPacket204(char* stream, unsigned short pid);
+		int fillPacket204(char* stream, unsigned short pid, unsigned short* npid);
+
+		void setPacketContinuityCounterDirectly(char* stream, unsigned char cc);
 
 	public:
 		Muxer(unsigned char packetSize, unsigned short packetsInBuffer);
@@ -126,13 +135,8 @@ class Muxer {
 
 		//Greatest Common Divisor
 		static unsigned int gcd(unsigned int a, unsigned int b);
-
-		void setLayerRateA(unsigned int rate);
-		unsigned int getLayerRateA();
-		void setLayerRateB(unsigned int rate);
-		unsigned int getLayerRateB();
-		void setLayerRateC(unsigned int rate);
-		unsigned int getLayerRateC();
+		static double calculatePcrPeriod(unsigned char transmissionMode,
+				unsigned short ofdmFrameSize);
 
 		void setTsBitrate(unsigned int rate);
 		unsigned int getTsBitrate();
@@ -153,14 +157,20 @@ class Muxer {
 		bool addElementaryStream(unsigned short pid, Stream* stream);
 		bool removeElementaryStream(unsigned short pid);
 		bool removeAllElementaryStreams();
-		bool addToListOfAllPossiblePcrsFrequencies(unsigned int freq);
-		bool addPcrPid(unsigned short pid, unsigned int frequency); //pid,us
+		bool addToListOfAllPossiblePcrsPeriods(unsigned int freq);
+		bool addPcrPid(unsigned short pid, unsigned int period); //pid,us
 		bool removePcrPid(unsigned short pid);
 		map<unsigned short, unsigned int>* getPcrList();
 
 		map<unsigned short, vector<Stream*>*>* getStreamList();
 
+		void setTspsLayerA(unsigned short tsps);
+		void setTspsLayerB(unsigned short tsps);
+		void setTspsLayerC(unsigned short tsps);
 		void setOfdmFrameSize(unsigned short size);
+		unsigned short getOfdmFrameSize();
+		void setTransmissionMode(unsigned char mode);
+		unsigned char getTransmissionMode();
 		void setIip(IIP* iip);
 		bool addPidToLayer(unsigned short pid, unsigned char layer);
 		map<unsigned short, unsigned char>* getPidToLayerList();

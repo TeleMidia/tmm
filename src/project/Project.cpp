@@ -48,6 +48,7 @@ bool Project::changeToProjectDir() {
 	if (currDir) {
 		string currDirString;
 		currDirString.assign(currDir);
+		tmmPath.assign(currDir);
 		unsigned found = filename.find_last_of("/\\");
 		currDirString += getUriSlash() + filename.substr(0,found);
 		chdir(currDirString.c_str());
@@ -353,18 +354,6 @@ int Project::getTsid() {
 
 IIP* Project::getIip() {
 	return iip;
-}
-
-int Project::getLayerBitrateA() {
-	return layerBitrateA;
-}
-
-int Project::getLayerBitrateB() {
-	return layerBitrateB;
-}
-
-int Project::getLayerBitrateC() {
-	return layerBitrateC;
 }
 
 void Project::setTsBitrate(int rate) {

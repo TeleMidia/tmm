@@ -38,7 +38,7 @@ class Stream {
 		unsigned int maxBufferLength;
 
 		int64_t nextSend;
-		unsigned int frequency; //Value in STC unit (27 MHz).
+		unsigned int period; //Value in STC unit (27 MHz).
 		unsigned int maxBitrate;
 		unsigned int maxBytesRate;
 
@@ -69,8 +69,8 @@ class Stream {
 		virtual void initiateNextSend(int64_t stc);
 		virtual void updateNextSend(int64_t stc);
 		virtual int64_t getNextSend();
-		virtual void setFrequency(unsigned int freq); //27 MHz (max. = 159s)
-		virtual unsigned int getFrequency();
+		virtual void setPeriod(unsigned int freq); //27 MHz (max. = 159s)
+		virtual unsigned int getPeriod();
 		virtual void setMaxBitrate(unsigned int rate);
 		virtual unsigned int getMaxBitrate();
 

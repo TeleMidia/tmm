@@ -15,7 +15,7 @@ namespace tool {
 Stream::Stream() {
 	maxBufferLength = 10;
 	nextSend = SYSTEM_CLOCK_FREQUENCY;
-	frequency = SYSTEM_CLOCK_FREQUENCY;
+	period = SYSTEM_CLOCK_FREQUENCY;
 	preponeTicks = 0;
 }
 
@@ -87,19 +87,19 @@ void Stream::initiateNextSend(int64_t stc) {
 }
 
 void Stream::updateNextSend(int64_t stc) {
-	nextSend += frequency;
+	nextSend += period;
 }
 
 int64_t Stream::getNextSend() {
 	return nextSend;
 }
 
-void Stream::setFrequency(unsigned int freq) {
-	frequency = freq;
+void Stream::setPeriod(unsigned int freq) {
+	period = freq;
 }
 
-unsigned int Stream::getFrequency() {
-	return frequency;
+unsigned int Stream::getPeriod() {
+	return period;
 }
 
 void Stream::setMaxBitrate(unsigned int rate) {

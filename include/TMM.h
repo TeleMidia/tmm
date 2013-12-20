@@ -69,6 +69,8 @@ class TMM {
 
 		int multiplex();
 		int getTSInfo(InputData *inputList);
+		unsigned short calculateNumberOfTsps(TransmissionParameters* tp,
+												unsigned char mode);
 		int multiplexSetup();
 
 		bool getCarouselComponentTagFromService(PMTView* pv, ProjectInfo* carouselProj,

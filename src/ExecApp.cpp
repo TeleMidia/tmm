@@ -6,6 +6,9 @@
  */
 
 #include "ExecApp.h"
+#include <iostream>
+
+using namespace std;
 
 namespace br {
 namespace pucrio {
@@ -26,13 +29,15 @@ bool ExecApp::execute(string filename, string parameters) {
 	STARTUPINFO StartupInfo; //This is an [in] parameter
 	ZeroMemory(&StartupInfo, sizeof(StartupInfo));
 	StartupInfo.cb = sizeof StartupInfo ; //Only compulsory field
-	parameters = filename + parameters;
+	parameters = filename + ' ' + parameters;
 	if(CreateProcess(filename.c_str(), (char*) parameters.c_str(),
 	    NULL,NULL,FALSE,0,NULL,
 	    NULL,&StartupInfo,&ProcessInfo)) {
 	    return true;
 	}
 	else {
+		DWORD dw = GetLastError();
+		cout << "Error " << dw << endl;
 	    return false;
 	}
 #else

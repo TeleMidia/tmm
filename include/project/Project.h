@@ -54,9 +54,6 @@ class Project {
 		string providerName;
 		int tsid;
 		int tsBitrate;
-		int layerBitrateA;
-		int layerBitrateB;
-		int layerBitrateC;
 		int64_t stcBegin; //27 MHz - Minimum value = 270000000 (10s)
 		double vbvBuffer;
 		unsigned char ttl;
@@ -83,6 +80,7 @@ class Project {
 		bool isPipe;
 		string externalApp;
 		string appParams;
+		string tmmPath;
 
 		bool changeToProjectDir();
 
@@ -112,9 +110,6 @@ class Project {
 		void setTsid(int id);
 		int getTsid();
 		IIP* getIip();
-		int getLayerBitrateA();
-		int getLayerBitrateB();
-		int getLayerBitrateC();
 		void setTsBitrate(int rate);
 		int getTsBitrate();
 		void setStcBegin(int64_t stc);

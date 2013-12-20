@@ -40,7 +40,7 @@ class PMTView : public ProjectInfo {
 		unsigned short programNumber;
 		int tsinput;
 		unsigned short pcrPid;
-		unsigned int pcrFrequency;
+		unsigned int pcrPeriod;
 		string serviceName;
 		short int serviceType;
 		ProjectInfo* eitProj;
@@ -65,8 +65,8 @@ class PMTView : public ProjectInfo {
 		int getTsinput();
 		void setPcrPid(unsigned short pid);
 		unsigned short getPcrPid();
-		void setPcrFrequency(unsigned int freq);
-		unsigned int getPcrFrequency();
+		void setPcrPeriod(unsigned int freq);
+		unsigned int getPcrPeriod();
 		void setServiceName(string name);
 		string getServiceName();
 		void setServiceType(short int st);

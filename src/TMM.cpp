@@ -99,7 +99,7 @@ RawStream* TMM::prepareNewRawStream(ProjectInfo* proj, int64_t freq,
 									int64_t nextSend, bool destroyBlocks) {
 	RawStream* rawstream = new RawStream();
 	rawstream->setDestroyBlocks(destroyBlocks);
-	rawstream->setFrequency(freq);
+	rawstream->setPeriod(freq);
 	rawstream->initiateNextSend(nextSend);
 	return rawstream;
 }
@@ -178,7 +178,7 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		rawstream = new RawStream();
 		rawstream->addSection(carProj->getOutputFile());
 		rawstream->setMaxBitrate(carProj->getBitrate()); //must be set before initiateNextSend
-		rawstream->setFrequency(
+		rawstream->setPeriod(
 		   Stc::secondToStc(1.0/(((double) carProj->getBitrate()/8.0)/4182.0)));
 		rawstream->initiateNextSend(muxer->getCurrentStc() +
 				Stc::secondToStc(carProj->getTransmissionDelay()) +
@@ -441,6 +441,95 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 	return true;
 }
 
+unsigned short TMM::calculateNumberOfTsps(TransmissionParameters* tp,
+											unsigned char mode) {
+	if (tp) {
+		if ((tp->modulationScheme == MCCI_MODULATION_SCHEME_DQPSK) ||
+			(tp->modulationScheme == MCCI_MODULATION_SCHEME_QPSK)) {
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_1_2) {
+				if (mode == 1) return (12 * tp->numberOfSegments);
+				if (mode == 2) return (24 * tp->numberOfSegments);
+				if (mode == 3) return (48 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_2_3) {
+				if (mode == 1) return (16 * tp->numberOfSegments);
+				if (mode == 2) return (32 * tp->numberOfSegments);
+				if (mode == 3) return (64 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_3_4) {
+				if (mode == 1) return (18 * tp->numberOfSegments);
+				if (mode == 2) return (36 * tp->numberOfSegments);
+				if (mode == 3) return (72 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_5_6) {
+				if (mode == 1) return (20 * tp->numberOfSegments);
+				if (mode == 2) return (40 * tp->numberOfSegments);
+				if (mode == 3) return (80 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_7_8) {
+				if (mode == 1) return (21 * tp->numberOfSegments);
+				if (mode == 2) return (42 * tp->numberOfSegments);
+				if (mode == 3) return (84 * tp->numberOfSegments);
+			}
+		}
+		if (tp->modulationScheme == MCCI_MODULATION_SCHEME_16QAM) {
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_1_2) {
+				if (mode == 1) return (24 * tp->numberOfSegments);
+				if (mode == 2) return (48 * tp->numberOfSegments);
+				if (mode == 3) return (96 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_2_3) {
+				if (mode == 1) return (32 * tp->numberOfSegments);
+				if (mode == 2) return (64 * tp->numberOfSegments);
+				if (mode == 3) return (128 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_3_4) {
+				if (mode == 1) return (36 * tp->numberOfSegments);
+				if (mode == 2) return (72 * tp->numberOfSegments);
+				if (mode == 3) return (144 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_5_6) {
+				if (mode == 1) return (40 * tp->numberOfSegments);
+				if (mode == 2) return (80 * tp->numberOfSegments);
+				if (mode == 3) return (160 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_7_8) {
+				if (mode == 1) return (42 * tp->numberOfSegments);
+				if (mode == 2) return (84 * tp->numberOfSegments);
+				if (mode == 3) return (168 * tp->numberOfSegments);
+			}
+		}
+		if (tp->modulationScheme == MCCI_MODULATION_SCHEME_64QAM) {
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_1_2) {
+				if (mode == 1) return (36 * tp->numberOfSegments);
+				if (mode == 2) return (72 * tp->numberOfSegments);
+				if (mode == 3) return (144 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_2_3) {
+				if (mode == 1) return (48 * tp->numberOfSegments);
+				if (mode == 2) return (96 * tp->numberOfSegments);
+				if (mode == 3) return (192 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_3_4) {
+				if (mode == 1) return (54 * tp->numberOfSegments);
+				if (mode == 2) return (108 * tp->numberOfSegments);
+				if (mode == 3) return (216 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_5_6) {
+				if (mode == 1) return (60 * tp->numberOfSegments);
+				if (mode == 2) return (120 * tp->numberOfSegments);
+				if (mode == 3) return (240 * tp->numberOfSegments);
+			}
+			if (tp->codingRateOfInnerCode == MCCI_CONVOLUTIONAL_CODING_RATE_7_8) {
+				if (mode == 1) return (63 * tp->numberOfSegments);
+				if (mode == 2) return (126 * tp->numberOfSegments);
+				if (mode == 3) return (252 * tp->numberOfSegments);
+			}
+		}
+	}
+	return 0;
+}
+
 int TMM::multiplexSetup() {
 	if (muxer) delete muxer;
 	muxer = new Muxer(project->getPacketSize(), project->getPacketsInBuffer());
@@ -450,16 +539,16 @@ int TMM::multiplexSetup() {
 	muxer->setIsPipe(project->getIsPipe());
 	muxer->setExternalApp(project->getExternalApp());
 	muxer->setAppParams(project->getAppParams());
-	muxer->setLayerRateA(project->getLayerBitrateA());
-	muxer->setLayerRateB(project->getLayerBitrateB());
-	muxer->setLayerRateC(project->getLayerBitrateC());
 	muxer->setTsBitrate(project->getTsBitrate());
 
 	if ((project->getPacketSize() == 204) && project->getIip()) {
 		if (project->getIip()->getMcci()) {
 			unsigned short ofdmFrameSize;
+			ConfigurationInformation* ci;
+			TransmissionParameters* tp;
 			unsigned char guard = project->getIip()->getMcci()->getCurrentGuardInterval();
 			unsigned char mode = project->getIip()->getMcci()->getCurrentMode();
+			muxer->setTransmissionMode(mode);
 			if ((mode == 1) && (guard == MCCI_GUARD_INTERVAL_1_4)) ofdmFrameSize = 1280;
 			if ((mode == 1) && (guard == MCCI_GUARD_INTERVAL_1_8)) ofdmFrameSize = 1152;
 			if ((mode == 1) && (guard == MCCI_GUARD_INTERVAL_1_16)) ofdmFrameSize = 1088;
@@ -474,17 +563,29 @@ int TMM::multiplexSetup() {
 			if ((mode == 3) && (guard == MCCI_GUARD_INTERVAL_1_32)) ofdmFrameSize = 4224;
 			muxer->setOfdmFrameSize(ofdmFrameSize); //ARIB-STD-B31 v1.6-E2 page 116.
 			muxer->setIip(project->getIip());
+			muxer->setTspsLayerA(0);
+			muxer->setTspsLayerB(0);
+			muxer->setTspsLayerC(0);
+			ci = project->getIip()->getMcci()->getCurrentCI();
+			if (ci) { //ARIB-STD-B31 v1.6-E2 page 14.
+				tp = ci->tpLayerA;
+				muxer->setTspsLayerA(calculateNumberOfTsps(tp, mode));
+				tp = ci->tpLayerB;
+				muxer->setTspsLayerB(calculateNumberOfTsps(tp, mode));
+				tp = ci->tpLayerC;
+				muxer->setTspsLayerC(calculateNumberOfTsps(tp, mode));
+			}
 		} else {
 			return -2;
 		}
 	}
 
-	//add all pcr frequencies used in project
+	//add all pcr periods used in project
 	map<int, ProjectInfo*>::iterator itPvl = project->getProjectList()->begin();
 	while (itPvl != project->getProjectList()->end()) {
 		if (itPvl->second->getProjectType() == PT_PMTVIEW) {
-			muxer->addToListOfAllPossiblePcrsFrequencies(
-					((PMTView*)(itPvl->second))->getPcrFrequency());
+			muxer->addToListOfAllPossiblePcrsPeriods(
+					((PMTView*)(itPvl->second))->getPcrPeriod());
 		}
 		++itPvl;
 	}
@@ -588,6 +689,9 @@ bool TMM::releaseStreamFromList(ProjectInfo* proj) {
 void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 	map<unsigned short, unsigned int>::iterator itPcrsInMuxer;
 	vector<pmtViewInfo*>::iterator itPmt;
+	unsigned int pcrValue;
+	bool showWarning = false;
+	static bool showOnce = true;
 
 	itPcrsInMuxer = muxer->getPcrList()->begin();
 	while (itPcrsInMuxer != muxer->getPcrList()->end()) {
@@ -610,13 +714,28 @@ void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 	itPmt = newTimeline->begin();
 	while (itPmt != newTimeline->end()) {
 		if (project->getPacketSize() == 204) {
-			if ((*itPmt)->pv->getServiceType() == SRV_TYPE_TV) {
-				muxer->addPcrPid((*itPmt)->pv->getPcrPid(), 54621);
+			pcrValue = (unsigned int) (Muxer::calculatePcrPeriod(
+					muxer->getTransmissionMode(),
+					muxer->getOfdmFrameSize()) * 1000000);
+			if ((*itPmt)->pv->getServiceType() == SRV_TYPE_ONESEG) {
+				muxer->addPcrPid((*itPmt)->pv->getPcrPid(),	pcrValue * 2);
+				if ((*itPmt)->pv->getPcrPeriod() != pcrValue * 2) {
+					showWarning = true;
+				}
 			} else {
-				muxer->addPcrPid((*itPmt)->pv->getPcrPid(), 109242);
+				muxer->addPcrPid((*itPmt)->pv->getPcrPid(), pcrValue);
+				if ((*itPmt)->pv->getPcrPeriod() != pcrValue) {
+					showWarning = true;
+				}
+			}
+			if (showWarning && showOnce) {
+				cout << "Attention: PCR period values have been redefined to " <<
+						"default values in order to create a compliance TS for " <<
+						"playback as ISDB-T." << endl;
+				showOnce = false;
 			}
 		} else {
-			muxer->addPcrPid((*itPmt)->pv->getPcrPid(), (*itPmt)->pv->getPcrFrequency());
+			muxer->addPcrPid((*itPmt)->pv->getPcrPid(), (*itPmt)->pv->getPcrPeriod());
 		}
 		muxer->addPidToLayer((*itPmt)->pv->getPcrPid(), (*itPmt)->pv->getLayer());
 		++itPmt;
@@ -728,7 +847,7 @@ int TMM::createSiTables(vector<pmtViewInfo*>* newTimeline) {
 		pmt->updateStream();
 		((RawStream*)stream)->addSection(pmt);
 		stream->fillBuffer();
-		stream->setFrequency(Stc::secondToStc(0.1));
+		stream->setPeriod(Stc::secondToStc(0.1));
 		stream->initiateNextSend(muxer->getCurrentStc() + 1);
 		(*itPmt)->pv->setPmtStream(stream);
 		addStreamToMuxer(stream, (*itPmt)->pv->getPid(), (*itPmt)->pv->getLayer());
@@ -893,7 +1012,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 				pmt->updateStream();
 				rawstream->addSection(pmt);
 				rawstream->fillBuffer();
-				rawstream->setFrequency(Stc::secondToStc(0.1));
+				rawstream->setPeriod(Stc::secondToStc(0.1));
 				rawstream->initiateNextSend(siAndIsdbtStreamList[proj]->getNextSend() + 1);
 				(*itPmtNew)->pv->setPmtStream(rawstream);
 				addStreamToMuxer(rawstream, (*itPmtNew)->pv->getPid(),
@@ -915,7 +1034,7 @@ int TMM::restoreSiTables(vector<pmtViewInfo*>* currentTimeline,
 				pmt->updateStream();
 				rawstream->addSection(pmt);
 				rawstream->fillBuffer();
-				rawstream->setFrequency(Stc::secondToStc(0.1));
+				rawstream->setPeriod(Stc::secondToStc(0.1));
 				rawstream->initiateNextSend(siAndIsdbtStreamList[proj]->getNextSend() + 1);
 				(*itPmtNew)->pv->setPmtStream(rawstream);
 				addStreamToMuxer(rawstream, (*itPmtCurr)->pv->getPid(),
