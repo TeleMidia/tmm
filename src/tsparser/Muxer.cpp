@@ -160,7 +160,7 @@ int Muxer::open() {
 				return -1;
 			}
 		} else {
-			pPipe = new Pipe("tmm." + destination);
+			pPipe = new Pipe(destination);
 			if (externalApp.size()) {
 				cout << "Starting external application...";
 				if (ExecApp::execute(externalApp, appParams)) {
