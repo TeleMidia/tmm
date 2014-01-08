@@ -49,7 +49,7 @@ class PMTView : public ProjectInfo {
 		map<unsigned short, unsigned char> componentTagList; //(pid, ctag)
 		map<unsigned short, unsigned char> desiredComponentTagList; //(pid, ctag)
 		map<unsigned short, unsigned char> layerList; //(pid, layer)
-		map<unsigned short, MpegDescriptor*> esDescriptorList; //(pid, descriptor)
+		map<unsigned short, vector<MpegDescriptor*>* > esDescriptorList; //(pid, descriptor list)
 
 	public:
 		PMTView();
@@ -88,7 +88,7 @@ class PMTView : public ProjectInfo {
 		map<unsigned short, Stream*>* getStreamList();
 		map<unsigned short, unsigned char>* getComponentTagList();
 		map<unsigned short, unsigned char>* getLayerList();
-		map<unsigned short, MpegDescriptor*>* getEsDescriptorList();
+		map<unsigned short, vector<MpegDescriptor*>* >* getEsDescriptorList();
 		int getProjectPid(ProjectInfo* proj);
 		bool fulfillComponentTagList(PMTView* previousPmtView);
 		bool isDesiredComponentTagInUse(unsigned char ctag);

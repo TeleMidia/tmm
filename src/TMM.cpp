@@ -745,8 +745,10 @@ void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 	map<unsigned short, ProjectInfo*>* pi;
 	map<unsigned short, ProjectInfo*>::iterator itPi;
-	map<unsigned short, MpegDescriptor*>::iterator itDesc;
+	map<unsigned short, vector<MpegDescriptor*>* >::iterator itEs;
+	vector<MpegDescriptor*>::iterator itDesc;
 	InputData* indata = NULL;
+	DataStreamAlignment* dsadesc = NULL;
 	unsigned char st;
 	CarouselIdentifier* cidesc = NULL;
 	StreamIdentifier* sidesc = NULL;
@@ -787,6 +789,23 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 		(*pmt)->addEs(st, itPi->first);
 
 		switch (itPi->second->getProjectType()) {
+		case PT_INPUTDATA:
+			dsadesc = NULL;
+			if (TSInfo::isAudioStreamType(st)) {
+				dsadesc = new DataStreamAlignment();
+				dsadesc->setAlignmentType(0x01); //Slice, Video Access Unit
+			} else if (TSInfo::isVideoStreamType(st)) {
+				dsadesc = new DataStreamAlignment();
+				dsadesc->setAlignmentType(0x02); //Video Access Unit
+			}
+			if (dsadesc) {
+				descLen = dsadesc->getStream(&descStream);
+				if (descLen) {
+					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+				}
+				delete dsadesc;
+			}
+			break;
 		case PT_CAROUSEL:
 			cidesc = new CarouselIdentifier();
 			cidesc->setCarouselId(((PCarousel*)itPi->second)->getServiceDomain());
@@ -810,11 +829,19 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 		++itPi;
 	}
 
-	itDesc = newPmtView->getEsDescriptorList()->begin();
-	while (itDesc != newPmtView->getEsDescriptorList()->end()) {
-		descLen = itDesc->second->getStream(&descStream);
-		(*pmt)->addEsDescriptor(itDesc->first, descStream, descLen);
-		++itDesc;
+	itEs = newPmtView->getEsDescriptorList()->begin();
+	while (itEs != newPmtView->getEsDescriptorList()->end()) {
+		if (itEs->second) {
+			itDesc = itEs->second->begin();
+			while (itDesc != itEs->second->end()) {
+				if (*itDesc) {
+					descLen = (*itDesc)->getStream(&descStream);
+					(*pmt)->addEsDescriptor(itEs->first, descStream, descLen);
+				}
+				++itDesc;
+			}
+		}
+		++itEs;
 	}
 
 	return 0;

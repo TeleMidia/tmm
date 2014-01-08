@@ -140,13 +140,15 @@ unsigned char PMTView::getLayerPid(unsigned short pid) {
 }
 
 bool PMTView::addEsDescriptor(unsigned short pid, MpegDescriptor* md) {
+	vector<MpegDescriptor*>* mdlist;
 	if (!esDescriptorList.count(pid)) {
-		esDescriptorList[pid] = md;
+		mdlist = new vector<MpegDescriptor*>;
+		esDescriptorList[pid] = mdlist;
 	} else {
-		MpegDescriptor* tmd = esDescriptorList[pid];
-		if (tmd) delete tmd;
-		esDescriptorList[pid] = md;
+		mdlist = esDescriptorList[pid];
 	}
+	mdlist->push_back(md);
+
 	return true;
 }
 
@@ -163,10 +165,18 @@ bool PMTView::deleteAllStreams() {
 }
 
 bool PMTView::releaseEsDescriptorList() {
-	map<unsigned short, MpegDescriptor*>::iterator it;
+	map<unsigned short, vector<MpegDescriptor*>* >::iterator it;
+	vector<MpegDescriptor*>::iterator itv;
 	it = esDescriptorList.begin();
 	while (it != esDescriptorList.end()) {
-		if (it->second) delete it->second;
+		if (it->second) {
+			itv = it->second->begin();
+			while (itv != it->second->end()) {
+				if (*itv) delete (*itv);
+				++itv;
+			}
+			delete it->second;
+		}
 		++it;
 	}
 	esDescriptorList.clear();
@@ -199,7 +209,7 @@ map<unsigned short, unsigned char>* PMTView::getLayerList() {
 	return &layerList;
 }
 
-map<unsigned short, MpegDescriptor*>* PMTView::getEsDescriptorList() {
+map<unsigned short, vector<MpegDescriptor*>* >* PMTView::getEsDescriptorList() {
 	return &esDescriptorList;
 }
 

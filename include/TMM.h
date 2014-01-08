@@ -17,6 +17,7 @@
 #include "RawStream.h"
 #include "si/descriptor/CarouselIdentifier.h"
 #include "si/descriptor/StreamIdentifier.h"
+#include "si/descriptor/DataStreamAlignment.h"
 #include <iostream>
 #include <string>
 #include <vector>
