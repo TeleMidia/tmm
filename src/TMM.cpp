@@ -752,6 +752,9 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 	unsigned char st;
 	CarouselIdentifier* cidesc = NULL;
 	StreamIdentifier* sidesc = NULL;
+	HierarchicalTransmission* htdesc = NULL;
+	DeferredAssociationTags* datdesc = NULL;
+	AssociationTag* atdesc = NULL;
 	char* descStream;
 	unsigned char descLen, ctag;
 
@@ -791,12 +794,16 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 		switch (itPi->second->getProjectType()) {
 		case PT_INPUTDATA:
 			dsadesc = NULL;
+			htdesc = NULL;
 			if (TSInfo::isAudioStreamType(st)) {
 				dsadesc = new DataStreamAlignment();
 				dsadesc->setAlignmentType(0x01); //Slice, Video Access Unit
 			} else if (TSInfo::isVideoStreamType(st)) {
 				dsadesc = new DataStreamAlignment();
 				dsadesc->setAlignmentType(0x02); //Video Access Unit
+				htdesc = new HierarchicalTransmission();
+				htdesc->setQualityLevel(1);
+				htdesc->setReferencePID(itPi->first);
 			}
 			if (dsadesc) {
 				descLen = dsadesc->getStream(&descStream);
@@ -804,6 +811,13 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
 				}
 				delete dsadesc;
+			}
+			if (htdesc) {
+				descLen = htdesc->getStream(&descStream);
+				if (descLen) {
+					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+				}
+				delete htdesc;
 			}
 			break;
 		case PT_CAROUSEL:
@@ -814,6 +828,29 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 				(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
 			}
 			delete cidesc;
+			datdesc = new DeferredAssociationTags();
+			datdesc->setOriginalNetworkId(project->getOriginalNetworkId());
+			datdesc->setTransportStreamId(project->getTsid());
+			datdesc->setProgramNumber(newPmtView->getProgramNumber());
+			descLen = datdesc->getStream(&descStream);
+			if (descLen) {
+				(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+			}
+			delete datdesc;
+			atdesc = new AssociationTag();
+			if (!newPmtView->getComponentTag(itPi->first, &ctag)) {
+				cout << "TMM::createPmt - Warning: Association tag not defined." << endl;
+				ctag = 0x01;
+			}
+			atdesc->setAssociationTag(ctag);
+			atdesc->setUse(0x0000);
+			atdesc->setTransactionId(((PCarousel*)itPi->second)->getTransactionId());
+			atdesc->setTimeout(0xFFFFFFFF);
+			descLen = atdesc->getStream(&descStream);
+			if (descLen) {
+				(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+			}
+			delete atdesc;
 			break;
 		}
 

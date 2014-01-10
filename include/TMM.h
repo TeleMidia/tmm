@@ -18,6 +18,9 @@
 #include "si/descriptor/CarouselIdentifier.h"
 #include "si/descriptor/StreamIdentifier.h"
 #include "si/descriptor/DataStreamAlignment.h"
+#include "si/descriptor/HierarchicalTransmission.h"
+#include "si/descriptor/DeferredAssociationTags.h"
+#include "si/descriptor/AssociationTag.h"
 #include <iostream>
 #include <string>
 #include <vector>
