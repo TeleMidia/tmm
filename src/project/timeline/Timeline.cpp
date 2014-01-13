@@ -85,15 +85,12 @@ vector<pmtViewInfo*>* Timeline::currTimeline(int64_t relStc, int* condRet) {
 				map<int64_t, vector<pmtViewInfo*>*>* tempList;
 				int64_t startTime = 0;
 				if (!isLoop) {
-					cout << "End of timeline has been reached." << endl;
-					cout << "Application stopped." << endl;
 					if (condRet) *condRet = 3; //End
-					exit(0);
+					return NULL;
 				} else {
 					//TODO: Add a new project from here or
 
 					//use current project.
-					cout << "Looping timeline..." << endl;
 					startTime = it->first;
 					tempList = new map<int64_t, vector<pmtViewInfo*>*>;
 

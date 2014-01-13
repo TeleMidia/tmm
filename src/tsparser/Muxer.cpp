@@ -37,6 +37,7 @@ Muxer::Muxer(unsigned char packetSize, unsigned short packetsInBuffer) {
 	isPipe = false;
 	externalApp = "";
 	appParams = "";
+	appPid = 0;
 	//packetCounter = 0;
 	tspCounterLayerA = 0;
 	tspCounterLayerB = 0;
@@ -163,7 +164,7 @@ int Muxer::open() {
 			pPipe = new Pipe(destination);
 			if (externalApp.size()) {
 				cout << "Starting external application...";
-				if (ExecApp::execute(externalApp, appParams)) {
+				if (ExecApp::execute(externalApp, appParams, &appPid)) {
 					cout << " done." << endl;
 				} else {
 					cout << " fail." << endl;
@@ -203,6 +204,10 @@ int Muxer::close() {
 			pFile = NULL;
 		} else {
 			if (pPipe) {
+				if (!ExecApp::killApp(appPid)) {
+					cout << "Muxer::close - External application could ";
+					cout << "not be closed!" << endl;
+				}
 				pPipe->closePipe();
 				delete pPipe;
 			}

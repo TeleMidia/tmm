@@ -34,7 +34,8 @@ class ExecApp {
 		ExecApp();
 		virtual ~ExecApp();
 
-		static bool execute(string filename, string parameters);
+		static bool execute(string filename, string parameters, unsigned int* pid);
+		static bool killApp(unsigned int pid);
 
 };
 

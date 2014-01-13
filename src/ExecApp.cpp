@@ -23,7 +23,8 @@ ExecApp::~ExecApp() {
 
 }
 
-bool ExecApp::execute(string filename, string parameters) {
+bool ExecApp::execute(string filename, string parameters, unsigned int* pid) {
+	*pid = 0;
 #ifdef _WIN32
 	PROCESS_INFORMATION ProcessInfo; //This is what we get as an [out] parameter
 	STARTUPINFO StartupInfo; //This is an [in] parameter
@@ -33,6 +34,7 @@ bool ExecApp::execute(string filename, string parameters) {
 	if(CreateProcess(filename.c_str(), (char*) parameters.c_str(),
 	    NULL,NULL,FALSE,0,NULL,
 	    NULL,&StartupInfo,&ProcessInfo)) {
+		*pid = (unsigned int) ProcessInfo.dwProcessId;
 	    return true;
 	}
 	else {
@@ -41,15 +43,31 @@ bool ExecApp::execute(string filename, string parameters) {
 	    return false;
 	}
 #else
-	pid_t pid;
-	pid = fork();
+	pid_t mpid;
+	mpid = fork();
 	if(fork == 0){
 	    execvp(filename.c_str());
+	    *pid = (unsigned int) mpid;
 	    return true;
 	}
 	else {
 		return false;
 	}
+#endif
+}
+
+bool ExecApp::killApp(unsigned int pid) {
+#ifdef _WIN32
+	DWORD dwDesiredAccess = PROCESS_TERMINATE;
+	BOOL bInheritHandle  = FALSE;
+	unsigned int uExitCode = 0;
+	HANDLE hProcess = OpenProcess(dwDesiredAccess, bInheritHandle, (DWORD)pid);
+	if (hProcess == NULL) return FALSE;
+	BOOL result = TerminateProcess(hProcess, uExitCode);
+	CloseHandle(hProcess);
+	return result;
+#else
+	kill(pid, SIGTERM);
 #endif
 }
 

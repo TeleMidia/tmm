@@ -105,6 +105,7 @@ class Muxer {
 		FILE * pFile;
 		string externalApp;
 		string appParams;
+		unsigned int appPid;
 
 		int open();
 		int close();

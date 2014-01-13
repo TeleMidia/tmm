@@ -615,6 +615,13 @@ int TMM::multiplex() {
 		proj = getFirstProjectReversed(PT_TIMELINE);
 		if (proj) {
 			newTimeline = ((Timeline*)proj)->currTimeline(muxer->getRelativeStc(), &condRet);
+			if (condRet == 2) {
+				cout << "Looping timeline..." << endl;
+			} else if (condRet == 3) {
+				cout << endl << "End of timeline has been reached." << endl;
+				cout << "Application stopped." << endl;
+				return -3;
+			}
 			if (!newTimeline) {
 				cout << "TMM::multiplex - Unexpected error: No timeline." << endl;
 				return -1;
