@@ -42,22 +42,6 @@ void XMLProject::init() {
 	idIndex = 1;
 }
 
-string XMLProject::getAttribute(XMLElement* e, string name) {
-	string str = "";
-	if (e) {
-		const char *s = e->Attribute(name.c_str());
-		if (s) str.assign(s);
-	}
-	return str;
-}
-
-string XMLProject::getElementText(XMLElement* e) {
-	string str;
-	XMLText* text = e->FirstChild()->ToText();
-	str.assign(text->Value());
-	return str;
-}
-
 vector<MetaData*>* XMLProject::getMetaDataList() {
 	return &metaDataList;
 }
@@ -101,14 +85,14 @@ int XMLProject::parseAV(XMLNode* m, XMLElement* f) {
 	int num, ret;
 
 	if (strcmp(m->Value(), "av") == 0) {
-		value = getAttribute(f, "id");
+		value = LocalLibrary::getAttribute(f, "id");
 		InputData* input = new InputData();
 		ret = createAndGetId(input, value);
 		if (ret < 0) {
 			delete input;
 			return ret;
 		}
-		value = getAttribute(f, "src");
+		value = LocalLibrary::getAttribute(f, "src");
 		input->setFilename(value);
 		if (f->QueryAttribute("offset", &num) == XML_NO_ERROR) {
 			input->setOffset(num);
@@ -143,7 +127,7 @@ int XMLProject::parseNPT(XMLNode* m, XMLElement* f) {
 	int num, ret;
 
 	if (strcmp(m->Value(), "npt") == 0) {
-		value = getAttribute(f, "id");
+		value = LocalLibrary::getAttribute(f, "id");
 		NPTProject* npt = new NPTProject();
 		ret = createAndGetId(npt, value);
 		if (ret < 0) {
@@ -161,7 +145,7 @@ int XMLProject::parseNPT(XMLNode* m, XMLElement* f) {
 			bool firstTimeEpBegin = true;
 			g = o->ToElement();
 			if (strcmp(o->Value(), "nptref") == 0) {
-				value = getAttribute(g, "groupid");
+				value = LocalLibrary::getAttribute(g, "groupid");
 				if (!createNewId(value)) return -3;
 				num = getId(value);
 				if (num == -1) {
@@ -245,19 +229,216 @@ int XMLProject::parseNPT(XMLNode* m, XMLElement* f) {
 	return 0;
 }
 
+int XMLProject::parseStreamEvent(XMLNode* m, XMLElement* f) {
+	XMLNode *o;
+	XMLElement *g;
+	string value, value1, entrypoint, params;
+	int num, ret;
+	ProjectInfo* proj;
+
+	if (strcmp(m->Value(), "streamevent") == 0) {
+		PStreamEvent *pse = new PStreamEvent();
+
+		value = LocalLibrary::getAttribute(f, "id");
+		ret = createAndGetId(pse, value);
+		if (ret < 0) {
+			delete pse;
+			return ret;
+		}
+		if (f->QueryAttribute("period", &num) == XML_NO_ERROR) {
+			pse->setPeriod((unsigned int)num);
+		}
+		if (f->QueryAttribute("samplelimit", &num) == XML_NO_ERROR) {
+			pse->setSampleLimit((unsigned int)num);
+		}
+		if (f->QueryAttribute("offset", &num) == XML_NO_ERROR) {
+			pse->setFirstReferenceOffset((double) num / 1000);
+		}
+		value = LocalLibrary::getAttribute(f, "baseid");
+		if (value.size()) {
+			pse->setBaseId(value);
+		}
+		value = LocalLibrary::getAttribute(f, "documentid");
+		if (value.size()) {
+			pse->setDocumentId(value);
+		}
+		value = LocalLibrary::getAttribute(f, "layer");
+		if (value.size()) {
+			num = toLayer(value);
+			if (num != 0xFF) {
+				pse->setLayer((unsigned char)num);
+				pse->setLayerConfigured(true);
+			} else {
+				cout << "streamevent: 'layer' not recognized ("
+					 << value << ")" << endl;
+				return -6;
+			}
+		}
+		entrypoint = LocalLibrary::getAttribute(f, "entrypoint");
+		if (entrypoint.size()) {
+			pse->setEntryPoint(entrypoint);
+			value = LocalLibrary::getAttribute(f, "carouselid");
+			num = getId(value);
+			if (num == -1) {
+				cout << "The id = " << value << " doesn't exists."
+						<< endl;
+				return -8;
+			}
+			proj = findProject(num);
+			if (!proj) {
+				return -7;
+			}
+			if (proj->getProjectType() != PT_CAROUSEL) {
+				cout << "streamevent: id mismatch error." << endl;
+				return -9;
+			}
+			pse->setCarouselProj(proj);
+		}
+		for (o = f->FirstChild(); o; o = o->NextSibling()) {
+			g = o->ToElement();
+			if (strcmp(o->Value(), "event") == 0) {
+				unsigned int eventId, eventNpt;
+				if (g->QueryAttribute("eventid", &eventId) != XML_NO_ERROR) {
+					cout << "streamevent: attribute 'eventid' not found." << endl;
+					return -4;
+				}
+				StreamEvent* se = new StreamEvent();
+				se->setEventId(eventId);
+				if (g->QueryAttribute("eventnpt", &eventNpt) == XML_NO_ERROR) {
+					se->setEventNPT(eventNpt);
+				} else se->setEventNPT(0);
+				value1 = LocalLibrary::getAttribute(g, "commandtag");
+				if (value1.size()) {
+					if (value1 == "openbase") {
+						se->setCommandTag(SE_OPEN_BASE);
+					} else if (value1 == "activatebase") {
+						se->setCommandTag(SE_ACTIVATE_BASE);
+					} else if (value1 == "deactivatebase") {
+						se->setCommandTag(SE_DEACTIVATE_BASE);
+					} else if (value1 == "savebase") {
+						se->setCommandTag(SE_SAVE_BASE);
+					} else if (value1 == "closebase") {
+						se->setCommandTag(SE_CLOSE_BASE);
+					} else if (value1 == "adddocument") {
+						se->setCommandTag(SE_ADD_DOCUMENT);
+					} else if (value1 == "removedocument") {
+						se->setCommandTag(SE_REMOVE_DOCUMENT);
+					} else if (value1 == "startdocument") {
+						se->setCommandTag(SE_START_DOCUMENT);
+					} else if (value1 == "stopdocument") {
+						se->setCommandTag(SE_STOP_DOCUMENT);
+					} else if (value1 == "pausedocument") {
+						se->setCommandTag(SE_PAUSE_DOCUMENT);
+					} else if (value1 == "resumedocument") {
+						se->setCommandTag(SE_RESUME_DOCUMENT);
+					} else if (value1 == "savedocument") {
+						se->setCommandTag(SE_SAVE_DOCUMENT);
+					} else if (value1 == "addregionbase") {
+						se->setCommandTag(SE_ADD_REGION_BASE);
+					} else if (value1 == "removeregionbase") {
+						se->setCommandTag(SE_REMOVE_REGION_BASE);
+					} else if (value1 == "addrule") {
+						se->setCommandTag(SE_ADD_RULE);
+					} else if (value1 == "removerule") {
+						se->setCommandTag(SE_REMOVE_RULE);
+					} else if (value1 == "addrulebase") {
+						se->setCommandTag(SE_ADD_RULE_BASE);
+					} else if (value1 == "removerulebase") {
+						se->setCommandTag(SE_REMOVE_RULE_BASE);
+					} else if (value1 == "addconnector") {
+						se->setCommandTag(SE_ADD_CONNECTOR);
+					} else if (value1 == "removeconnector") {
+						se->setCommandTag(SE_REMOVE_CONNECTOR);
+					} else if (value1 == "addconnectorbase") {
+						se->setCommandTag(SE_ADD_CONNECTOR_BASE);
+					} else if (value1 == "removeconnectorbase") {
+						se->setCommandTag(SE_REMOVE_CONNECTOR_BASE);
+					} else if (value1 == "adddescriptor") {
+						se->setCommandTag(SE_ADD_DESCRIPTOR);
+					} else if (value1 == "removedescriptor") {
+						se->setCommandTag(SE_REMOVE_DESCRIPTOR);
+					} else if (value1 == "adddescriptorswitch") {
+						se->setCommandTag(SE_ADD_DESCRIPTOR_SWITCH);
+					} else if (value1 == "removedescriptorswitch") {
+						se->setCommandTag(SE_REMOVE_DESCRIPTOR_SWITCH);
+					} else if (value1 == "adddescriptorbase") {
+						se->setCommandTag(SE_ADD_DESCRIPTOR_BASE);
+					} else if (value1 == "removedescriptorbase") {
+						se->setCommandTag(SE_REMOVE_DESCRIPTOR_BASE);
+					} else if (value1 == "addtransition") {
+						se->setCommandTag(SE_ADD_TRANSITION);
+					} else if (value1 == "removetransition") {
+						se->setCommandTag(SE_REMOVE_TRANSITION);
+					} else if (value1 == "addtransitionbase") {
+						se->setCommandTag(SE_ADD_TRANSITION_BASE);
+					} else if (value1 == "removetransitionbase") {
+						se->setCommandTag(SE_REMOVE_TRANSITION_BASE);
+					} else if (value1 == "addimportbase") {
+						se->setCommandTag(SE_ADD_IMPORT_BASE);
+					} else if (value1 == "removeimportbase") {
+						se->setCommandTag(SE_REMOVE_IMPORT_BASE);
+					} else if (value1 == "addimporteddocumentbase") {
+						se->setCommandTag(SE_ADD_IMPORTED_DOCUMENT_BASE);
+					} else if (value1 == "removeimporteddocumentbase") {
+						se->setCommandTag(SE_REMOVE_IMPORTED_DOCUMENT_BASE);
+					} else if (value1 == "addimportncl") {
+						se->setCommandTag(SE_ADD_IMPORT_NCL);
+					} else if (value1 == "removeimportncl") {
+						se->setCommandTag(SE_REMOVE_IMPORT_NCL);
+					} else if (value1 == "addnode") {
+						se->setCommandTag(SE_ADD_NODE);
+					} else if (value1 == "removenode") {
+						se->setCommandTag(SE_REMOVE_NODE);
+					} else if (value1 == "addinterface") {
+						se->setCommandTag(SE_ADD_INTERFACE);
+					} else if (value1 == "removeinterface") {
+						se->setCommandTag(SE_REMOVE_INTERFACE);
+					} else if (value1 == "addlink") {
+						se->setCommandTag(SE_ADD_LINK);
+					} else if (value1 == "removelink") {
+						se->setCommandTag(SE_REMOVE_LINK);
+					} else if (value1 == "setpropertyvalue") {
+						se->setCommandTag(SE_SET_PROPERTY_VALUE);
+					} else {
+						cout << "streamevent: 'commandtag' not recognized." << endl;
+						delete se;
+						delete pse;
+						return -6;
+					}
+				} else {
+					cout << "streamevent: attribute 'commandtag' not found." << endl;
+					delete se;
+					delete pse;
+					return -6;
+				}
+				params = LocalLibrary::getAttribute(g, "params");
+				if (params.size()) {
+					se->setPrivateDataPayload((char*)params.c_str(), params.size());
+				}
+				se->setSequenceNumber(0);
+				se->setFinalFlag(1);
+				pse->addStreamEvent(se);
+			}
+		}
+		(*projectList)[pse->getId()] = pse;
+	}
+
+	return 0;
+}
+
 int XMLProject::parseCarousel(XMLNode* m, XMLElement* f) {
 	string value;
 	int num, ret;
 
 	if (strcmp(m->Value(), "carousel") == 0) {
-		value = getAttribute(f, "id");
+		value = LocalLibrary::getAttribute(f, "id");
 		PCarousel* carousel = new PCarousel();
 		ret = createAndGetId(carousel, value);
 		if (ret < 0) {
 			delete carousel;
 			return ret;
 		}
-		value = getAttribute(f, "src");
+		value = LocalLibrary::getAttribute(f, "src");
 		carousel->setServiceGatewayFolder(value);
 		if (f->QueryAttribute("bitrate", &num) != XML_NO_ERROR) {
 			cout << "carousel: attribute 'bitrate' not found." << endl;
@@ -277,6 +458,7 @@ int XMLProject::parseCarousel(XMLNode* m, XMLElement* f) {
 		if (f->QueryAttribute("transmissiondelay", &num) == XML_NO_ERROR) {
 			carousel->setTransmissionDelay((double) num / 1000);
 		}
+
 		(*projectList)[carousel->getId()] = carousel;
 	}
 
@@ -295,7 +477,7 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 		ait->setCurrentNextIndicator(1);
 		ait->setSectionSyntaxIndicator(1);
 		ait->setPrivateIndicator(1);
-		value = getAttribute(f, "id");
+		value = LocalLibrary::getAttribute(f, "id");
 		ret = createAndGetId(ait, value);
 		if (ret < 0) {
 			delete ait;
@@ -309,13 +491,13 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 			if (strcmp(o->Value(), "carouselref") == 0) {
 				unsigned int orgId, appId, appcode;
 				string appname, lang, basedir, entrypoint;
-				value = getAttribute(g, "carouselid");
+				value = LocalLibrary::getAttribute(g, "carouselid");
 				num = getId(value);
 				if (num == -1) {
 					cout << "The id = " << value << " doesn't exists." << endl;
 					return -8;
 				}
-				value = getAttribute(g, "apptype");
+				value = LocalLibrary::getAttribute(g, "apptype");
 				if (value == "ginga-ncl") {
 					ait->setTableIdExtension(AT_GINGA_NCL);
 				} else if (value == "ginga-j") {
@@ -326,7 +508,7 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 					return -6;
 				}
 				appcode = CC_AUTO_START;
-				value = getAttribute(g, "appcontrolcode");
+				value = LocalLibrary::getAttribute(g, "appcontrolcode");
 				if (value.size()) {
 					if (value == "autostart") {
 						appcode = CC_AUTO_START;
@@ -354,20 +536,20 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 					cout << "ait: attribute 'applicationid' not found." << endl;
 					return -4;
 				}
-				appname = getAttribute(g, "appname");
-				value = getAttribute(g, "language");
+				appname = LocalLibrary::getAttribute(g, "appname");
+				value = LocalLibrary::getAttribute(g, "language");
 				if (value.size()) {
 					lang = value;
 				} else {
 					lang.assign("por");
 				}
-				value = getAttribute(g, "basedirectory");
+				value = LocalLibrary::getAttribute(g, "basedirectory");
 				if (value.size()) {
 					basedir = value;
 				} else {
 					basedir.assign("/");
 				}
-				entrypoint = getAttribute(g, "entrypoint");
+				entrypoint = LocalLibrary::getAttribute(g, "entrypoint");
 				proj = findProject(num);
 				if (!proj) {
 					return -7;
@@ -404,13 +586,13 @@ int XMLProject::parseEIT(XMLNode* m, XMLElement* f) {
 		eit->setCurrentNextIndicator(1);
 		eit->setSectionSyntaxIndicator(1);
 		eit->setPrivateIndicator(1);
-		value = getAttribute(f, "id");
+		value = LocalLibrary::getAttribute(f, "id");
 		ret = createAndGetId(eit, value);
 		if (ret < 0) {
 			delete eit;
 			return ret;
 		}
-		value = getAttribute(f, "layer");
+		value = LocalLibrary::getAttribute(f, "layer");
 		if (value.size()) {
 			num = toLayer(value);
 			if (num != 0xFF) {
@@ -435,7 +617,7 @@ int XMLProject::parseEIT(XMLNode* m, XMLElement* f) {
 					cout << "eit: 'eventid' must be unique." << endl;
 					return -4;
 				}
-				value = getAttribute(g, "time");
+				value = LocalLibrary::getAttribute(g, "time");
 				if (value.size()) {
 					stime = PTot::makeUtcDate(value);
 				} else {
@@ -455,12 +637,12 @@ int XMLProject::parseEIT(XMLNode* m, XMLElement* f) {
 				for (p = g->FirstChild(); p; p = p->NextSibling()) {
 					h = p->ToElement();
 					if (strcmp(p->Value(), "shortevent") == 0) {
-						value = getAttribute(h, "name");
+						value = LocalLibrary::getAttribute(h, "name");
 						if (value.size() > 96) {
 							cout << "eit: 'name' value is too long." << endl;
 							return -12;
 						}
-						value2 = getAttribute(h, "text");
+						value2 = LocalLibrary::getAttribute(h, "text");
 						if (value2.size() > 192) {
 							cout << "eit: 'text' value is too long." << endl;
 							return -12;
@@ -468,7 +650,7 @@ int XMLProject::parseEIT(XMLNode* m, XMLElement* f) {
 						ShortEvent* si = new ShortEvent();
 						si->setEventName(value);
 						si->setText(value2);
-						value = getAttribute(h, "language");
+						value = LocalLibrary::getAttribute(h, "language");
 						if (value.size()) {
 							if (value.size() != 3) {
 								cout << "eit: 'language' value has 3 letters." << endl;
@@ -496,7 +678,7 @@ int XMLProject::parseEIT(XMLNode* m, XMLElement* f) {
 						comp->setStreamContent(streamContent);
 						comp->setComponentType(componentType);
 						comp->setComponentTag(ctag);
-						value = getAttribute(h, "language");
+						value = LocalLibrary::getAttribute(h, "language");
 						if (value.size()) {
 							if (value.size() != 3) {
 								cout << "eit: 'language' value has 3 letters." << endl;
@@ -504,7 +686,7 @@ int XMLProject::parseEIT(XMLNode* m, XMLElement* f) {
 							}
 							comp->setIso639LanguageCode(value);
 						}
-						value2 = getAttribute(h, "text");
+						value2 = LocalLibrary::getAttribute(h, "text");
 						if (value2.size() > 192) {
 							cout << "eit: 'text' value is too long." << endl;
 							return -12;
@@ -520,7 +702,7 @@ int XMLProject::parseEIT(XMLNode* m, XMLElement* f) {
 						}
 						ParentalRatingInfo* pri = new ParentalRatingInfo();
 						pri->rating = rating;
-						value = getAttribute(h, "countrycode");
+						value = LocalLibrary::getAttribute(h, "countrycode");
 						if (value.size()) {
 							if (value.size() != 3) {
 								cout << "eit: 'countrycode' value has 3 letters." << endl;
@@ -551,7 +733,7 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 
 	if (strcmp(m->Value(), "pmt") == 0) {
 		PMTView* pmtView = new PMTView();
-		value = getAttribute(f, "id");
+		value = LocalLibrary::getAttribute(f, "id");
 		ret = createAndGetId(pmtView, value);
 		if (ret < 0) {
 			delete pmtView;
@@ -583,7 +765,7 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 		} else {
 			pmtView->setPcrPeriod(60000);
 		}
-		value = getAttribute(f, "name");
+		value = LocalLibrary::getAttribute(f, "name");
 		if (value.size() > 20) {
 			cout << "pmt: 'name' value is too long." << endl;
 			return -12;
@@ -603,7 +785,7 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 		} else {
 			pmtView->setServiceName("Unnamed service");
 		}
-		value = getAttribute(f, "servicetype");
+		value = LocalLibrary::getAttribute(f, "servicetype");
 		if (value.size()) {
 			if (value == "tv") {
 				pmtView->setServiceType(SRV_TYPE_TV);
@@ -637,7 +819,7 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 				}
 			}
 		}
-		value = getAttribute(f, "layer");
+		value = LocalLibrary::getAttribute(f, "layer");
 		if (value.size()) {
 			num = toLayer(value);
 			if (num != 0xFF) {
@@ -649,7 +831,7 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 				return -6;
 			}
 		}
-		value = getAttribute(f, "eitid");
+		value = LocalLibrary::getAttribute(f, "eitid");
 		if (value.size()) {
 			num = getId(value);
 			if (num == -1) {
@@ -669,7 +851,7 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 			int esPid;
 			g = o->ToElement();
 			if (strcmp(o->Value(), "es") == 0) {
-				value = getAttribute(g, "refid");
+				value = LocalLibrary::getAttribute(g, "refid");
 				proj = findProject(getId(value));
 				if (!proj) {
 					cout << "pmt: attribute 'refid' not found ("
@@ -694,7 +876,7 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 						break;
 					}
 				}
-				value = getAttribute(g, "layer");
+				value = LocalLibrary::getAttribute(g, "layer");
 				if (value.size()) {
 					num = toLayer(value);
 					if (num != 0xFF) {
@@ -723,7 +905,7 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 						pmtView->addEsDescriptor(esPid, aac);
 					}
 					if (strcmp(p->Value(), "iso639language") == 0) {
-						value = getAttribute(h, "language");
+						value = LocalLibrary::getAttribute(h, "language");
 						if (value.size() != 3) {
 							cout << "pmt: attribute 'language' not found or invalid." << endl;
 							return -4;
@@ -753,7 +935,7 @@ int XMLProject::processInputs(XMLElement *top) {
 	for (n = top->FirstChild(); n; n = n->NextSibling()) {
 		e = n->ToElement();
 		if (strcmp(n->Value(), "inputs") == 0) {
-			for (parseNum = 0; parseNum < 6; parseNum++) {
+			for (parseNum = 0; parseNum < 7; parseNum++) {
 				for (m = e->FirstChild(); m; m = m->NextSibling()) {
 					f = m->ToElement();
 					switch (parseNum) {
@@ -770,9 +952,12 @@ int XMLProject::processInputs(XMLElement *top) {
 						ret = parseAIT(m, f);
 						break;
 					case 4:
-						ret = parseEIT(m, f);
+						ret = parseStreamEvent(m, f);
 						break;
 					case 5:
+						ret = parseEIT(m, f);
+						break;
+					case 6:
 						ret = parsePMT(m, f);
 						break;
 					}
@@ -807,19 +992,19 @@ int XMLProject::processOutput(XMLElement *top) {
 					pTot = (PTot*) proj;
 				}
 			}
-			value1 = getAttribute(e, "loop");
+			value1 = LocalLibrary::getAttribute(e, "loop");
 			if (value1 == "true") {
 				isLoop = true;
 			}
 			if (e->QueryAttribute("ttl", &num) == XML_NO_ERROR) {
 				ttl = num;
 			}
-			destination = getAttribute(e, "dest");
-			value1 = getAttribute(e, "usepipe");
+			destination = LocalLibrary::getAttribute(e, "dest");
+			value1 = LocalLibrary::getAttribute(e, "usepipe");
 			if (value1 == "true") {
 				isPipe = true;
 			}
-			externalApp = getAttribute(e, "externalapp");
+			externalApp = LocalLibrary::getAttribute(e, "externalapp");
 			if (externalApp.size()) {
 				unsigned found = externalApp.find_first_of("/\\");
 				if (found != 0) {
@@ -828,7 +1013,7 @@ int XMLProject::processOutput(XMLElement *top) {
 					externalApp = tmmPath + externalApp;
 				}
 			}
-			appParams = getAttribute(e, "appparams");
+			appParams = LocalLibrary::getAttribute(e, "appparams");
 			if (e->QueryAttribute("tsid", &num) == XML_NO_ERROR) {
 				tsid = num;
 			} else {
@@ -844,7 +1029,7 @@ int XMLProject::processOutput(XMLElement *top) {
 			} else {
 				tsBitrate = 18000000;
 			}
-			value1 = getAttribute(e, "name");
+			value1 = LocalLibrary::getAttribute(e, "name");
 			if (value1.size() > 20) {
 				cout << "output: 'name' value is too long." << endl;
 				return -12;
@@ -866,7 +1051,7 @@ int XMLProject::processOutput(XMLElement *top) {
 			} else {
 				originalNetworkId = tsid;
 			}
-			value1 = getAttribute(e, "tsname");
+			value1 = LocalLibrary::getAttribute(e, "tsname");
 			if (value1.size() > 20) {
 				cout << "output: 'tsname' value is too long." << endl;
 				return -12;
@@ -898,7 +1083,7 @@ int XMLProject::processOutput(XMLElement *top) {
 				virtualChannel = 1;
 			}
 			guardInterval = GUARD_INTERVAL_1_16;
-			value1 = getAttribute(e, "guardinterval");
+			value1 = LocalLibrary::getAttribute(e, "guardinterval");
 			if (value1.size()) {
 				if (value1 == "1/32") {
 					guardInterval = GUARD_INTERVAL_1_32;
@@ -915,7 +1100,7 @@ int XMLProject::processOutput(XMLElement *top) {
 				}
 			}
 			transmissionMode = TRANSMISSION_MODE_3;
-			value1 = getAttribute(e, "transmissionmode");
+			value1 = LocalLibrary::getAttribute(e, "transmissionmode");
 			if (value1.size()) {
 				if (value1 == "1") {
 					transmissionMode = TRANSMISSION_MODE_1;
@@ -931,7 +1116,7 @@ int XMLProject::processOutput(XMLElement *top) {
 					return -6;
 				}
 			}
-			value1 = getAttribute(e, "usesystime");
+			value1 = LocalLibrary::getAttribute(e, "usesystime");
 			if (value1.size()) {
 				if (!pTot) {
 					pTot = new PTot();
@@ -945,7 +1130,7 @@ int XMLProject::processOutput(XMLElement *top) {
 					pTot->setUseCurrentTime(false);
 				}
 			}
-			value1 = getAttribute(e, "time");
+			value1 = LocalLibrary::getAttribute(e, "time");
 			if (value1.size()) {
 				if (!pTot) {
 					pTot = new PTot();
@@ -955,7 +1140,7 @@ int XMLProject::processOutput(XMLElement *top) {
 				pTot->setTimeBegin(value1);
 				if (!systimeAttrib) pTot->setUseCurrentTime(false);
 			}
-			value1 = getAttribute(e, "daylightsavingtime");
+			value1 = LocalLibrary::getAttribute(e, "daylightsavingtime");
 			if (value1.size()) {
 				if (!pTot) {
 					pTot = new PTot();
@@ -968,7 +1153,7 @@ int XMLProject::processOutput(XMLElement *top) {
 					pTot->setDaylightSavingTime(false);
 				}
 			}
-			value1 = getAttribute(e, "countrycode");
+			value1 = LocalLibrary::getAttribute(e, "countrycode");
 			if (value1.size()) {
 				if (!pTot) {
 					pTot = new PTot();
@@ -998,7 +1183,7 @@ int XMLProject::processOutput(XMLElement *top) {
 				useTot = true;
 			}
 			if (useTot) {
-				value1 = getAttribute(e, "totlayer");
+				value1 = LocalLibrary::getAttribute(e, "totlayer");
 				if (value1.size()) {
 					num = toLayer(value1);
 					if (num != 0xFF) {
@@ -1012,7 +1197,7 @@ int XMLProject::processOutput(XMLElement *top) {
 				}
 			}
 			if (useNit) {
-				value1 = getAttribute(e, "nitlayer");
+				value1 = LocalLibrary::getAttribute(e, "nitlayer");
 				if (value1.size()) {
 					num = toLayer(value1);
 					if (num != 0xFF) {
@@ -1026,7 +1211,7 @@ int XMLProject::processOutput(XMLElement *top) {
 				}
 			}
 			if (useSdt) {
-				value1 = getAttribute(e, "sdtlayer");
+				value1 = LocalLibrary::getAttribute(e, "sdtlayer");
 				if (value1.size()) {
 					num = toLayer(value1);
 					if (num != 0xFF) {
@@ -1039,7 +1224,7 @@ int XMLProject::processOutput(XMLElement *top) {
 					}
 				}
 			}
-			value1 = getAttribute(e, "patlayer");
+			value1 = LocalLibrary::getAttribute(e, "patlayer");
 			if (value1.size()) {
 				num = toLayer(value1);
 				if (num != 0xFF) {
@@ -1094,8 +1279,8 @@ int XMLProject::processOutput(XMLElement *top) {
 							map<int, PMTView*>::iterator itPMTView;
 							PMTView* pPMTView;
 							int prior = -1;
-							value1 = getAttribute(g, "pmtid");
-							value2 = getAttribute(g, "previous");
+							value1 = LocalLibrary::getAttribute(g, "pmtid");
+							value2 = LocalLibrary::getAttribute(g, "previous");
 							if (value2.size()) {
 								if (getId(value2) != -1) {
 									prior = getId(value2);
@@ -1131,7 +1316,7 @@ int XMLProject::processOutput(XMLElement *top) {
 				MCCI* mcci = new MCCI();
 				ConfigurationInformation* ci = new ConfigurationInformation;
 				ci->partialReceptionFlag = true;
-				value1 = getAttribute(e, "partialreception");
+				value1 = LocalLibrary::getAttribute(e, "partialreception");
 				if (value1.size()) {
 					if (value1 == "true") {
 						ci->partialReceptionFlag = true;
@@ -1139,7 +1324,7 @@ int XMLProject::processOutput(XMLElement *top) {
 						ci->partialReceptionFlag = false;
 					}
 				}
-				value1 = getAttribute(e, "modulationlayera");
+				value1 = LocalLibrary::getAttribute(e, "modulationlayera");
 				if (value1.size()) {
 					tp = new TransmissionParameters;
 					if (value1 == "dqpsk") {
@@ -1159,7 +1344,7 @@ int XMLProject::processOutput(XMLElement *top) {
 						iip = NULL;
 						return -6;
 					}
-					value1 = getAttribute(e, "codingratelayera");
+					value1 = LocalLibrary::getAttribute(e, "codingratelayera");
 					if (value1.size()) {
 						if (value1 == "7/8") {
 							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_7_8;
@@ -1198,7 +1383,7 @@ int XMLProject::processOutput(XMLElement *top) {
 					ci->tpLayerA = NULL;
 				}
 
-				value1 = getAttribute(e, "modulationlayerb");
+				value1 = LocalLibrary::getAttribute(e, "modulationlayerb");
 				if (value1.size()) {
 					tp = new TransmissionParameters;
 					if (value1 == "dqpsk") {
@@ -1218,7 +1403,7 @@ int XMLProject::processOutput(XMLElement *top) {
 						iip = NULL;
 						return -6;
 					}
-					value1 = getAttribute(e, "codingratelayerb");
+					value1 = LocalLibrary::getAttribute(e, "codingratelayerb");
 					if (value1.size()) {
 						if (value1 == "7/8") {
 							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_7_8;
@@ -1257,7 +1442,7 @@ int XMLProject::processOutput(XMLElement *top) {
 					ci->tpLayerB = NULL;
 				}
 
-				value1 = getAttribute(e, "modulationlayerc");
+				value1 = LocalLibrary::getAttribute(e, "modulationlayerc");
 				if (value1.size()) {
 					tp = new TransmissionParameters;
 					if (value1 == "dqpsk") {
@@ -1277,7 +1462,7 @@ int XMLProject::processOutput(XMLElement *top) {
 						iip = NULL;
 						return -6;
 					}
-					value1 = getAttribute(e, "codingratelayerc");
+					value1 = LocalLibrary::getAttribute(e, "codingratelayerc");
 					if (value1.size()) {
 						if (value1 == "7/8") {
 							tp->codingRateOfInnerCode = MCCI_CONVOLUTIONAL_CODING_RATE_7_8;
@@ -1352,8 +1537,8 @@ int XMLProject::readHead(XMLElement *top) {
 	for (n = top->FirstChild(); n; n = n->NextSibling()) {
 		e = n->ToElement();
 		if (strcmp(n->Value(), "meta") == 0) {
-			value1 = getAttribute(e, "name");
-			value2 = getAttribute(e, "content");
+			value1 = LocalLibrary::getAttribute(e, "name");
+			value2 = LocalLibrary::getAttribute(e, "content");
 			MetaData* md = new MetaData;
 			md->name = value1;
 			md->content = value2;
@@ -1395,7 +1580,7 @@ int XMLProject::readFile() {
 
 	e = xmldoc->FirstChildElement("tmm");
 	if (e) {
-		value = getAttribute(e, "projectname");
+		value = LocalLibrary::getAttribute(e, "projectname");
 		if (!value.empty()) {
 			projectName = value;
 			cout << projectName << endl;

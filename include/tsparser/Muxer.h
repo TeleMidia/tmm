@@ -15,7 +15,7 @@
 #include "Stream.h"
 #include "socket/MulticastServer.h"
 #include "Pipe.h"
-#include "ExecApp.h"
+#include "LocalLibrary.h"
 
 #include <iostream>
 #include <map>

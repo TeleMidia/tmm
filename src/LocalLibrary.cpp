@@ -1,11 +1,11 @@
 /*
- * ExecApp.cpp
+ * LocalLibrary.cpp
  *
- *  Created on: 22/11/2013
+ *  Created on: 04/02/2014
  *      Author: Felippe Nagato
  */
 
-#include "ExecApp.h"
+#include "LocalLibrary.h"
 #include <iostream>
 
 using namespace std;
@@ -15,15 +15,15 @@ namespace pucrio {
 namespace telemidia {
 namespace tool {
 
-ExecApp::ExecApp() {
+LocalLibrary::LocalLibrary() {
 
 }
 
-ExecApp::~ExecApp() {
+LocalLibrary::~LocalLibrary() {
 
 }
 
-bool ExecApp::execute(string filename, string parameters, unsigned int* pid) {
+bool LocalLibrary::executeApp(string filename, string parameters, unsigned int* pid) {
 	*pid = 0;
 #ifdef _WIN32
 	PROCESS_INFORMATION ProcessInfo; //This is what we get as an [out] parameter
@@ -56,7 +56,7 @@ bool ExecApp::execute(string filename, string parameters, unsigned int* pid) {
 #endif
 }
 
-bool ExecApp::killApp(unsigned int pid) {
+bool LocalLibrary::killApp(unsigned int pid) {
 #ifdef _WIN32
 	DWORD dwDesiredAccess = PROCESS_TERMINATE;
 	BOOL bInheritHandle  = FALSE;
@@ -71,9 +71,41 @@ bool ExecApp::killApp(unsigned int pid) {
 #endif
 }
 
-}
-}
-}
+string LocalLibrary::getAttribute(XMLElement* e, string name) {
+	string str = "";
+	if (e) {
+		const char *s = e->Attribute(name.c_str());
+		if (s) str.assign(s);
+	}
+	return str;
 }
 
+string LocalLibrary::getElementText(XMLElement* e) {
+	string str;
+	XMLText* text = e->FirstChild()->ToText();
+	str.assign(text->Value());
+	return str;
+}
 
+string LocalLibrary::extractBaseId(string filename) {
+	XMLDocument xmldoc;
+	enum XMLError err;
+	XMLElement *e;
+	string value = "";
+
+	if (filename.empty()) return "";
+	err = xmldoc.LoadFile(filename.c_str());
+	if (err != XML_SUCCESS) {
+		return "";
+	}
+
+	e = xmldoc.FirstChildElement("ncl");
+	if (e) value = getAttribute(e, "id");
+
+	return value;
+}
+
+}
+}
+}
+}

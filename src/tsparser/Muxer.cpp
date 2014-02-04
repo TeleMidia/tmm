@@ -164,7 +164,7 @@ int Muxer::open() {
 			pPipe = new Pipe(destination);
 			if (externalApp.size()) {
 				cout << "Starting external application...";
-				if (ExecApp::execute(externalApp, appParams, &appPid)) {
+				if (LocalLibrary::executeApp(externalApp, appParams, &appPid)) {
 					cout << " done." << endl;
 				} else {
 					cout << " fail." << endl;
@@ -204,7 +204,7 @@ int Muxer::close() {
 			pFile = NULL;
 		} else {
 			if (pPipe) {
-				if (!ExecApp::killApp(appPid)) {
+				if (!LocalLibrary::killApp(appPid)) {
 					cout << "Muxer::close - External application could ";
 					cout << "not be closed!" << endl;
 				}

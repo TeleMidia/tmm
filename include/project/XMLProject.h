@@ -11,6 +11,7 @@
 #include "project/Project.h"
 #include "project/tinyxml2.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <vector>
 
@@ -37,8 +38,6 @@ class XMLProject : public Project {
 		XMLDocument* xmldoc;
 
 		void init();
-		string getAttribute(XMLElement* e, string name);
-		string getElementText(XMLElement* e);
 
 	protected:
 		vector<MetaData*> metaDataList;
@@ -52,6 +51,7 @@ class XMLProject : public Project {
 
 		int parseAV(XMLNode* m, XMLElement* f);
 		int parseNPT(XMLNode* m,XMLElement* f);
+		int parseStreamEvent(XMLNode* m,XMLElement* f);
 		int parseCarousel(XMLNode* m, XMLElement* f);
 		int parseAIT(XMLNode* m, XMLElement* f);
 		int parseEIT(XMLNode* m, XMLElement* f);

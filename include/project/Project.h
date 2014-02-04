@@ -10,6 +10,7 @@
 
 #include "inputdata/InputData.h"
 #include "npt/NPTProject.h"
+#include "streamevent/PStreamEvent.h"
 #include "carousel/PCarousel.h"
 #include "si/PPat.h"
 #include "si/PAit.h"
@@ -22,6 +23,7 @@
 #include "Stc.h"
 #include "../tsparser/ISDBTInformation.h"
 #include "../tsparser/IIP.h"
+#include "LocalLibrary.h"
 
 #include <inttypes.h>
 #include <iostream>
@@ -83,6 +85,8 @@ class Project {
 		string tmmPath;
 
 		bool changeToProjectDir();
+		bool mountCarousel(PCarousel* pcar);
+		bool createStreamEvent(PStreamEvent* pse);
 
 	public:
 		Project();
@@ -93,6 +97,7 @@ class Project {
 		string getProjectName();
 		string getProjectDescription();
 		bool mountCarousels();
+		bool createStreamEvents();
 		int configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 					  string baseDir, string initClass, unsigned int orgId,
 					  unsigned short appId, unsigned int appcode);

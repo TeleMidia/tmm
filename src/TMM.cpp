@@ -92,6 +92,9 @@ bool TMM::loadProject() {
 	//mount carousels
 	project->mountCarousels();
 
+	//create streamevents
+	project->createStreamEvents();
+
 	return true;
 }
 
@@ -116,6 +119,7 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 	PNit* nitProj;
 	PTot* totProj;
 	PEit* eitProj;
+	PStreamEvent* seProj;
 	double nextSendOffset, timeOffset, bufOffset, preponeDiff = 0.0;
 	int64_t currStc;
 	time_t ctime;
@@ -172,6 +176,16 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 			muxer->getCurrentStc() + Stc::secondToStc(nptProj->getTransmissionDelay()),
 			true);
 		rawstream->attach(nptProj);
+		return rawstream;
+	case PT_STREAMEVENT:
+		seProj = (PStreamEvent*) proj;
+		seProj->setFirstReference(muxer->getCurrentStc() +
+				Stc::secondToStc(timeOffset + seProj->getFirstReferenceOffset()));
+		rawstream = prepareNewRawStream(proj,
+			Stc::secondToStc(((double)seProj->getPeriod())/1000),
+			muxer->getCurrentStc() + Stc::secondToStc(seProj->getTransmissionDelay()),
+			true);
+		rawstream->attach(seProj);
 		return rawstream;
 	case PT_CAROUSEL:
 		carProj = (PCarousel*) proj;
@@ -780,6 +794,9 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 			st = indata->getStreamType();
 			break;
 		case PT_NPT:
+			st = (*pmt)->STREAM_TYPE_DSMCC_TYPE_C;
+			break;
+		case PT_STREAMEVENT:
 			st = (*pmt)->STREAM_TYPE_DSMCC_TYPE_C;
 			break;
 		case PT_CAROUSEL:

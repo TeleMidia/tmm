@@ -79,11 +79,34 @@ unsigned char Project::getPacketSize() {
 	return packetSize;
 }
 
-bool Project::mountCarousels() {
+bool Project::mountCarousel(PCarousel* pcar) {
 	char number[11];
 	string path, tempPath;
+
+	pcar->setSectionEncapsulationMode(true);
+	pcar->setBlockSize(4066);
+	snprintf(number, 11, "%d", pcar->getServiceDomain());
+
+	path = "." + getUriSlash() + "carousel" + getUriSlash();
+	makeDir(path.c_str(), 0777);
+	path.insert(path.size(), number);
+	makeDir(path.c_str(), 0777);
+	tempPath.assign(path);
+	path.insert(path.size(), getUriSlash() + "output" + getUriSlash());
+	makeDir(path.c_str(), 0777);
+	tempPath.insert(tempPath.size(), getUriSlash() + "temp" + getUriSlash());
+	makeDir(tempPath.c_str(), 0);
+	path.insert(path.size(), number);
+	path.insert(path.size(), ".sec");
+	pcar->setOutputFile(path);
+	pcar->setTempFolder(tempPath);
+	pcar->createCarousel(path, tempPath);
+
+	return true;
+}
+
+bool Project::mountCarousels() {
 	map<int, ProjectInfo*>::iterator itProj;
-	PCarousel* pcar;
 
 	if (projectList) {
 		itProj = projectList->begin();
@@ -92,25 +115,103 @@ bool Project::mountCarousels() {
 				++itProj;
 				continue;
 			}
-			pcar = (PCarousel*) itProj->second;
-			pcar->setSectionEncapsulationMode(true);
-			pcar->setBlockSize(4066);
-			snprintf(number, 11, "%d", pcar->getServiceDomain());
+			mountCarousel((PCarousel*) itProj->second);
+			++itProj;
+		}
+	}
+	return true;
+}
 
-			path = "." + getUriSlash() + "carousel" + getUriSlash();
-			makeDir(path.c_str(), 0777);
-			path.insert(path.size(), number);
-			makeDir(path.c_str(), 0777);
-			tempPath.assign(path);
-			path.insert(path.size(), getUriSlash() + "output" + getUriSlash());
-			makeDir(path.c_str(), 0777);
-			tempPath.insert(tempPath.size(), getUriSlash() + "temp" + getUriSlash());
-			makeDir(tempPath.c_str(), 0);
-			path.insert(path.size(), number);
-			path.insert(path.size(), ".sec");
-			pcar->setOutputFile(path);
-			pcar->setTempFolder(tempPath);
-			pcar->createCarousel(path, tempPath);
+bool Project::createStreamEvent(PStreamEvent* pse) {
+	char privateStr[252];
+	StreamEvent* se;
+	vector<StreamEvent*>::iterator itSe;
+	vector<StreamEvent*>* sel;
+	map<string, InternalIor*>* fi;
+	map<string, InternalIor*>::iterator it;
+	InternalIor* iior = NULL;
+	int ret;
+
+	if (!pse) {
+		return false;
+	}
+
+	if (pse->getCarouselProj() && pse->getEntryPoint().size()) {
+		fi = ((PCarousel*)pse->getCarouselProj())->getFilesIor();
+		it = fi->find(pse->getEntryPoint());
+		if (it == fi->end()) {
+			string fn1, fn2;
+			unsigned int found;
+			it = fi->begin();
+			while (it != fi->end()) {
+				fn1.assign(it->first);
+				found = fn1.find_last_of("/\\");
+				if (found != std::string::npos) {
+					fn1 = fn1.substr(found + 1);
+					found = pse->getEntryPoint().find_last_of("/\\");
+					if (found != std::string::npos) {
+						fn2 = pse->getEntryPoint().substr(found + 1);
+						if (fn2 == fn1) {
+							if (!pse->getDocumentId().size())
+								pse->setDocumentId(LocalLibrary::extractBaseId(it->first));
+							cout << "Project::createStreamEvent - Selected entrypoint: "
+								 << it->first << endl;
+							break;
+						}
+					}
+				}
+				++it;
+			}
+		}
+		if (it != fi->end()) {
+			iior = it->second;
+		} else {
+			cout << "Project::createStreamEvent - The " << pse->getEntryPoint()
+				 << " file doesn't exists." << endl;
+			return -8;
+		}
+	}
+	if (!pse->getBaseId().size()) {
+		pse->setBaseId(tsid);
+	}
+	sel = pse->getStreamEventList();
+	for (itSe = sel->begin(); itSe != sel->end(); ++itSe) {
+		se = *itSe;
+		if (!se->getPrivateDataPayloadLength()) {
+			ret = 0;
+			switch (se->getCommandTag()) {
+			case SE_ADD_DOCUMENT:
+				ret = sprintf(privateStr,
+						"%s,x-sbtvd://%s,%d,%d,%d",
+						pse->getBaseId().c_str(), pse->getEntryPoint().c_str(),
+						iior->carousel, iior->moduleId,
+						iior->key);
+				break;
+			case SE_START_DOCUMENT:
+				ret = sprintf(privateStr,
+						"%s,%s,,,,",
+						pse->getBaseId().c_str(),
+						pse->getDocumentId().c_str());
+				break;
+			}
+			if (ret > 0) se->setPrivateDataPayload(privateStr, ret);
+		}
+	}
+
+	return true;
+}
+
+bool Project::createStreamEvents() {
+	map<int, ProjectInfo*>::iterator itProj;
+
+	if (projectList) {
+		itProj = projectList->begin();
+		while (itProj != projectList->end()) {
+			if (itProj->second->getProjectType() != PT_STREAMEVENT) {
+				++itProj;
+				continue;
+			}
+			createStreamEvent((PStreamEvent*) itProj->second);
 			++itProj;
 		}
 	}
