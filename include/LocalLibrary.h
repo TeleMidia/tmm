@@ -11,6 +11,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
 #endif

@@ -88,7 +88,7 @@ vector<StreamEvent*>* PStreamEvent::getStreamEventList() {
 
 void PStreamEvent::setBaseId(unsigned short bi) {
 	char buffer[6];
-	itoa(bi, buffer, 10);
+	sprintf(buffer, "%d", bi);
 	baseId.assign(buffer);
 }
 

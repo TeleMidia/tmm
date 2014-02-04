@@ -45,10 +45,12 @@ bool LocalLibrary::executeApp(string filename, string parameters, unsigned int* 
 #else
 	pid_t mpid;
 	mpid = fork();
-	if(fork == 0){
-	    execvp(filename.c_str());
-	    *pid = (unsigned int) mpid;
-	    return true;
+	if(fork == 0) {
+		char* argv[5];
+		argv[0] = NULL;
+		execvp(filename.c_str(), argv);
+		*pid = (unsigned int) mpid;
+		return true;
 	}
 	else {
 		return false;

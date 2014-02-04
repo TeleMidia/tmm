@@ -11,7 +11,13 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
-
+extern "C" {
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+}
+#include <cstdio>
 #endif
 
 #include <iostream>
