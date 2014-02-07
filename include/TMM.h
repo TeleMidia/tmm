@@ -60,7 +60,7 @@ class TMM {
 		RawStream* prepareNewRawStream(ProjectInfo* proj, int64_t freq,
 										int64_t nextSend, bool destroyBlocks);
 		Stream *createStream(ProjectInfo* proj);
-		bool createStreamList(vector<pmtViewInfo*>* currentTimeline,
+		bool switchStreamList(vector<pmtViewInfo*>* currentTimeline,
 							  vector<pmtViewInfo*>* newTimeline);
 		bool releaseStreamFromList(ProjectInfo* proj);
 

@@ -31,6 +31,9 @@ namespace tool {
 class PStreamEvent : public ProjectInfo, public Subscriber {
 
 	private:
+		unsigned int sampleCount;
+
+	protected:
 		int64_t firstReference;
 		double firstReferenceOffset;
 		unsigned int period, sampleLimit;
@@ -39,8 +42,6 @@ class PStreamEvent : public ProjectInfo, public Subscriber {
 		string entryPoint;
 		string baseId;
 		string documentId;
-
-	protected:
 
 	public:
 		PStreamEvent();
@@ -66,6 +67,7 @@ class PStreamEvent : public ProjectInfo, public Subscriber {
 		void setDocumentId(string di);
 		string getDocumentId();
 		vector<StreamEvent*>* getStreamEventList();
+		void resetSampleCount();
 
 };
 

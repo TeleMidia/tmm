@@ -17,10 +17,19 @@ Stream::Stream() {
 	nextSend = SYSTEM_CLOCK_FREQUENCY;
 	period = SYSTEM_CLOCK_FREQUENCY;
 	preponeTicks = 0;
+	projectId = -1;
 }
 
 Stream::~Stream() {
 	releaseBufferList();
+}
+
+void Stream::setProjectId(int id) {
+	projectId = id;
+}
+
+int Stream::getProjectId() {
+	return projectId;
 }
 
 void Stream::setCurrStc(int64_t stc) {

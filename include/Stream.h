@@ -34,6 +34,8 @@ class Stream {
 	private:
 
 	protected:
+		int projectId;
+
 		vector<Buffer*> bufferList;
 		unsigned int maxBufferLength;
 
@@ -57,6 +59,9 @@ class Stream {
 
 		Stream();
 		virtual ~Stream();
+
+		void setProjectId(int id);
+		int getProjectId();
 
 		virtual bool getBuffer(Buffer** buffer);
 		virtual unsigned int getBufferSize();

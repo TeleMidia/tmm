@@ -44,8 +44,8 @@ class PMTView : public ProjectInfo {
 		string serviceName;
 		short int serviceType;
 		ProjectInfo* eitProj;
-		map<unsigned short, ProjectInfo*> projectInfoList; //(pid, ProjectInfo)
-		map<unsigned short, Stream*> streamList; //(pid, Stream)
+		map<unsigned short, vector<ProjectInfo*>*> projectInfoList; //(pid, ProjectInfo)
+		map<unsigned short, vector<Stream*>*> streamList; //(pid, Stream)
 		map<unsigned short, unsigned char> componentTagList; //(pid, ctag)
 		map<unsigned short, unsigned char> desiredComponentTagList; //(pid, ctag)
 		map<unsigned short, unsigned char> layerList; //(pid, layer)
@@ -84,8 +84,8 @@ class PMTView : public ProjectInfo {
 		void cleanLayerList();
 		bool deleteAllStreams();
 		bool releaseEsDescriptorList();
-		map<unsigned short, ProjectInfo*>* getProjectInfoList();
-		map<unsigned short, Stream*>* getStreamList();
+		map<unsigned short, vector<ProjectInfo*>*>* getProjectInfoList();
+		map<unsigned short, vector<Stream*>*>* getStreamList();
 		map<unsigned short, unsigned char>* getComponentTagList();
 		map<unsigned short, unsigned char>* getLayerList();
 		map<unsigned short, vector<MpegDescriptor*>* >* getEsDescriptorList();
@@ -93,6 +93,7 @@ class PMTView : public ProjectInfo {
 		bool fulfillComponentTagList(PMTView* previousPmtView);
 		bool isDesiredComponentTagInUse(unsigned char ctag);
 		bool isComponentTagInUse(unsigned char ctag);
+		void markAllProjectsReuse(bool use);
 
 		static bool compareComponentTagList(map<unsigned short, unsigned char>* oldList,
 				map<unsigned short, unsigned char>* newList);

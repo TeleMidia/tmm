@@ -47,6 +47,7 @@ class ProjectInfo {
 		double transmissionDelay;
 		unsigned char layer;
 		bool layerConfigured;
+		bool reuse;
 
 	public:
 		ProjectInfo();
@@ -64,6 +65,8 @@ class ProjectInfo {
 		unsigned char getLayer();
 		void setLayerConfigured(bool set);
 		bool getLayerConfigured();
+		void setReuse(bool use);
+		bool getReuse();
 
 };
 

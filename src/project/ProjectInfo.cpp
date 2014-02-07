@@ -18,6 +18,7 @@ ProjectInfo::ProjectInfo() {
 	transmissionDelay = 0.0;
 	layer = 0x02; //HIERARCHY_B
 	layerConfigured = false;
+	reuse = false;
 }
 
 ProjectInfo::~ProjectInfo() {
@@ -70,6 +71,14 @@ void ProjectInfo::setLayerConfigured(bool set) {
 
 bool ProjectInfo::getLayerConfigured() {
 	return layerConfigured;
+}
+
+void ProjectInfo::setReuse(bool use) {
+	reuse = use;
+}
+
+bool ProjectInfo::getReuse() {
+	return reuse;
 }
 
 }

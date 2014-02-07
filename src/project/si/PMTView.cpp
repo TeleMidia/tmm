@@ -99,12 +99,42 @@ void PMTView::setEitProj(ProjectInfo* proj) {
 }
 
 bool PMTView::addProjectInfo(unsigned short pid, ProjectInfo* projInfo) {
-	projectInfoList[pid] = projInfo;
+	vector<ProjectInfo*>* prjList;
+	vector<ProjectInfo*>::iterator itPrj;
+	map<unsigned short, vector<ProjectInfo*>*>::iterator it = projectInfoList.begin();
+
+	if (!projectInfoList.count(pid)) {
+		prjList = new vector<ProjectInfo*>();
+		projectInfoList.insert(
+				it, std::pair<unsigned short, vector<ProjectInfo*>*>(pid, prjList));
+	} else {
+		prjList = projectInfoList[pid];
+	}
+	for (itPrj = prjList->begin(); itPrj != prjList->end(); ++itPrj) {
+		if (*itPrj == projInfo) return false;
+	}
+	prjList->push_back(projInfo);
+
 	return true;
 }
 
 bool PMTView::addStream(unsigned short pid, Stream* stream) {
-	streamList[pid] = stream;
+	vector<Stream*>* strList;
+	vector<Stream*>::iterator itStr;
+	map<unsigned short, vector<Stream*>*>::iterator it = streamList.begin();
+
+	if (!streamList.count(pid)) {
+		strList = new vector<Stream*>();
+		streamList.insert(
+				it, std::pair<unsigned short, vector<Stream*>*>(pid, strList));
+	} else {
+		strList = streamList[pid];
+	}
+	for (itStr = strList->begin(); itStr != strList->end(); ++itStr) {
+		if (*itStr == stream) return false;
+	}
+	strList->push_back(stream);
+
 	return true;
 }
 
@@ -157,10 +187,19 @@ void PMTView::cleanLayerList() {
 }
 
 bool PMTView::deleteAllStreams() {
-	for (unsigned int i = 0; i < streamList.size(); i++) {
-		if (streamList[i]) delete streamList[i];
+	map<unsigned short, vector<Stream*>*>::iterator it;
+	vector<Stream*>::iterator itStr;
+
+	for (it = streamList.begin(); it != streamList.end(); ++it) {
+		itStr = it->second->begin();
+		while (itStr != it->second->end()) {
+			delete (*itStr);
+			++itStr;
+		}
+		delete (it->second);
 	}
 	streamList.clear();
+
 	return true;
 }
 
@@ -183,11 +222,11 @@ bool PMTView::releaseEsDescriptorList() {
 	return true;
 }
 
-map<unsigned short, ProjectInfo*>* PMTView::getProjectInfoList() {
+map<unsigned short, vector<ProjectInfo*>*>* PMTView::getProjectInfoList() {
 	return &projectInfoList;
 }
 
-map<unsigned short, Stream*>* PMTView::getStreamList() {
+map<unsigned short, vector<Stream*>*>* PMTView::getStreamList() {
 	return &streamList;
 }
 
@@ -196,12 +235,23 @@ map<unsigned short, unsigned char>* PMTView::getComponentTagList() {
 }
 
 int PMTView::getProjectPid(ProjectInfo* proj) {
-	map<unsigned short, ProjectInfo*>::iterator it;
+	map<unsigned short, vector<ProjectInfo*>*>::iterator it;
+	vector<ProjectInfo*>::iterator itPrj;
+
 	it = projectInfoList.begin();
 	while(it != projectInfoList.end()) {
-		if (it->second == proj) return it->first;
+		if (it->second) {
+			itPrj = it->second->begin();
+			while(itPrj != it->second->end()) {
+				if (proj == (*itPrj)) {
+					return it->first;
+				}
+				++itPrj;
+			}
+		}
 		++it;
 	}
+
 	return -1;
 }
 
@@ -241,16 +291,20 @@ bool PMTView::isComponentTagInUse(unsigned char ctag) {
 
 bool PMTView::fulfillComponentTagList(PMTView* previousPmtView) {
 	map<unsigned short, unsigned char>* previousComponentTagList;
-	map<unsigned short, ProjectInfo*>* previousProjectList;
+	map<unsigned short, vector<ProjectInfo*>*>* previousProjectList;
 	short newVideoTag;
 	short newAudioTag;
 	short newCarouselTag;
-	map<unsigned short, ProjectInfo*>::iterator itProj;
-	map<unsigned short, ProjectInfo*>::iterator itPreviousProj;
+	map<unsigned short, vector<ProjectInfo*>*>::iterator itProj;
+	map<unsigned short, vector<ProjectInfo*>*>::iterator itPreviousProj;
+	vector<ProjectInfo*>* previousPrjListV;
+	vector<ProjectInfo*>::iterator itPrjV;
+	vector<ProjectInfo*>::iterator itPreviousPrjV;
 	map<unsigned short, unsigned char>::iterator itTag;
 	map<unsigned short, unsigned char>::iterator itPreviousTag;
 	map<unsigned short, unsigned char>::iterator itFound;
 	InputData* indata;
+	bool caseFound;
 
 	//try to add desired tags based on the current project
 	componentTagList.clear();
@@ -287,14 +341,23 @@ bool PMTView::fulfillComponentTagList(PMTView* previousPmtView) {
 			itProj = projectInfoList.find(itPreviousTag->first);
 			if (itProj != projectInfoList.end()) {
 				//PID exists, so check if it's the same type
-				if (itProj->second->getProjectType() ==
-						previousProjectList->find(
-								itPreviousTag->first)->second->getProjectType()) {
-					//It's the same. Check if it's not already in use
-					if (!isComponentTagInUse(itPreviousTag->second)) {
-						//No, so create/update it.
-						componentTagList[itPreviousTag->first] = itPreviousTag->second;
-					} //else this tag cannot be reused from the previous PMTView.
+				itPrjV = itProj->second->begin();
+				while (itPrjV != itProj->second->end()) {
+					previousPrjListV = previousProjectList->find(
+							itPreviousTag->first)->second;
+					itPreviousPrjV = previousPrjListV->begin();
+					while (itPreviousPrjV != previousPrjListV->end()) {
+						if ((*itPreviousPrjV)->getProjectType() ==
+								(*itPrjV)->getProjectType()) {
+							//It's the same. Check if it's not already in use
+							if (!isComponentTagInUse(itPreviousTag->second)) {
+								//No, so create/update it.
+								componentTagList[itPreviousTag->first] = itPreviousTag->second;
+							} //else this tag cannot be reused from the previous PMTView.
+						}
+						++itPreviousPrjV;
+					}
+					++itPrjV;
 				}
 			}
 			++itPreviousTag;
@@ -307,33 +370,58 @@ bool PMTView::fulfillComponentTagList(PMTView* previousPmtView) {
 		itFound = componentTagList.find(itProj->first);
 		if (itFound == componentTagList.end()) {
 			//create a new one
-			switch (itProj->second->getProjectType()) {
-			case PT_INPUTDATA:
-				indata = (InputData*) itProj->second;
-				if (TSInfo::isVideoStreamType(indata->getStreamType())) {
-					while (isComponentTagInUse(newVideoTag)) {
-						newVideoTag++;
+			caseFound = false;
+			itPrjV = itProj->second->begin();
+			while (itPrjV != itProj->second->end()) {
+				switch ((*itPrjV)->getProjectType()) {
+				case PT_INPUTDATA:
+					indata = (InputData*) itProj->second;
+					if (TSInfo::isVideoStreamType(indata->getStreamType())) {
+						while (isComponentTagInUse(newVideoTag)) {
+							newVideoTag++;
+						}
+						componentTagList[itProj->first] = newVideoTag++;
+					} else if (TSInfo::isAudioStreamType(indata->getStreamType())) {
+						while (isComponentTagInUse(newAudioTag)) {
+							newAudioTag++;
+						}
+						componentTagList[itProj->first] = newAudioTag++;
 					}
-					componentTagList[itProj->first] = newVideoTag++;
-				} else if (TSInfo::isAudioStreamType(indata->getStreamType())) {
-					while (isComponentTagInUse(newAudioTag)) {
-						newAudioTag++;
+					caseFound = true;
+					break;
+				case PT_CAROUSEL:
+					while (isComponentTagInUse(newCarouselTag)) {
+						newCarouselTag++;
 					}
-					componentTagList[itProj->first] = newAudioTag++;
+					componentTagList[itProj->first] = newCarouselTag++;
+					caseFound = true;
+					break;
 				}
-				break;
-			case PT_CAROUSEL:
-				while (isComponentTagInUse(newCarouselTag)) {
-					newCarouselTag++;
-				}
-				componentTagList[itProj->first] = newCarouselTag++;
-				break;
+				if (caseFound) break;
+				++itPrjV;
 			}
 		}
 		++itProj;
 	}
 
 	return true;
+}
+
+void PMTView::markAllProjectsReuse(bool use) {
+	map<unsigned short, vector<ProjectInfo*>*>::iterator it;
+	vector<ProjectInfo*>::iterator itPrj;
+
+	it = projectInfoList.begin();
+	while(it != projectInfoList.end()) {
+		if (it->second) {
+			itPrj = it->second->begin();
+			while(itPrj != it->second->end()) {
+				(*itPrj)->setReuse(use);
+				++itPrj;
+			}
+		}
+		++it;
+	}
 }
 
 bool PMTView::compareComponentTagList(map<unsigned short, unsigned char>* oldList,

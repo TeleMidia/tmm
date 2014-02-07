@@ -21,6 +21,7 @@ PStreamEvent::PStreamEvent() {
 	carouselProj = NULL;
 	entryPoint.clear();
 	baseId.clear();
+	sampleCount = 0;
 }
 
 PStreamEvent::~PStreamEvent() {
@@ -108,6 +109,10 @@ string PStreamEvent::getDocumentId() {
 	return documentId;
 }
 
+void PStreamEvent::resetSampleCount() {
+	sampleCount = 0;
+}
+
 int PStreamEvent::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 	vector<StreamEvent*>::iterator it;
 	DSMCCSection* dsmccSection = NULL;
@@ -116,17 +121,23 @@ int PStreamEvent::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 
 	if (streamEventList.size()) {
 		dsmccSection = new DSMCCSection();
-		for (it = streamEventList.begin(); it != streamEventList.end(); ++it) {
-			StreamEvent* se = new StreamEvent();
-			se->setCommandTag((*it)->getCommandTag());
-			se->setEventId((*it)->getEventId());
-			se->setEventNPT((*it)->getEventNPT());
-			se->setFinalFlag((*it)->getFinalFlag());
-			se->setSequenceNumber((*it)->getSequenceNumber());
-			len = (*it)->getPrivateDataPayload(&stream);
-			se->setPrivateDataPayload(stream, len);
 
-			dsmccSection->addDsmccDescriptor(se);
+		if ((sampleLimit == 0) || (sampleCount < sampleLimit)) {
+
+			if (sampleLimit) sampleCount++;
+
+			for (it = streamEventList.begin(); it != streamEventList.end(); ++it) {
+				StreamEvent* se = new StreamEvent();
+				se->setCommandTag((*it)->getCommandTag());
+				se->setEventId((*it)->getEventId());
+				se->setEventNPT((*it)->getEventNPT());
+				se->setFinalFlag((*it)->getFinalFlag());
+				se->setSequenceNumber((*it)->getSequenceNumber());
+				len = (*it)->getPrivateDataPayload(&stream);
+				se->setPrivateDataPayload(stream, len);
+
+				dsmccSection->addDsmccDescriptor(se);
+			}
 		}
 
 		dsmccSection->setTableId(0x3D);

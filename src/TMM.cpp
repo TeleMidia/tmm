@@ -101,6 +101,7 @@ bool TMM::loadProject() {
 RawStream* TMM::prepareNewRawStream(ProjectInfo* proj, int64_t freq,
 									int64_t nextSend, bool destroyBlocks) {
 	RawStream* rawstream = new RawStream();
+	rawstream->setProjectId(proj->getId());
 	rawstream->setDestroyBlocks(destroyBlocks);
 	rawstream->setPeriod(freq);
 	rawstream->initiateNextSend(nextSend);
@@ -139,6 +140,7 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 	case PT_INPUTDATA:
 		indata = (InputData*) proj;
 		pes = new PESStream();
+		pes->setProjectId(proj->getId());
 		pes->addPidFilter(indata->getPid());
 		pes->setFilename(indata->getFilename());
 		pes->setInputRangeList(indata->getInputRangeList());
@@ -342,14 +344,16 @@ bool TMM::getCarouselComponentTagFromService(PMTView* pv, ProjectInfo* carouselP
 }
 
 //Notice: This function can make you get lost for sure.
-bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
+bool TMM::switchStreamList(vector<pmtViewInfo*>* currentTimeline,
 						   vector<pmtViewInfo*>* newTimeline) {
 	ProjectInfo* proj;
 	vector<pmtViewInfo*>::iterator itPmtNew;
-	map<unsigned short, ProjectInfo*>::iterator itProjCurr;
-	map<unsigned short, ProjectInfo*>::iterator itProjNew;
-	map<unsigned short, Stream*>::iterator itStreamCurr;
-	bool canReuse;
+	map<unsigned short, vector<ProjectInfo*>*>::iterator itProjCurr;
+	map<unsigned short, vector<ProjectInfo*>*>::iterator itProjNew;
+	map<unsigned short, vector<Stream*>*>::iterator itStreamCurr;
+	vector<ProjectInfo*>::iterator itPrjCurr;
+	vector<ProjectInfo*>::iterator itPrjNew;
+	vector<Stream*>::iterator itStrCurr;
 	Stream* stream;
 	unsigned char ctag;
 
@@ -362,66 +366,92 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 			//Reuse ES from last timeline
 			if ((*itPmtNew)->pv->getId() != (*itPmtNew)->priorPmtId) {
 				(*itPmtNew)->pv->deleteAllStreams();
+				(*itPmtNew)->pv->markAllProjectsReuse(false);
 				itProjNew = (*itPmtNew)->pv->getProjectInfoList()->begin();
 				while (itProjNew != (*itPmtNew)->pv->getProjectInfoList()->end()) {
-					canReuse = false;
 					proj = project->findProject((*itPmtNew)->priorPmtId);
-					if (proj) {
-						itProjCurr = ((PMTView*)proj)->getProjectInfoList()->begin();
-						while (itProjCurr != ((PMTView*)proj)->getProjectInfoList()->end()) {
-							if ((itProjCurr->second->getId() == itProjNew->second->getId()) &&
-									itProjCurr->second->getProjectType() == itProjNew->second->getProjectType()) {
-								itStreamCurr = ((PMTView*)proj)->getStreamList()->find(itProjCurr->first);
-								if (itStreamCurr != ((PMTView*)proj)->getStreamList()->end()) {
-									if (itStreamCurr->second) {
-										//Stream can be reused
-										canReuse = true;
-										(*itPmtNew)->pv->addStream(itProjNew->first, itStreamCurr->second);
-										itStreamCurr->second = NULL;
-									} else {
-										cout << "TMM::createStreamList - Error reusing stream pid = " <<
-												itProjCurr->first << endl;
+					if (proj && itProjNew->second) {
+						itPrjNew = itProjNew->second->begin();
+						while (itPrjNew != itProjNew->second->end()) { //for each project from a new PMTView
+							itProjCurr = ((PMTView*)proj)->getProjectInfoList()->begin();
+							while (itProjCurr != ((PMTView*)proj)->getProjectInfoList()->end()) {
+								if (itProjCurr->second) {
+									itPrjCurr = itProjCurr->second->begin();
+									while (itPrjCurr != itProjCurr->second->end()) { //for each project from the old PMTView
+										if (((*itPrjCurr)->getId() == (*itPrjNew)->getId()) &&
+												(*itPrjCurr)->getProjectType() == (*itPrjNew)->getProjectType()) {
+											itStreamCurr = ((PMTView*)proj)->getStreamList()->find(itProjCurr->first);
+											if (itStreamCurr != ((PMTView*)proj)->getStreamList()->end()) {
+												if (itStreamCurr->second && itStreamCurr->second) {
+													itStrCurr = itStreamCurr->second->begin();
+													while (itStrCurr != itStreamCurr->second->end()) { //for each stream from the old StreamList
+														if ((*itStrCurr)->getProjectId() == (*itPrjNew)->getId()) {
+															//Stream can be reused
+															(*itPrjNew)->setReuse(true);
+															(*itPmtNew)->pv->addStream(itProjNew->first, (*itStrCurr));
+															itStreamCurr->second->erase(itStrCurr);
+															break;
+														}
+														++itStrCurr;
+													}
+												} else {
+													cout << "TMM::createStreamList - Error reusing stream pid = " <<
+															itProjCurr->first << endl;
+												}
+											} else {
+												cout << "TMM::createStreamList - Error reusing stream pid = " <<
+														itProjCurr->first << endl;
+											}
+											break;
+										}
+										if (((*itPrjNew)->getProjectType() == PT_AIT) &&
+											((*itPrjCurr)->getProjectType() == PT_AIT) &&
+											(!(*itPrjCurr)->getReuse())) {
+											if ((*itPmtNew)->pv->getProjectPid((*itPrjNew)) ==
+												((PMTView*)proj)->getProjectPid((*itPrjCurr))) {
+												//AIT version must be updated, because there is a previous one.
+												(*itPrjNew)->setVersion((*itPrjCurr)->getVersion() + 1);
+												getCarouselComponentTagFromService((*itPmtNew)->pv,
+														((PAit*)(*itPrjNew))->getCarouselProj(),
+														&ctag);
+												project->configAitService((*itPrjNew),
+														(*itPmtNew)->pv->getProgramNumber(),
+														ctag);
+												//The stream will be created below.
+											}
+										}
+										++itPrjCurr;
 									}
-								} else {
-									cout << "TMM::createStreamList - Error reusing stream pid = " <<
-											itProjCurr->first << endl;
 								}
-								break;
+								++itProjCurr;
 							}
-							if ((itProjNew->second->getProjectType() == PT_AIT) &&
-								(itProjCurr->second->getProjectType() == PT_AIT) &&
-								(!canReuse)) {
-								if ((*itPmtNew)->pv->getProjectPid(itProjNew->second) ==
-									((PMTView*)proj)->getProjectPid(itProjCurr->second)) {
-									//AIT version must be updated, because there is a previous one.
-									itProjNew->second->setVersion(itProjCurr->second->getVersion() + 1);
-									getCarouselComponentTagFromService((*itPmtNew)->pv,
-											((PAit*)itProjNew->second)->getCarouselProj(),
-											&ctag);
-									project->configAitService(itProjNew->second,
-											(*itPmtNew)->pv->getProgramNumber(),
-											ctag);
-									//The stream will be created below.
-								}
-							}
-							++itProjCurr;
+							++itPrjNew;
 						}
+					} else {
+						if (!itProjNew->second) cout << "itProjNew->second not available." << endl;
 					}
-					if (!canReuse) {
-						//Unable to reuse. Create a new ES for the new timeline
-						if (itProjNew->second->getProjectType() == PT_AIT) {
-							getCarouselComponentTagFromService((*itPmtNew)->pv,
-									((PAit*)itProjNew->second)->getCarouselProj(),
-									&ctag);
-							project->configAitService(itProjNew->second,
-									(*itPmtNew)->pv->getProgramNumber(), ctag);
-						}
-						stream = createStream(itProjNew->second);
-						if (stream) {
-							(*itPmtNew)->pv->addStream(itProjNew->first, stream);
-						} else {
-							cout << "TMM::createStreamList - Error creating stream pid = " <<
-									itProjNew->first << endl;
+
+					//Unable to reuse. Create a new ES for the new timeline
+					if (itProjNew->second) {
+						itPrjNew = itProjNew->second->begin();
+						while (itPrjNew != itProjNew->second->end()) { //for each project from a new PMTView
+							if (!(*itPrjNew)->getReuse()) {
+								if ((*itPrjNew)->getProjectType() == PT_AIT) {
+									getCarouselComponentTagFromService((*itPmtNew)->pv,
+											((PAit*)(*itPrjNew))->getCarouselProj(),
+											&ctag);
+									project->configAitService((*itPrjNew),
+											(*itPmtNew)->pv->getProgramNumber(), ctag);
+								}
+								stream = createStream((*itPrjNew));
+								if (stream) {
+									(*itPmtNew)->pv->addStream(itProjNew->first, stream);
+								} else {
+									cout << "TMM::createStreamList - Error creating stream pid = " <<
+											itProjNew->first << endl;
+								}
+							}
+							++itPrjNew;
 						}
 					}
 					++itProjNew;
@@ -432,19 +462,25 @@ bool TMM::createStreamList(vector<pmtViewInfo*>* currentTimeline,
 			//Create a new ES for the new timeline
 			itProjNew = (*itPmtNew)->pv->getProjectInfoList()->begin();
 			while (itProjNew != (*itPmtNew)->pv->getProjectInfoList()->end()) {
-				if (itProjNew->second->getProjectType() == PT_AIT) {
-					getCarouselComponentTagFromService((*itPmtNew)->pv,
-							((PAit*)itProjNew->second)->getCarouselProj(),
-							&ctag);
-					project->configAitService(itProjNew->second,
-							(*itPmtNew)->pv->getProgramNumber(), ctag);
-				}
-				stream = createStream(itProjNew->second);
-				if (stream) {
-					(*itPmtNew)->pv->addStream(itProjNew->first, stream);
-				} else {
-					cout << "TMM::createStreamList - Error creating stream pid = " <<
-									itProjNew->first << endl;
+				if (itProjNew->second) {
+					itPrjNew = itProjNew->second->begin();
+					while (itPrjNew != itProjNew->second->end()) {
+						if ((*itPrjNew)->getProjectType() == PT_AIT) {
+							getCarouselComponentTagFromService((*itPmtNew)->pv,
+									((PAit*)(*itPrjNew))->getCarouselProj(),
+									&ctag);
+							project->configAitService((*itPrjNew),
+									(*itPmtNew)->pv->getProgramNumber(), ctag);
+						}
+						stream = createStream((*itPrjNew));
+						if (stream) {
+							(*itPmtNew)->pv->addStream(itProjNew->first, stream);
+						} else {
+							cout << "TMM::createStreamList - Error creating stream pid = " <<
+											itProjNew->first << endl;
+						}
+						++itPrjNew;
+					}
 				}
 				++itProjNew;
 			}
@@ -618,7 +654,8 @@ int TMM::multiplex() {
 	vector<pmtViewInfo*>* currTimeline = NULL;
 	vector<pmtViewInfo*>* newTimeline;
 	vector<pmtViewInfo*>::iterator itPmt;
-	map<unsigned short, Stream*>::iterator itStream;
+	map<unsigned short, vector<Stream*>*>::iterator itStream;
+	vector<Stream*>::iterator itStr;
 	ProjectInfo* proj;
 	int ret = 0, condRet;
 	time_t now;
@@ -648,16 +685,20 @@ int TMM::multiplex() {
 		if ((currTimeline != newTimeline) || (condRet == 2)) {
 			updateComponentTagList(currTimeline, newTimeline);
 			//begin to switch elementary streams
-			createStreamList(currTimeline, newTimeline);
+			switchStreamList(currTimeline, newTimeline);
 			muxer->removeAllElementaryStreams();
 			muxer->clearPidToLayerList();
 			itPmt = newTimeline->begin();
 			while (itPmt != newTimeline->end()) {
 				itStream = (*itPmt)->pv->getStreamList()->begin();
 				while (itStream != (*itPmt)->pv->getStreamList()->end()) {
-					muxer->addElementaryStream(itStream->first, itStream->second);
-					muxer->addPidToLayer(itStream->first,
-							(*itPmt)->pv->getLayerPid(itStream->first));
+					itStr = itStream->second->begin();
+					while (itStr != itStream->second->end()) {
+						muxer->addElementaryStream(itStream->first, (*itStr));
+						muxer->addPidToLayer(itStream->first,
+								(*itPmt)->pv->getLayerPid(itStream->first));
+						++itStr;
+					}
 					++itStream;
 				}
 				++itPmt;
@@ -764,8 +805,9 @@ void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 }
 
 int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
-	map<unsigned short, ProjectInfo*>* pi;
-	map<unsigned short, ProjectInfo*>::iterator itPi;
+	map<unsigned short, vector<ProjectInfo*>*>* pi;
+	map<unsigned short, vector<ProjectInfo*>*>::iterator itPi;
+	vector<ProjectInfo*>::iterator itPrj;
 	map<unsigned short, vector<MpegDescriptor*>* >::iterator itEs;
 	vector<MpegDescriptor*>::iterator itDesc;
 	InputData* indata = NULL;
@@ -788,105 +830,108 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 	pi = newPmtView->getProjectInfoList();
 	itPi = pi->begin();
 	while (itPi != pi->end()) {
-		switch (itPi->second->getProjectType()) {
-		case PT_INPUTDATA:
-			indata = (InputData*) itPi->second;
-			st = indata->getStreamType();
-			break;
-		case PT_NPT:
-			st = (*pmt)->STREAM_TYPE_DSMCC_TYPE_C;
-			break;
-		case PT_STREAMEVENT:
-			st = (*pmt)->STREAM_TYPE_DSMCC_TYPE_C;
-			break;
-		case PT_CAROUSEL:
-			st = (*pmt)->STREAM_TYPE_DSMCC_TYPE_B;
-			break;
-		case PT_AIT:
-			st = (*pmt)->STREAM_TYPE_PRIVATE_SECTION;
-			break;
-		default:
-			cout <<
-				"TMM::multiplex - Stream type not recognized." <<
-				endl;
-			delete (*pmt);
-			return -1;
-		}
-
-		(*pmt)->addEs(st, itPi->first);
-
-		switch (itPi->second->getProjectType()) {
-		case PT_INPUTDATA:
-			dsadesc = NULL;
-			htdesc = NULL;
-			if (TSInfo::isAudioStreamType(st)) {
-				dsadesc = new DataStreamAlignment();
-				dsadesc->setAlignmentType(0x01); //Slice, Video Access Unit
-			} else if (TSInfo::isVideoStreamType(st)) {
-				dsadesc = new DataStreamAlignment();
-				dsadesc->setAlignmentType(0x02); //Video Access Unit
-				htdesc = new HierarchicalTransmission();
-				htdesc->setQualityLevel(1);
-				htdesc->setReferencePID(itPi->first);
+		itPrj = itPi->second->begin();
+		while (itPrj != itPi->second->end()) {
+			switch ((*itPrj)->getProjectType()) {
+			case PT_INPUTDATA:
+				indata = (InputData*) (*itPrj);
+				st = indata->getStreamType();
+				break;
+			case PT_NPT:
+				st = (*pmt)->STREAM_TYPE_DSMCC_TYPE_C;
+				break;
+			case PT_STREAMEVENT:
+				st = (*pmt)->STREAM_TYPE_DSMCC_TYPE_C;
+				break;
+			case PT_CAROUSEL:
+				st = (*pmt)->STREAM_TYPE_DSMCC_TYPE_B;
+				break;
+			case PT_AIT:
+				st = (*pmt)->STREAM_TYPE_PRIVATE_SECTION;
+				break;
+			default:
+				cout <<
+					"TMM::multiplex - Stream type not recognized." <<
+					endl;
+				delete (*pmt);
+				return -1;
 			}
-			if (dsadesc) {
-				descLen = dsadesc->getStream(&descStream);
+
+			(*pmt)->addEs(st, itPi->first);
+
+			switch ((*itPrj)->getProjectType()) {
+			case PT_INPUTDATA:
+				dsadesc = NULL;
+				htdesc = NULL;
+				if (TSInfo::isAudioStreamType(st)) {
+					dsadesc = new DataStreamAlignment();
+					dsadesc->setAlignmentType(0x01); //Slice, Video Access Unit
+				} else if (TSInfo::isVideoStreamType(st)) {
+					dsadesc = new DataStreamAlignment();
+					dsadesc->setAlignmentType(0x02); //Video Access Unit
+					htdesc = new HierarchicalTransmission();
+					htdesc->setQualityLevel(1);
+					htdesc->setReferencePID(itPi->first);
+				}
+				if (dsadesc) {
+					descLen = dsadesc->getStream(&descStream);
+					if (descLen) {
+						(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+					}
+					delete dsadesc;
+				}
+				if (htdesc) {
+					descLen = htdesc->getStream(&descStream);
+					if (descLen) {
+						(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+					}
+					delete htdesc;
+				}
+				break;
+			case PT_CAROUSEL:
+				cidesc = new CarouselIdentifier();
+				cidesc->setCarouselId(((PCarousel*)(*itPrj))->getServiceDomain());
+				descLen = cidesc->getStream(&descStream);
 				if (descLen) {
 					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
 				}
-				delete dsadesc;
-			}
-			if (htdesc) {
-				descLen = htdesc->getStream(&descStream);
+				delete cidesc;
+				datdesc = new DeferredAssociationTags();
+				datdesc->setOriginalNetworkId(project->getOriginalNetworkId());
+				datdesc->setTransportStreamId(project->getTsid());
+				datdesc->setProgramNumber(newPmtView->getProgramNumber());
+				descLen = datdesc->getStream(&descStream);
 				if (descLen) {
 					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
 				}
-				delete htdesc;
+				delete datdesc;
+				atdesc = new AssociationTag();
+				if (!newPmtView->getComponentTag(itPi->first, &ctag)) {
+					cout << "TMM::createPmt - Warning: Association tag not defined." << endl;
+					ctag = 0x01;
+				}
+				atdesc->setAssociationTag(ctag);
+				atdesc->setUse(0x0000);
+				atdesc->setTransactionId(((PCarousel*)(*itPrj))->getTransactionId());
+				atdesc->setTimeout(0xFFFFFFFF);
+				descLen = atdesc->getStream(&descStream);
+				if (descLen) {
+					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+				}
+				delete atdesc;
+				break;
 			}
-			break;
-		case PT_CAROUSEL:
-			cidesc = new CarouselIdentifier();
-			cidesc->setCarouselId(((PCarousel*)itPi->second)->getServiceDomain());
-			descLen = cidesc->getStream(&descStream);
-			if (descLen) {
-				(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
-			}
-			delete cidesc;
-			datdesc = new DeferredAssociationTags();
-			datdesc->setOriginalNetworkId(project->getOriginalNetworkId());
-			datdesc->setTransportStreamId(project->getTsid());
-			datdesc->setProgramNumber(newPmtView->getProgramNumber());
-			descLen = datdesc->getStream(&descStream);
-			if (descLen) {
-				(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
-			}
-			delete datdesc;
-			atdesc = new AssociationTag();
-			if (!newPmtView->getComponentTag(itPi->first, &ctag)) {
-				cout << "TMM::createPmt - Warning: Association tag not defined." << endl;
-				ctag = 0x01;
-			}
-			atdesc->setAssociationTag(ctag);
-			atdesc->setUse(0x0000);
-			atdesc->setTransactionId(((PCarousel*)itPi->second)->getTransactionId());
-			atdesc->setTimeout(0xFFFFFFFF);
-			descLen = atdesc->getStream(&descStream);
-			if (descLen) {
-				(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
-			}
-			delete atdesc;
-			break;
-		}
 
-		if (newPmtView->getComponentTag(itPi->first, &ctag)) {
-			sidesc = new StreamIdentifier();
-			sidesc->setComponentTag(ctag);
-			descLen = sidesc->getStream(&descStream);
-			if (descLen) {
-				(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+			if (newPmtView->getComponentTag(itPi->first, &ctag)) {
+				sidesc = new StreamIdentifier();
+				sidesc->setComponentTag(ctag);
+				descLen = sidesc->getStream(&descStream);
+				if (descLen) {
+					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+				}
 			}
+			++itPrj;
 		}
-
 		++itPi;
 	}
 
