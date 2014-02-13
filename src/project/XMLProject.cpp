@@ -427,7 +427,9 @@ int XMLProject::parseStreamEvent(XMLNode* m, XMLElement* f) {
 }
 
 int XMLProject::parseCarousel(XMLNode* m, XMLElement* f) {
-	string value;
+	XMLNode *o, *p;
+	XMLElement *g, *h;
+	string value, value2;
 	int num, ret;
 
 	if (strcmp(m->Value(), "carousel") == 0) {
@@ -442,11 +444,13 @@ int XMLProject::parseCarousel(XMLNode* m, XMLElement* f) {
 		carousel->setServiceGatewayFolder(value);
 		if (f->QueryAttribute("bitrate", &num) != XML_NO_ERROR) {
 			cout << "carousel: attribute 'bitrate' not found." << endl;
+			delete carousel;
 			return -4;
 		}
 		carousel->setBitrate(num);
 		if (f->QueryAttribute("servicedomain", &num) != XML_NO_ERROR) {
 			cout << "carousel: attribute 'servicedomain' not found." << endl;
+			delete carousel;
 			return -4;
 		}
 		carousel->setServiceDomain(num);
@@ -457,6 +461,78 @@ int XMLProject::parseCarousel(XMLNode* m, XMLElement* f) {
 		}
 		if (f->QueryAttribute("transmissiondelay", &num) == XML_NO_ERROR) {
 			carousel->setTransmissionDelay((double) num / 1000);
+		}
+
+		for (o = f->FirstChild(); o; o = o->NextSibling()) {
+			g = o->ToElement();
+			if (strcmp(o->Value(), "streameventobject") == 0) {
+				StreamEventMessage* sem = new StreamEventMessage();
+				StreamInfoT* oi = new StreamInfoT();
+				sem->setObjectInfo(oi);
+				for (p = g->FirstChild(); p; p = p->NextSibling()) {
+					h = p->ToElement();
+					if (strcmp(p->Value(), "event") == 0) {
+						value = LocalLibrary::getAttribute(h, "eventname");
+						if (!value.size()) {
+							cout << "carousel: attribute 'eventname' is null." << endl;
+							delete sem;
+							delete carousel;
+							return -12;
+						}
+						if (h->QueryAttribute("eventid", &num) != XML_NO_ERROR) {
+							cout << "carousel: attribute 'eventid' not found." << endl;
+							delete sem;
+							delete carousel;
+							return -4;
+						}
+						sem->addEvent(num, (char*)value.c_str(), value.size());
+					}
+					if (strcmp(p->Value(), "tap") == 0) {
+						Tap* tap = new Tap();
+						tap->setSelectorLength(0);
+						value = LocalLibrary::getAttribute(h, "tapuse");
+						if (!value.size()) {
+							cout << "carousel: attribute 'tapuse' is null." << endl;
+							delete tap;
+							delete carousel;
+							return -12;
+						}
+						if (value == "strnptuse") {
+							tap->setUse(Tap::STR_NPT_USE);
+						} else if (value == "strstatusandeventuse") {
+							tap->setUse(Tap::STR_STATUS_AND_EVENT_USE);
+						} else if (value == "streventuse") {
+							tap->setUse(Tap::STR_EVENT_USE);
+						} else if (value == "strstatususe") {
+							tap->setUse(Tap::STR_STATUS_USE);
+						} else if (value == "biopesuse") {
+							tap->setUse(Tap::BIOP_ES_USE);
+						} else if (value == "biopprogramuse") {
+							tap->setUse(Tap::BIOP_PROGRAM_USE);
+						} else {
+							cout << "carousel: 'tapuse' not recognized ("
+								 << value << ")" << endl;
+							delete tap;
+							delete carousel;
+							return -6;
+						}
+						if (h->QueryAttribute("associationtag", &num) != XML_NO_ERROR) {
+							cout << "carousel: attribute 'associationtag' not found." << endl;
+							delete tap;
+							delete carousel;
+							return -4;
+						}
+						tap->setAssocTag(num);
+						if (h->QueryAttribute("tapid", &num) == XML_NO_ERROR) {
+							tap->setId(num);
+						} else {
+							tap->setId(0);
+						}
+						sem->addTap(tap);
+					}
+				}
+				carousel->addStreamEventMessage(sem);
+			}
 		}
 
 		(*projectList)[carousel->getId()] = carousel;

@@ -19,6 +19,7 @@
 #include "si/PNit.h"
 #include "si/PEit.h"
 #include "si/PMTView.h"
+#include "dsmcc/carousel/Biop/StreamEventMessage.h"
 #include "timeline/Timeline.h"
 #include "Stc.h"
 #include "../tsparser/ISDBTInformation.h"
