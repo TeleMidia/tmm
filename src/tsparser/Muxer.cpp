@@ -621,6 +621,8 @@ int Muxer::mainLoop() {
 			//write it as a TS
 			writeTsStream(pid, stream->getType());
 		} else {
+			cout << "Muxer::mainLoop - Unable to get buffer from stream. PID = " <<
+					pid << endl;
 			bitrateErrorCounter++;
 			if (bitrateErrorCounter >= 5) {
 				if (tsBitrate <= 19000000) {

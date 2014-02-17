@@ -213,6 +213,7 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		return rawstream;
 	case PT_PAT:
 		patProj = (PPat*) proj;
+		patProj->setCurrentPid(DEFAULT_PAT_PID);
 		patProj->setVersionNumber(patProj->getVersion());
 		patProj->updateStream();
 		rawstream = prepareNewRawStream(proj, Stc::secondToStc(0.1),
@@ -222,6 +223,7 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		return rawstream;
 	case PT_SDT:
 		sdtProj = (PSdt*) proj;
+		sdtProj->setCurrentPid(DEFAULT_SDT_PID);
 		sdtProj->setVersionNumber(sdtProj->getVersion());
 		sdtProj->updateStream();
 		rawstream = prepareNewRawStream(proj, Stc::secondToStc(1.0),
@@ -231,6 +233,7 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		return rawstream;
 	case PT_NIT:
 		nitProj = (PNit*) proj;
+		nitProj->setCurrentPid(DEFAULT_NIT_PID);
 		nitProj->setVersionNumber(nitProj->getVersion());
 		nitProj->updateStream();
 		rawstream = prepareNewRawStream(proj, Stc::secondToStc(1.0),
@@ -240,6 +243,7 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		return rawstream;
 	case PT_TOT:
 		totProj = (PTot*) proj;
+		totProj->setCurrentPid(DEFAULT_TOT_PID);
 		totProj->setOffset((int) (-timeOffset - 0.5f));
 		totProj->setStcBegin(muxer->getStcBegin());
 		rawstream = prepareNewRawStream(proj, Stc::secondToStc(5.0),
@@ -248,6 +252,7 @@ Stream* TMM::createStream(ProjectInfo* proj) {
 		return rawstream;
 	case PT_EIT_PF:
 		eitProj = (PEit*) proj;
+		eitProj->setCurrentPid(DEFAULT_EIT_PID);
 		currStc = muxer->getCurrentStc();
 		eitProj->setStcBegin(currStc);
 		totProj = (PTot*) getFirstProject(PT_TOT);
@@ -389,6 +394,7 @@ bool TMM::switchStreamList(vector<pmtViewInfo*>* currentTimeline,
 															//Stream can be reused
 															(*itPrjNew)->setReuse(true);
 															(*itPmtNew)->pv->addStream(itProjNew->first, (*itStrCurr));
+															(*itPrjNew)->setCurrentPid(itProjNew->first);
 															itStreamCurr->second->erase(itStrCurr);
 															break;
 														}
@@ -446,6 +452,7 @@ bool TMM::switchStreamList(vector<pmtViewInfo*>* currentTimeline,
 								stream = createStream((*itPrjNew));
 								if (stream) {
 									(*itPmtNew)->pv->addStream(itProjNew->first, stream);
+									(*itPrjNew)->setCurrentPid(itProjNew->first);
 								} else {
 									cout << "TMM::createStreamList - Error creating stream pid = " <<
 											itProjNew->first << endl;
@@ -475,6 +482,7 @@ bool TMM::switchStreamList(vector<pmtViewInfo*>* currentTimeline,
 						stream = createStream((*itPrjNew));
 						if (stream) {
 							(*itPmtNew)->pv->addStream(itProjNew->first, stream);
+							(*itPrjNew)->setCurrentPid(itProjNew->first);
 						} else {
 							cout << "TMM::createStreamList - Error creating stream pid = " <<
 											itProjNew->first << endl;
@@ -581,6 +589,10 @@ unsigned short TMM::calculateNumberOfTsps(TransmissionParameters* tp,
 }
 
 int TMM::multiplexSetup() {
+	for (int i = 0; i < 8192; i++) {
+		ProjectInfo::versionTable[i] = 0;
+	}
+
 	if (muxer) delete muxer;
 	muxer = new Muxer(project->getPacketSize(), project->getPacketsInBuffer());
 	muxer->setTTL(project->getTTL());

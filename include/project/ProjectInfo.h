@@ -44,12 +44,19 @@ class ProjectInfo {
 		int id;
 		unsigned char projectType;
 		unsigned char version;
+		unsigned char lastVersion;
 		double transmissionDelay;
 		unsigned char layer;
 		bool layerConfigured;
 		bool reuse;
+		unsigned short currentPid;
+
+		bool processVersion();
+		unsigned char incrementVersion();
 
 	public:
+		static unsigned char versionTable[8192];
+
 		ProjectInfo();
 		virtual ~ProjectInfo();
 
@@ -67,6 +74,8 @@ class ProjectInfo {
 		bool getLayerConfigured();
 		void setReuse(bool use);
 		bool getReuse();
+		unsigned short getCurrentPid();
+		void setCurrentPid(unsigned short pid);
 
 };
 

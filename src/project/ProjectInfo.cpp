@@ -12,6 +12,8 @@ namespace pucrio {
 namespace telemidia {
 namespace tool {
 
+unsigned char ProjectInfo::versionTable[];
+
 ProjectInfo::ProjectInfo() {
 	projectType = PT_UNKNOWN;
 	version = 0;
@@ -19,10 +21,26 @@ ProjectInfo::ProjectInfo() {
 	layer = 0x02; //HIERARCHY_B
 	layerConfigured = false;
 	reuse = false;
+	currentPid = 0xFFFF;
+	lastVersion = 0;
 }
 
 ProjectInfo::~ProjectInfo() {
 
+}
+
+bool ProjectInfo::processVersion() {
+	if (ProjectInfo::versionTable[currentPid] != lastVersion) {
+		incrementVersion();
+		return true;
+	}
+	return false;
+}
+
+unsigned char ProjectInfo::incrementVersion() {
+	ProjectInfo::versionTable[currentPid]++;
+	lastVersion = ProjectInfo::versionTable[currentPid];
+	return lastVersion;
 }
 
 void ProjectInfo::setId(int id) {
@@ -79,6 +97,14 @@ void ProjectInfo::setReuse(bool use) {
 
 bool ProjectInfo::getReuse() {
 	return reuse;
+}
+
+unsigned short ProjectInfo::getCurrentPid() {
+	return currentPid;
+}
+
+void ProjectInfo::setCurrentPid(unsigned short pid) {
+	currentPid = pid;
 }
 
 }

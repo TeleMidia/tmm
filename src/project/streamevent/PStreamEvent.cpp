@@ -22,6 +22,7 @@ PStreamEvent::PStreamEvent() {
 	entryPoint.clear();
 	baseId.clear();
 	sampleCount = 0;
+	lastVersion = 1;
 }
 
 PStreamEvent::~PStreamEvent() {
@@ -121,6 +122,7 @@ int PStreamEvent::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 
 	if (streamEventList.size()) {
 		dsmccSection = new DSMCCSection();
+		processVersion();
 
 		if ((sampleLimit == 0) || (sampleCount < sampleLimit)) {
 
@@ -146,7 +148,7 @@ int PStreamEvent::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 		dsmccSection->setCurrentNextIndicator(1);
 		dsmccSection->setSectionNumber(0x00);
 		dsmccSection->setLastSectionNumber(0x00);
-		dsmccSection->setVersionNumber(0);//TODO: changes in descriptors must change this
+		dsmccSection->setVersionNumber(lastVersion);
 		dsmccSection->updateStream();
 	}
 

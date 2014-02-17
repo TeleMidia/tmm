@@ -211,6 +211,7 @@ int NPTProject::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 	vector<Reference*>::iterator it;
 	map<int, Reference*>::iterator itssl;
 	DSMCCSection* dsmccSection = NULL;
+	static bool firstTimeTrans = true;
 
 	dsmccSection = new DSMCCSection();
 	currRefList = getCurrRef(stc);
@@ -227,8 +228,14 @@ int NPTProject::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 		if (transition) {
 			nptRef->setStcRef(Stc::stcToBase(ref->getAbsStart() + firstReference));
 			nptValue = ref->getNptStart();
+			if (firstTimeTrans) {
+				incrementVersion();
+				firstTimeTrans = false;
+			} else processVersion();
 			//cout << "; (NPT reference transition)";
 		} else {
+			firstTimeTrans = true;
+			incrementVersion();
 			nptRef->setStcRef(Stc::stcToBase(stc));
 			nptValue = (stc - (ref->getAbsStart() + firstReference));
 			nptValue = (nptValue*((double)ref->getNumerator()/ref->getDenominator()))+0.5f;
@@ -267,7 +274,7 @@ int NPTProject::encode(int64_t stc, vector<pair<char*,int>*>* list) {
 		dsmccSection->setCurrentNextIndicator(1);
 		dsmccSection->setSectionNumber(0x00);
 		dsmccSection->setLastSectionNumber(0x00);
-		dsmccSection->setVersionNumber(0);//TODO: changes in descriptors must change this
+		dsmccSection->setVersionNumber(lastVersion);
 		dsmccSection->updateStream();
 
 		char* tempStream;
