@@ -818,8 +818,12 @@ void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 
 int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 	map<unsigned short, vector<ProjectInfo*>*>* pi;
+	map<unsigned short, vector<Stream*>*>* si;
 	map<unsigned short, vector<ProjectInfo*>*>::iterator itPi;
+	map<unsigned short, vector<Stream*>*>::iterator itSi;
 	vector<ProjectInfo*>::iterator itPrj;
+	vector<Stream*>::iterator itStr;
+	Stream* str;
 	map<unsigned short, vector<MpegDescriptor*>* >::iterator itEs;
 	vector<MpegDescriptor*>::iterator itDesc;
 	InputData* indata = NULL;
@@ -832,6 +836,7 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 	AssociationTag* atdesc = NULL;
 	char* descStream;
 	unsigned char descLen, ctag;
+	unsigned char audioStreamId = 0xC0, videoStreamId = 0xE0;
 
 	(*pmt) = new Pmt();
 	(*pmt)->setCurrentNextIndicator(1);
@@ -840,6 +845,7 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 	(*pmt)->setPCRPid(newPmtView->getPcrPid());
 	(*pmt)->setProgramNumber(newPmtView->getProgramNumber());
 	pi = newPmtView->getProjectInfoList();
+	si = newPmtView->getStreamList();
 	itPi = pi->begin();
 	while (itPi != pi->end()) {
 		itPrj = itPi->second->begin();
@@ -875,15 +881,29 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 			case PT_INPUTDATA:
 				dsadesc = NULL;
 				htdesc = NULL;
+				str = NULL;
+				itSi = si->find(itPi->first);
+				if (itSi != si->end()) {
+					itStr = itSi->second->begin();
+					while (itStr != itSi->second->end()) {
+						if ((*itStr)->getProjectId() == (*itPrj)->getId()) {
+							str = (*itStr);
+							break;
+						}
+						++itStr;
+					}
+				}
 				if (TSInfo::isAudioStreamType(st)) {
 					dsadesc = new DataStreamAlignment();
 					dsadesc->setAlignmentType(0x01); //Slice, Video Access Unit
+					((PESStream*)str)->setStreamId(audioStreamId++);
 				} else if (TSInfo::isVideoStreamType(st)) {
 					dsadesc = new DataStreamAlignment();
 					dsadesc->setAlignmentType(0x02); //Video Access Unit
 					htdesc = new HierarchicalTransmission();
 					htdesc->setQualityLevel(1);
 					htdesc->setReferencePID(itPi->first);
+					((PESStream*)str)->setStreamId(videoStreamId++);
 				}
 				if (dsadesc) {
 					descLen = dsadesc->getStream(&descStream);

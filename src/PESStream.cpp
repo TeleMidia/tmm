@@ -33,6 +33,8 @@ PESStream::PESStream() {
 	rangeChange = 0;
 	lastRangeChange = 0;
 	isInRangeNow = false;
+
+	streamId = 0xE0;
 }
 
 PESStream::~PESStream() {
@@ -46,6 +48,8 @@ void PESStream::addBuffer() {
 	int len;
 
 	len = pesPacket->getStream(&stream);
+	PESPacket::setDataAlignmentIndicatorDirectStream(stream, true);
+	PESPacket::setStreamIdDirectStream(stream, streamId);
 	buf = new Buffer();
 	buf->pos = 0;
 	buf->buffer = new char[len];
@@ -291,6 +295,11 @@ void PESStream::updateNextSend(int64_t stc) {
 
 void PESStream::setIsVideoStream(bool v) {
 	isVideoStream = v;
+	if (!isVideoStream) {
+		streamId = 0xC0;
+	} else {
+		streamId = 0xE0;
+	}
 }
 
 void PESStream::setHasDts(bool has) {
@@ -309,6 +318,10 @@ void PESStream::setFilename(string filename) {
 		tsReader->setFilename(filename);
 	}
 	demuxer->setTsReader(tsReader);
+}
+
+void PESStream::setStreamId(unsigned char id) {
+	streamId = id;
 }
 
 void PESStream::resetControls() {

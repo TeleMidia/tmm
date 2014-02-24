@@ -44,6 +44,7 @@ class PESStream : public Stream {
 		int64_t firstPts;
 		int64_t timestamp1, timestamp2;
 		int frameInterval;
+		unsigned char streamId;
 
 		vector<InputRange*>* inputRangeList;
 
@@ -67,6 +68,7 @@ class PESStream : public Stream {
 		void setHasDts(bool has);
 		void addPidFilter(unsigned short pid);
 		void setFilename(string filename);
+		void setStreamId(unsigned char id);
 
 		void setInputRangeList(vector<InputRange*>* irl);
 
