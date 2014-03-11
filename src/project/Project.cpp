@@ -238,7 +238,8 @@ int Project::configAit(PAit* ait, unsigned int ctag, string aName, string lang,
 
 	Application* appDesc = new Application();
 	//appDesc->addAppProfile(0x8001, 0x01, 0x00, 0x00); //GLOBO
-	appDesc->addAppProfile(0x00, 0x00, 0x00, 0x00); //SBT
+	//appDesc->addAppProfile(0x00, 0x00, 0x00, 0x00); //SBT
+	appDesc->addAppProfile(0x00, 0x01, 0x00, 0x00);
 	appDesc->setServiceBoundFlag(true);
 	appDesc->setVisibility(0x03);
 	appDesc->setApplicationPriority(0x01);
@@ -375,7 +376,7 @@ int Project::configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit) {
 	TerrestrialDeliverySystem* tds = new TerrestrialDeliverySystem();
 	tds->setGuardInterval(guardInterval);
 	tds->setTransmissionMode(transmissionMode);
-	tds->addFrequency(broadcastFrequency);
+	tds->addFrequency(broadcastFrequency * 7);
 	ti->descriptorList.push_back(tds);
 
 	if (orderedPmtList.size()) {

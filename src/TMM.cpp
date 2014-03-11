@@ -932,6 +932,7 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 				datdesc->setOriginalNetworkId(project->getOriginalNetworkId());
 				datdesc->setTransportStreamId(project->getTsid());
 				datdesc->setProgramNumber(newPmtView->getProgramNumber());
+				//datdesc->addAssociationTag(); TODO: How this works?
 				descLen = datdesc->getStream(&descStream);
 				if (descLen) {
 					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
