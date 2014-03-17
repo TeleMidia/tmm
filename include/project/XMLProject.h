@@ -58,6 +58,7 @@ class XMLProject : public Project {
 		int parsePMT(XMLNode* m, XMLElement* f);
 
 		int processInputs(XMLElement *top);
+		int processOutputProperties(XMLElement *top);
 		int processOutput(XMLElement *top);
 
 		int readHead(XMLElement *top);

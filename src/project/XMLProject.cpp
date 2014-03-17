@@ -605,8 +605,9 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 					}
 				}
 				if (g->QueryAttribute("organizationid", &orgId) != XML_NO_ERROR) {
-					cout << "ait: attribute 'organizationid' not found." << endl;
-					return -4;
+					//See ABNT NBR 15606-3 2012
+					orgId = (((unsigned int) originalNetworkId) << 16) |
+											 originalNetworkId;
 				}
 				if (g->QueryAttribute("applicationid", &appId) != XML_NO_ERROR) {
 					cout << "ait: attribute 'applicationid' not found." << endl;
@@ -1046,11 +1047,11 @@ int XMLProject::processInputs(XMLElement *top) {
 	return 0;
 }
 
-int XMLProject::processOutput(XMLElement *top) {
+int XMLProject::processOutputProperties(XMLElement *top) {
 	ProjectInfo* proj;
-	XMLNode *n, *m, *o;
-	XMLElement *e, *f, *g = NULL;
-	string value1, value2;
+	XMLNode *n;
+	XMLElement *e = NULL;
+	string value1;
 	int num, id, ret;
 	double dnum;
 
@@ -1324,68 +1325,6 @@ int XMLProject::processOutput(XMLElement *top) {
 				}
 			}
 
-			Timeline* timeline = NULL;
-			id = getId(TIMELINE_NAME);
-			if (id >= 0) {
-				proj = findProject(id);
-				if (proj && proj->getProjectType() == PT_TIMELINE) {
-					timeline = (Timeline*) proj;
-				}
-			}
-			if (!timeline) {
-				timeline = new Timeline();
-				ret = createAndGetId(timeline, TIMELINE_NAME);
-				if (ret < 0) return ret;
-				(*projectList)[timeline->getId()] = timeline;
-			}
-
-			timeline->setIsLoop(isLoop);
-
-			unsigned int startTime = 0; //Each timeline duration is limited to 24 days
-			for (m = e->FirstChild(); m; m = m->NextSibling()) {
-				f = m->ToElement();
-				if (strcmp(m->Value(), "item") == 0) {
-					if (f->QueryAttribute("dur", &num) != XML_NO_ERROR) {
-						cout << "output: attribute 'dur' not found." << endl;
-						return -4;
-					}
-					for (o = f->FirstChild(); o; o = o->NextSibling()) {
-						g = o->ToElement();
-						if (strcmp(o->Value(), "pmtref") == 0) {
-							map<int, PMTView*>::iterator itPMTView;
-							PMTView* pPMTView;
-							int prior = -1;
-							value1 = LocalLibrary::getAttribute(g, "pmtid");
-							value2 = LocalLibrary::getAttribute(g, "previous");
-							if (value2.size()) {
-								if (getId(value2) != -1) {
-									prior = getId(value2);
-								}
-							}
-							proj = findProject(getId(value1));
-							if (!proj) {
-								return -7;
-							}
-							if (proj->getProjectType() != PT_PMTVIEW) {
-								cout << "output: id mismatch error." << endl;
-								return -9;
-							}
-							pPMTView = (PMTView*) proj;
-							if (pPMTView) {
-								timeline->addTimeline(startTime,
-													  num,
-													  pPMTView,
-													  prior);
-							}
-						}
-					}
-					startTime += num;
-				}
-			}
-			timeline->addTimeline(startTime, //end of timeline (for reference purpose)
-								  0,
-								  NULL,
-								  -1);
 			if (packetSize == 204) {
 				iip = new IIP();
 				TransmissionParameters* tp;
@@ -1605,6 +1544,84 @@ int XMLProject::processOutput(XMLElement *top) {
 	return 0;
 }
 
+int XMLProject::processOutput(XMLElement *top) {
+	ProjectInfo* proj;
+	XMLNode *n, *m, *o;
+	XMLElement *e, *f, *g = NULL;
+	string value1, value2;
+	int num, id, ret;
+
+	for (n = top->FirstChild(); n; n = n->NextSibling()) {
+		e = n->ToElement();
+		if (strcmp(n->Value(), "output") == 0) {
+			Timeline* timeline = NULL;
+			id = getId(TIMELINE_NAME);
+			if (id >= 0) {
+				proj = findProject(id);
+				if (proj && proj->getProjectType() == PT_TIMELINE) {
+					timeline = (Timeline*) proj;
+				}
+			}
+			if (!timeline) {
+				timeline = new Timeline();
+				ret = createAndGetId(timeline, TIMELINE_NAME);
+				if (ret < 0) return ret;
+				(*projectList)[timeline->getId()] = timeline;
+			}
+
+			timeline->setIsLoop(isLoop);
+
+			unsigned int startTime = 0; //Each timeline duration is limited to 24 days
+			for (m = e->FirstChild(); m; m = m->NextSibling()) {
+				f = m->ToElement();
+				if (strcmp(m->Value(), "item") == 0) {
+					if (f->QueryAttribute("dur", &num) != XML_NO_ERROR) {
+						cout << "output: attribute 'dur' not found." << endl;
+						return -4;
+					}
+					for (o = f->FirstChild(); o; o = o->NextSibling()) {
+						g = o->ToElement();
+						if (strcmp(o->Value(), "pmtref") == 0) {
+							map<int, PMTView*>::iterator itPMTView;
+							PMTView* pPMTView;
+							int prior = -1;
+							value1 = LocalLibrary::getAttribute(g, "pmtid");
+							value2 = LocalLibrary::getAttribute(g, "previous");
+							if (value2.size()) {
+								if (getId(value2) != -1) {
+									prior = getId(value2);
+								}
+							}
+							proj = findProject(getId(value1));
+							if (!proj) {
+								return -7;
+							}
+							if (proj->getProjectType() != PT_PMTVIEW) {
+								cout << "output: id mismatch error." << endl;
+								return -9;
+							}
+							pPMTView = (PMTView*) proj;
+							if (pPMTView) {
+								timeline->addTimeline(startTime,
+													  num,
+													  pPMTView,
+													  prior);
+							}
+						}
+					}
+					startTime += num;
+				}
+			}
+			timeline->addTimeline(startTime, //end of timeline (for reference purpose)
+								  0,
+								  NULL,
+								  -1);
+		}
+	}
+
+	return 0;
+}
+
 int XMLProject::readHead(XMLElement *top) {
 	XMLNode *n;
 	XMLElement *e;
@@ -1632,10 +1649,11 @@ int XMLProject::readHead(XMLElement *top) {
 int XMLProject::readBody(XMLElement *top) {
 	int ret;
 
+	ret = processOutputProperties(top);
+	if (ret < 0) return ret;
 	ret = processInputs(top);
 	if (ret < 0) return ret;
-	ret = processOutput(top);
-	return ret;
+	return processOutput(top);
 }
 
 int XMLProject::readFile() {
