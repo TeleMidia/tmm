@@ -107,6 +107,17 @@ string LocalLibrary::extractBaseId(string filename) {
 	return value;
 }
 
+string LocalLibrary::upperCase(string text) {
+	string ret;
+	char letter;
+	for (unsigned int i = 0; i < text.size(); i++) {
+		letter = text[i];
+		letter = toupper(letter);
+		ret.append(&letter, 1);
+	}
+	return ret;
+}
+
 }
 }
 }

@@ -772,10 +772,40 @@ int XMLProject::parseEIT(XMLNode* m, XMLElement* f) {
 						ei->descriptorsList.push_back(comp);
 					}
 					if (strcmp(p->Value(), "parentalrating") == 0) {
-						int rating;
-						if (h->QueryAttribute("rating", &rating) != XML_NO_ERROR) {
-							cout << "eit: attribute 'rating' not found." << endl;
-							return -4;
+						int rating = 1;
+						unsigned char objective = 0;
+						value = LocalLibrary::getAttribute(h, "agerating");
+						if (value.size()) {
+							if (value == "10") {
+								rating = 2;
+							} else if (value == "12") {
+								rating = 3;
+							} else if (value == "14") {
+								rating = 4;
+							} else if (value == "16") {
+								rating = 5;
+							} else if (value == "18") {
+								rating = 6;
+							} else rating = 1;
+						}
+						value = LocalLibrary::getAttribute(h, "objectivecontentdescription");
+						if (value.size()) {
+							size_t found = value.find("drugs");
+							if (found != std::string::npos) {
+								objective = objective | 1;
+							}
+							found = value.find("violence");
+							if (found != std::string::npos) {
+								objective = objective | 2;
+							}
+							found = value.find("sex");
+							if (found != std::string::npos) {
+								objective = objective | 4;
+							}
+						}
+						rating = rating | (objective << 4);
+						if (h->QueryAttribute("rating", &num) == XML_NO_ERROR) {
+							rating = num;
 						}
 						ParentalRatingInfo* pri = new ParentalRatingInfo();
 						pri->rating = rating;
@@ -785,7 +815,7 @@ int XMLProject::parseEIT(XMLNode* m, XMLElement* f) {
 								cout << "eit: 'countrycode' value has 3 letters." << endl;
 								return -12;
 							}
-							pri->countryCode = value;
+							pri->countryCode = LocalLibrary::upperCase(value);
 						}
 						ParentalRating* pr = new ParentalRating();
 						pr->addParentalRating(pri);
@@ -1300,7 +1330,7 @@ int XMLProject::processOutputProperties(XMLElement *top) {
 					ret = createAndGetId(pTot, TOT_NAME);
 					if (ret < 0) return ret;
 				}
-				pTot->setCountryCode(value1);
+				pTot->setCountryCode(LocalLibrary::upperCase(value1));
 			}
 			if (e->QueryAttribute("countryregionid", &num) == XML_NO_ERROR) {
 				if (!pTot) {

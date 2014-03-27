@@ -17,6 +17,7 @@
 #endif
 
 #include <string>
+#include <cctype>
 
 #include "project/tinyxml2.h"
 
@@ -44,6 +45,7 @@ class LocalLibrary {
 		static string getAttribute(XMLElement* e, string name);
 		static string getElementText(XMLElement* e);
 		static string extractBaseId(string filename);
+		static string upperCase(string text);
 
 };
 
