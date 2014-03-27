@@ -807,6 +807,7 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 	XMLElement *g, *h;
 	string value;
 	int num, ret;
+	bool useServiceNumber;
 
 	if (strcmp(m->Value(), "pmt") == 0) {
 		PMTView* pmtView = new PMTView();
@@ -816,18 +817,53 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 			delete pmtView;
 			return ret;
 		}
+		useServiceNumber = false;
+		value = LocalLibrary::getAttribute(f, "servicetype");
+		if (value.size()) {
+			if (value == "tv") {
+				pmtView->setServiceType(SRV_TYPE_TV);
+				pmtView->setLayer(HIERARCHY_B);
+			} else if (value == "data1") {
+				pmtView->setServiceType(SRV_TYPE_DATA1);
+			} else if (value == "data2") {
+				pmtView->setServiceType(SRV_TYPE_DATA2);
+			} else if (value == "oneseg") {
+				pmtView->setServiceType(SRV_TYPE_ONESEG);
+				pmtView->setLayer(HIERARCHY_A);
+			} else {
+				cout << "pmt: 'servicetype' not recognized ("
+					 << value << ")" << endl;
+				return -6;
+			}
+			pmtView->setLayerConfigured(true);
+		}
 		/*
 		 * Program number -> ABNTNBR 15603-2, Annex H.3
 		 */
-		if (f->QueryAttribute("programnumber", &num) != XML_NO_ERROR) {
-			cout << "pmt: attribute 'programnumber' not found." << endl;
-			return -4;
+		if (f->QueryAttribute("servicenumber", &num) == XML_NO_ERROR) {
+			unsigned short pn = pmtView->getServiceType() << 3;
+			if (num > 7) {
+				cout << "pmt: 'servicenumber' range is 0 to 7." << endl;
+				return -12;
+			}
+			pn = pn | (originalNetworkId << 5);
+			pn = pn | (num & 0x07);
+			pmtView->setProgramNumber(pn);
+			if (pmtView->getServiceType() == SRV_TYPE_ONESEG) {
+				pmtView->setPid(0x1FC8 + num);
+			}
+			useServiceNumber = true;
+		} else {
+			if (f->QueryAttribute("programnumber", &num) != XML_NO_ERROR) {
+				cout << "pmt: attribute 'programnumber' not found." << endl;
+				return -4;
+			}
+			if (num == 0) {
+				cout << "pmt: programnumber = 0 is not allowed." << endl;
+				return -4;
+			}
+			pmtView->setProgramNumber(num);
 		}
-		if (num == 0) {
-			cout << "pmt: programnumber = 0 is not allowed." << endl;
-			return -4;
-		}
-		pmtView->setProgramNumber(num);
 		if (f->QueryAttribute("pcrpid", &num) != XML_NO_ERROR) {
 			cout << "pmt: attribute 'pcrpid' not found." << endl;
 			return -4;
@@ -862,26 +898,6 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 		} else {
 			pmtView->setServiceName("Unnamed service");
 		}
-		value = LocalLibrary::getAttribute(f, "servicetype");
-		if (value.size()) {
-			if (value == "tv") {
-				pmtView->setServiceType(SRV_TYPE_TV);
-				pmtView->setLayer(HIERARCHY_B);
-			} else if (value == "data1") {
-				pmtView->setServiceType(SRV_TYPE_DATA1);
-			} else if (value == "data2") {
-				pmtView->setServiceType(SRV_TYPE_DATA2);
-			} else if (value == "oneseg") {
-				pmtView->setServiceType(SRV_TYPE_ONESEG);
-				pmtView->setPid(0x1FC8);
-				pmtView->setLayer(HIERARCHY_A);
-			} else {
-				cout << "pmt: 'servicetype' not recognized ("
-					 << value << ")" << endl;
-				return -6;
-			}
-			pmtView->setLayerConfigured(true);
-		}
 		if (pmtView->getServiceType() != SRV_TYPE_ONESEG) {
 			if (f->QueryAttribute("pid", &num) != XML_NO_ERROR) {
 				cout << "pmt: attribute 'pid' not found." << endl;
@@ -889,11 +905,19 @@ int XMLProject::parsePMT(XMLNode* m, XMLElement* f) {
 			}
 			pmtView->setPid(num);
 		} else {
-			if (f->QueryAttribute("pid", &num) == XML_NO_ERROR) {
-				if (num != 0x1FC8) {
-					cout << "pmt: the one-seg service overrode your 'pid' " <<
-							"value to 0x1FC8." << endl;
+			if (useServiceNumber) {
+				if (f->QueryAttribute("pid", &num) == XML_NO_ERROR) {
+					if ((num >= 0x1FC8) && (num <= 0x1FCF)) {
+						cout << "pmt: the one-seg service overrode your 'pid' " <<
+								"value to " << pmtView->getPid() << "." << endl;
+					}
 				}
+			} else {
+				if (f->QueryAttribute("pid", &num) != XML_NO_ERROR) {
+					cout << "pmt: attribute 'pid' not found." << endl;
+					return -4;
+				}
+				pmtView->setPid(num);
 			}
 		}
 		value = LocalLibrary::getAttribute(f, "layer");
@@ -1048,6 +1072,7 @@ int XMLProject::processInputs(XMLElement *top) {
 }
 
 int XMLProject::processOutputProperties(XMLElement *top) {
+	map<string, unsigned char>::iterator itRegion;
 	ProjectInfo* proj;
 	XMLNode *n;
 	XMLElement *e = NULL;
@@ -1091,10 +1116,53 @@ int XMLProject::processOutputProperties(XMLElement *top) {
 				}
 			}
 			appParams = LocalLibrary::getAttribute(e, "appparams");
-			if (e->QueryAttribute("tsid", &num) == XML_NO_ERROR) {
-				tsid = num;
-			} else {
-				tsid = 1;
+			value1 = LocalLibrary::getAttribute(e, "generatingstation");
+			if (value1.size()) {
+				unsigned char i;
+				unsigned int net;
+				string netstr;
+				char letter = tolower(value1[2]);
+				switch (letter) {
+					case 'a': netstr = "0";
+							break;
+					case 'b': netstr = "1";
+							break;
+					case 'p': netstr = "2";
+							break;
+					case 'q': netstr = "3";
+							break;
+					case 't': netstr = "4";
+							break;
+				}
+				if (!netstr.size()) {
+					cout << "output: 'generatingstation' value is invalid." << endl;
+					return -12;
+				}
+				for (i = 3; i < value1.size(); i++) {
+					if (isdigit(value1[i])) {
+						netstr = netstr + value1[i];
+					}
+				}
+				if (sscanf(netstr.c_str(),"%d",&net) > 0) {
+					generatingStation.assign(value1);
+					tsid = net;
+					originalNetworkId = net;
+				} else {
+					cout << "output: 'generatingstation' value is invalid." << endl;
+					return -12;
+				}
+			}
+			if (!generatingStation.size()) {
+				if (e->QueryAttribute("tsid", &num) == XML_NO_ERROR) {
+					tsid = num;
+				} else {
+					tsid = 1;
+				}
+				if (e->QueryAttribute("originalnetworkid", &num) == XML_NO_ERROR) {
+					originalNetworkId = num;
+				} else {
+					originalNetworkId = tsid;
+				}
 			}
 			if (e->QueryAttribute("vbv", &num) == XML_NO_ERROR) {
 				vbvBuffer = (double) num / 1000;
@@ -1122,11 +1190,6 @@ int XMLProject::processOutputProperties(XMLElement *top) {
 				useNit = true;
 			} else {
 				providerName.assign("Unnamed provider");
-			}
-			if (e->QueryAttribute("originalnetworkid", &num) == XML_NO_ERROR) {
-				originalNetworkId = num;
-			} else {
-				originalNetworkId = tsid;
 			}
 			value1 = LocalLibrary::getAttribute(e, "tsname");
 			if (value1.size() > 20) {
@@ -1246,6 +1309,20 @@ int XMLProject::processOutputProperties(XMLElement *top) {
 					if (ret < 0) return ret;
 				}
 				pTot->setCountryRegionId(num);
+			}
+			value1 = LocalLibrary::getAttribute(e, "fu");
+			if (value1.size()) {
+				itRegion = regionList.find(value1);
+				if (itRegion != regionList.end()) {
+					areaCode1 = itRegion->second;
+				}
+			}
+			value1 = LocalLibrary::getAttribute(e, "microregion");
+			if (value1.size()) {
+				itRegion = regionList.find(value1);
+				if (itRegion != regionList.end()) {
+					areaCode2 = itRegion->second;
+				}
 			}
 			if (e->QueryAttribute("utcoffset", &num) == XML_NO_ERROR) {
 				if (!pTot) {
@@ -1534,7 +1611,8 @@ int XMLProject::processOutputProperties(XMLElement *top) {
 
 				if (tsBitrate != 29958294) {
 					cout << "output: The muxer overrode your 'bitrate' " <<
-								"value to 29958294 bps due to ISDB-T standard." << endl;
+								"value to 29958294 bps" << endl;
+					cout << "due to ISDB-T standard." << endl;
 					tsBitrate = 29958294;
 				}
 			}

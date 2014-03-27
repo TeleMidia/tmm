@@ -31,7 +31,7 @@ int readTSInfo(string file) {
 
 void printHelp() {
 	cout << endl;
-	cout << "Telemidia Multiplexer. Version 0.3 (Build 6)." << endl;
+	cout << "Telemidia Multiplexer. Version 0.3 (Build 7)." << endl;
 	cout << "Copyright(c) 1989-2014, PUC-RIO/LABORATORIO TELEMIDIA." << endl;
 	cout << "All Rights Reserved." << endl;
 	cout << "http://www.telemidia.puc-rio.br" << endl;

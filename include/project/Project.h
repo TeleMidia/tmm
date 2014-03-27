@@ -63,6 +63,7 @@ class Project {
 
 		IIP* iip;
 
+		string generatingStation;
 		unsigned short originalNetworkId;
 		string tsName;
 		unsigned short broadcastFrequency;
@@ -70,6 +71,10 @@ class Project {
 		unsigned char guardInterval;
 		unsigned char transmissionMode;
 		unsigned short packetsInBuffer;
+
+		map<string, unsigned char> regionList;
+		unsigned char areaCode1;
+		unsigned char areaCode2;
 
 		bool useTot;
 		bool useSdt;
@@ -88,6 +93,7 @@ class Project {
 		bool changeToProjectDir();
 		bool mountCarousel(PCarousel* pcar);
 		bool createStreamEvent(PStreamEvent* pse);
+		void fillRegionList();
 
 	public:
 		Project();

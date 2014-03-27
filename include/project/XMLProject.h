@@ -14,6 +14,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
+#include <cctype>
 
 using namespace tinyxml2;
 
