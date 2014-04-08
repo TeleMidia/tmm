@@ -39,7 +39,7 @@ InputData::~InputData() {
 	delete inputRangeList;
 }
 
-void InputData::setFilename(string filename) {
+void InputData::setFilename(const string& filename) {
 	this->filename = filename;
 }
 

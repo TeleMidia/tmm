@@ -63,7 +63,7 @@ char PTot::dayOfWeek(time_t date) {
 }
 
 //TODO: Improve this code, please.
-time_t PTot::makeUtcDate(string dateTime) {
+time_t PTot::makeUtcDate(const string& dateTime) {
 	int dd, mo, yy, hh, mm, ss, uh = 0, um = 0, r;
 	struct tm when = {0};
 	short utcRef; //in minutes
@@ -188,7 +188,7 @@ bool PTot::getUseCurrentTime() {
 	return useCurrentTime;
 }
 
-bool PTot::setTimeBegin(string dateTime) {
+bool PTot::setTimeBegin(const string& dateTime) {
 	int uh = 0, um = 0, r;
 
 	r = sscanf(dateTime.c_str(), "%*d-%*d-%*dT%*d:%*d:%*d-%d:%d", &uh, &um);
@@ -259,7 +259,7 @@ void PTot::setUtcOffset(int uos) {
 	utcOffset = uos;
 }
 
-void PTot::setCountryCode(string country) {
+void PTot::setCountryCode(const string& country) {
 	countryCode.assign(country);
 }
 

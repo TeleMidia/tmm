@@ -46,9 +46,9 @@ class XMLProject : public Project {
 		int idIndex;
 		PSdt* pSdt;
 
-		bool createNewId(string id);
-		int getId(string id);
-		int createAndGetId(ProjectInfo* proj, string name);
+		bool createNewId(const string& id);
+		int getId(const string& id);
+		int createAndGetId(ProjectInfo* proj, const string& name);
 
 		int parseAV(XMLNode* m, XMLElement* f);
 		int parseNPT(XMLNode* m,XMLElement* f);
@@ -67,7 +67,7 @@ class XMLProject : public Project {
 
 	public:
 		XMLProject();
-		XMLProject(string filename);
+		XMLProject(const string& filename);
 		XMLProject(const char *filename);
 		virtual ~XMLProject();
 

@@ -52,7 +52,7 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		void setStcBegin(int64_t stc);
 		void setUseCurrentTime(bool ct);
 		bool getUseCurrentTime();
-		bool setTimeBegin(string dateTime);
+		bool setTimeBegin(const string& dateTime);
 		time_t getTimeBegin();
 		double updateDateTime(int64_t stc);
 		void setUtc(short utc);
@@ -63,12 +63,12 @@ class PTot : public ProjectInfo, public Tot, public Subscriber {
 		void setOffset(int os);
 		int getUtcOffset();
 		void setUtcOffset(int uos);
-		void setCountryCode(string country);
+		void setCountryCode(const string& country);
 		void setCountryRegionId(unsigned char id);
 		time_t nextTimeChange(time_t dateTime, char *dst);
 
 		static char dayOfWeek(time_t date);
-		static time_t makeUtcDate(string dateTime);
+		static time_t makeUtcDate(const string& dateTime);
 		static time_t makeUtcDate(unsigned short yy, unsigned short mo,
 								  unsigned short dd);
 		static time_t easterSunday(unsigned short wYear);

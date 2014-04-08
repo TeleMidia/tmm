@@ -23,7 +23,8 @@ LocalLibrary::~LocalLibrary() {
 
 }
 
-bool LocalLibrary::executeApp(string filename, string parameters, unsigned int* pid) {
+bool LocalLibrary::executeApp(const string& filename, string parameters,
+							  unsigned int* pid) {
 	*pid = 0;
 #ifdef _WIN32
 	PROCESS_INFORMATION ProcessInfo; //This is what we get as an [out] parameter
@@ -73,7 +74,7 @@ bool LocalLibrary::killApp(unsigned int pid) {
 #endif
 }
 
-string LocalLibrary::getAttribute(XMLElement* e, string name) {
+string LocalLibrary::getAttribute(XMLElement* e, const string& name) {
 	string str = "";
 	if (e) {
 		const char *s = e->Attribute(name.c_str());
@@ -89,7 +90,7 @@ string LocalLibrary::getElementText(XMLElement* e) {
 	return str;
 }
 
-string LocalLibrary::extractBaseId(string filename) {
+string LocalLibrary::extractBaseId(const string& filename) {
 	XMLDocument xmldoc;
 	enum XMLError err;
 	XMLElement *e;
@@ -107,7 +108,7 @@ string LocalLibrary::extractBaseId(string filename) {
 	return value;
 }
 
-string LocalLibrary::upperCase(string text) {
+string LocalLibrary::upperCase(const string& text) {
 	string ret;
 	char letter;
 	for (unsigned int i = 0; i < text.size(); i++) {

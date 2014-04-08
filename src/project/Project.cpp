@@ -60,7 +60,7 @@ bool Project::changeToProjectDir() {
 	return false;
 }
 
-unsigned char Project::toLayer(string layer) {
+unsigned char Project::toLayer(const string& layer) {
 	if (layer == "none") {
 		return NULL_TSP;
 	} else if (tolower(layer.c_str()[0]) == 'a') {
@@ -185,14 +185,14 @@ bool Project::createStreamEvent(PStreamEvent* pse) {
 			switch (se->getCommandTag()) {
 			case SE_ADD_DOCUMENT:
 				ret = sprintf(privateStr,
-						"%s,x-sbtvd://%s,%d,%d,%d",
+						"%s,x-sbtvd://\"%s\",\"%d\",\"%d\",\"%d\"",
 						pse->getBaseId().c_str(), pse->getEntryPoint().c_str(),
 						iior->carousel, iior->moduleId,
 						iior->key);
 				break;
 			case SE_START_DOCUMENT:
 				ret = sprintf(privateStr,
-						"%s,%s,,,,",
+						"\"%s\",\"%s\",\"\",\"\",\"\",\"\"",
 						pse->getBaseId().c_str(),
 						pse->getDocumentId().c_str());
 				break;
@@ -221,9 +221,9 @@ bool Project::createStreamEvents() {
 	return true;
 }
 
-int Project::configAit(PAit* ait, unsigned int ctag, string aName, string lang,
-			  string baseDir, string initClass, unsigned int orgId,
-			  unsigned short appId, unsigned int appcode) {
+int Project::configAit(PAit* ait, unsigned int ctag, const string& aName,
+		const string& lang, const string& baseDir, const string& initClass,
+		unsigned int orgId, unsigned short appId, unsigned int appcode) {
 	vector<MpegDescriptor*>* dlist = new vector<MpegDescriptor*>;
 
 	TransportProtocol* tp = new TransportProtocol();
@@ -410,7 +410,7 @@ int Project::configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit) {
 	return 0;
 }
 
-void Project::setFilename(string filename) {
+void Project::setFilename(const string& filename) {
 	this->filename = filename;
 }
 
@@ -426,7 +426,7 @@ string Project::getProjectDescription() {
 	return projectDescription;
 }
 
-void Project::setDestination(string dest) {
+void Project::setDestination(const string& dest) {
 	destination = dest;
 }
 
@@ -446,7 +446,7 @@ string Project::getAppParams() {
 	return appParams;
 }
 
-void Project::setProviderName(string name) {
+void Project::setProviderName(const string& name) {
 	providerName = name;
 }
 

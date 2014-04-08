@@ -16,7 +16,7 @@ XMLProject::XMLProject() : Project() {
 	init();
 }
 
-XMLProject::XMLProject(string filename) : Project() {
+XMLProject::XMLProject(const string& filename) : Project() {
 	init();
 	this->filename = filename;
 }
@@ -46,7 +46,7 @@ vector<MetaData*>* XMLProject::getMetaDataList() {
 	return &metaDataList;
 }
 
-bool XMLProject::createNewId(string id){
+bool XMLProject::createNewId(const string& id){
 	if (idList.count(id)) {
 		cout << "The id = " << id << " already exists." << endl;
 		return false;
@@ -56,7 +56,7 @@ bool XMLProject::createNewId(string id){
 	}
 }
 
-int XMLProject::getId(string id) {
+int XMLProject::getId(const string& id) {
 	if (idList.count(id)) {
 		return idList[id];
 	} else {
@@ -64,7 +64,7 @@ int XMLProject::getId(string id) {
 	}
 }
 
-int XMLProject::createAndGetId(ProjectInfo* proj, string name) {
+int XMLProject::createAndGetId(ProjectInfo* proj, const string& name) {
 	int id;
 
 	if (!createNewId(name)) return -3;

@@ -20,11 +20,11 @@ PCarousel::~PCarousel() {
 
 }
 
-void PCarousel::setOutputFile(string filename) {
+void PCarousel::setOutputFile(const string& filename) {
 	outputFile = filename;
 }
 
-void PCarousel::setTempFolder(string folder) {
+void PCarousel::setTempFolder(const string& folder) {
 	tempFolder = folder;
 }
 

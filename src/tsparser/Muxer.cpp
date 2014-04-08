@@ -95,7 +95,7 @@ unsigned char Muxer::getPacketSize() {
 	return packetSize;
 }
 
-void Muxer::setDestination(string dest) {
+void Muxer::setDestination(const string& dest) {
 	destination = dest;
 	if (!dest.size()) return;
 	isFileMode = true;
@@ -116,11 +116,11 @@ void Muxer::setIsPipe(bool isPipe) {
 	this->isPipe = isPipe;
 }
 
-void Muxer::setExternalApp(string app) {
+void Muxer::setExternalApp(const string& app) {
 	externalApp = app;
 }
 
-void Muxer::setAppParams(string params) {
+void Muxer::setAppParams(const string& params) {
 	appParams = params;
 }
 

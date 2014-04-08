@@ -311,7 +311,7 @@ void PESStream::addPidFilter(unsigned short pid) {
 	demuxer->addPidFilter(pid);
 }
 
-void PESStream::setFilename(string filename) {
+void PESStream::setFilename(const string& filename) {
 	if (!tsReader) {
 		tsReader = new TSFileReader(filename);
 	} else {

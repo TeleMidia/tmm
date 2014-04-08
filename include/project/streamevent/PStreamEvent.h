@@ -59,12 +59,12 @@ class PStreamEvent : public ProjectInfo, public Subscriber {
 		void setFirstReferenceOffset(double offset);
 		void setCarouselProj(ProjectInfo* proj);
 		ProjectInfo* getCarouselProj();
-		void setEntryPoint(string ep);
+		void setEntryPoint(const string& ep);
 		string getEntryPoint();
 		void setBaseId(unsigned short bi);
-		void setBaseId(string bi);
+		void setBaseId(const string& bi);
 		string getBaseId();
-		void setDocumentId(string di);
+		void setDocumentId(const string& di);
 		string getDocumentId();
 		vector<StreamEvent*>* getStreamEventList();
 		void resetSampleCount();

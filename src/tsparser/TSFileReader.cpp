@@ -21,7 +21,7 @@ TSFileReader::TSFileReader() {
 	bufferLength = 0;
 }
 
-TSFileReader::TSFileReader(string filename) {
+TSFileReader::TSFileReader(const string& filename) {
 	pFile = NULL;
 	buffer = new char[BUFFER_SIZE];
 	packetSize = 188;
@@ -36,7 +36,7 @@ TSFileReader::~TSFileReader() {
 	delete buffer;
 }
 
-void TSFileReader::setFilename(string filename) {
+void TSFileReader::setFilename(const string& filename) {
 	this->filename = filename;
 	close();
 }
@@ -101,7 +101,7 @@ int TSFileReader::searchSyncByte() {
 	return -2;
 }
 
-int TSFileReader::readPacketSize(string filename) {
+int TSFileReader::readPacketSize(const string& filename) {
 	//weak method
 	FILE* fd;
 	char buf[2041];

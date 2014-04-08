@@ -16,7 +16,7 @@ Pipe::Pipe() {
 	setPipeName("tmm.unnamedpipe.ts");
 }
 
-Pipe::Pipe(string pipeName) {
+Pipe::Pipe(const string& pipeName) {
 	setPipeName(pipeName);
 }
 
@@ -34,7 +34,7 @@ bool Pipe::checkPipeDescriptor() {
 #endif
 }
 
-void Pipe::setPipeName(string name) {
+void Pipe::setPipeName(const string& name) {
 	pipeName = name;
 #if defined(_WIN32)
 		if (pipeName.find("\\\\.\\pipe\\") == std::string::npos) {

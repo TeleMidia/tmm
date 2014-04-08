@@ -99,25 +99,26 @@ class Project {
 		Project();
 		virtual ~Project();
 
-		void setFilename(string filename);
+		void setFilename(const string& filename);
 		string getFilename();
 		string getProjectName();
 		string getProjectDescription();
 		bool mountCarousels();
 		bool createStreamEvents();
-		int configAit(PAit* ait, unsigned int ctag, string aName, string lang,
-					  string baseDir, string initClass, unsigned int orgId,
-					  unsigned short appId, unsigned int appcode);
+		int configAit(PAit* ait, unsigned int ctag, const string& aName,
+				const string& lang, const string& baseDir,
+				const string& initClass, unsigned int orgId,
+				unsigned short appId, unsigned int appcode);
 		int configAitService(ProjectInfo* ait, unsigned short serviceId,
 				unsigned char ctag);
 		int configSdt(vector<pmtViewInfo*>* newTimeline, ProjectInfo* sdt);
 		int configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit);
-		void setDestination(string dest);
+		void setDestination(const string& dest);
 		string getDestination();
 		bool getIsPipe();
 		string getExternalApp();
 		string getAppParams();
-		void setProviderName(string name);
+		void setProviderName(const string& name);
 		string getProviderName();
 		void setTsid(int id);
 		int getTsid();
@@ -147,7 +148,7 @@ class Project {
 		void setPacketSize(unsigned char size);
 		unsigned char getPacketSize();
 
-		static unsigned char toLayer(string layer);
+		static unsigned char toLayer(const string& layer);
 
 		virtual int readFile()=0;
 

@@ -76,7 +76,7 @@ ProjectInfo* PStreamEvent::getCarouselProj() {
 	return carouselProj;
 }
 
-void PStreamEvent::setEntryPoint(string ep) {
+void PStreamEvent::setEntryPoint(const string& ep) {
 	entryPoint = ep;
 }
 
@@ -94,7 +94,7 @@ void PStreamEvent::setBaseId(unsigned short bi) {
 	baseId.assign(buffer);
 }
 
-void PStreamEvent::setBaseId(string bi) {
+void PStreamEvent::setBaseId(const string& bi) {
 	baseId = bi;
 }
 
@@ -102,7 +102,7 @@ string PStreamEvent::getBaseId() {
 	return baseId;
 }
 
-void PStreamEvent::setDocumentId(string di) {
+void PStreamEvent::setDocumentId(const string& di) {
 	documentId = di;
 }
 

@@ -44,7 +44,7 @@ class InputData : public ProjectInfo {
 		InputData(int id);
 		virtual ~InputData();
 
-		void setFilename(string filename);
+		void setFilename(const string& filename);
 		string getFilename();
 		void setPid(unsigned short pid);
 		unsigned short getPid();

@@ -39,13 +39,14 @@ class LocalLibrary {
 		LocalLibrary();
 		virtual ~LocalLibrary();
 
-		static bool executeApp(string filename, string parameters, unsigned int* pid);
+		static bool executeApp(const string& filename, string parameters,
+							   unsigned int* pid);
 		static bool killApp(unsigned int pid);
 
-		static string getAttribute(XMLElement* e, string name);
+		static string getAttribute(XMLElement* e, const string& name);
 		static string getElementText(XMLElement* e);
-		static string extractBaseId(string filename);
-		static string upperCase(string text);
+		static string extractBaseId(const string& filename);
+		static string upperCase(const string& text);
 
 };
 

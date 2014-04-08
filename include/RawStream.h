@@ -44,7 +44,7 @@ class RawStream : public Stream, public Publisher {
 
 		bool addBlock(char* stream, int length);
 		void addSection(PrivateSection* sec);
-		bool addSection(string filename);
+		bool addSection(const string& filename);
 
 };
 

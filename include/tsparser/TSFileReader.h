@@ -42,10 +42,10 @@ class TSFileReader {
 
 	public:
 		TSFileReader();
-		TSFileReader(string filename);
+		TSFileReader(const string& filename);
 		virtual ~TSFileReader();
 
-		void setFilename(string filename);
+		void setFilename(const string& filename);
 
 		int getBuffer(char** buffer);
 		int getLoopCount();
@@ -55,7 +55,7 @@ class TSFileReader {
 		int goTo(int64_t position);
 		unsigned char getPacketSize();
 
-		static int readPacketSize(string filename);
+		static int readPacketSize(const string& filename);
 
 };
 

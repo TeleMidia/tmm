@@ -15,7 +15,7 @@ using namespace br::pucrio::telemidia::tool;
 
 const char *program_name;
 
-int readTSInfo(string file) {
+int readTSInfo(const string& file) {
 	TSFileReader tsFile;
 	TSInfo tsInfo;
 
@@ -31,7 +31,7 @@ int readTSInfo(string file) {
 
 void printHelp() {
 	cout << endl;
-	cout << "Telemidia Multiplexer. Version 0.3 (Build 8)." << endl;
+	cout << "Telemidia Multiplexer. Version 0.3 (Build 9)." << endl;
 	cout << "Copyright(c) 1989-2014, PUC-RIO/LABORATORIO TELEMIDIA." << endl;
 	cout << "All Rights Reserved." << endl;
 	cout << "http://www.telemidia.puc-rio.br" << endl;

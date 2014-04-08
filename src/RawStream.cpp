@@ -106,7 +106,7 @@ void RawStream::addSection(PrivateSection* sec) {
 	blockList.push_back(myp);
 }
 
-bool RawStream::addSection(string filename) {
+bool RawStream::addSection(const string& filename) {
 	FILE * pFile;
 	size_t size, result, secPos = 0;
 	unsigned short secLen;

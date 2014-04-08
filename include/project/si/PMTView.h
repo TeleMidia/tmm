@@ -67,7 +67,7 @@ class PMTView : public ProjectInfo {
 		unsigned short getPcrPid();
 		void setPcrPeriod(unsigned int freq);
 		unsigned int getPcrPeriod();
-		void setServiceName(string name);
+		void setServiceName(const string& name);
 		string getServiceName();
 		void setServiceType(short int st);
 		short int getServiceType();

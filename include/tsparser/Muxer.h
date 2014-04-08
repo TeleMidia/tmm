@@ -143,11 +143,11 @@ class Muxer {
 		unsigned int getTsBitrate();
 		void setPacketSize(unsigned char size);
 		unsigned char getPacketSize();
-		void setDestination(string dest);
+		void setDestination(const string& dest);
 		string getDestination();
 		void setIsPipe(bool isPipe);
-		void setExternalApp(string app);
-		void setAppParams(string params);
+		void setExternalApp(const string& app);
+		void setAppParams(const string& params);
 		void setStcReference(int64_t stcBegin);
 		int64_t getCurrentStc();
 		int64_t getStcBegin();

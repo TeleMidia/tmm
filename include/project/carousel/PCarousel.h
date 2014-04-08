@@ -31,9 +31,9 @@ class PCarousel : public ProjectInfo, public Carousel {
 		PCarousel();
 		virtual ~PCarousel();
 
-		void setOutputFile(string filename);
+		void setOutputFile(const string& filename);
 		string getOutputFile();
-		void setTempFolder(string folder);
+		void setTempFolder(const string& folder);
 		string getTempFolder();
 
 };

@@ -46,11 +46,11 @@ class Pipe {
 
 	public:
 		Pipe();
-		Pipe(string pipeName);
+		Pipe(const string& pipeName);
 		virtual ~Pipe();
 
 		bool checkPipeDescriptor();
-		void setPipeName(string name);
+		void setPipeName(const string& name);
 		string getPipeName();
 		bool createPipe();
 		bool openPipe();

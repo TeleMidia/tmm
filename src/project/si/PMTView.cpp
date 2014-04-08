@@ -74,7 +74,7 @@ unsigned int PMTView::getPcrPeriod() {
 	return pcrPeriod;
 }
 
-void PMTView::setServiceName(string name) {
+void PMTView::setServiceName(const string& name) {
 	serviceName = name;
 }
 

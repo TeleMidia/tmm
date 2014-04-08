@@ -67,7 +67,7 @@ class PESStream : public Stream {
 		void setIsVideoStream(bool v);
 		void setHasDts(bool has);
 		void addPidFilter(unsigned short pid);
-		void setFilename(string filename);
+		void setFilename(const string& filename);
 		void setStreamId(unsigned char id);
 
 		void setInputRangeList(vector<InputRange*>* irl);
