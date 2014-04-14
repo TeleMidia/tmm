@@ -28,6 +28,7 @@ Project::Project() {
 	isPipe = false;
 	areaCode1 = 0;
 	areaCode2 = 0;
+	fillCommandTagList();
 	fillRegionList();
 }
 
@@ -192,7 +193,7 @@ bool Project::createStreamEvent(PStreamEvent* pse) {
 				break;
 			case SE_START_DOCUMENT:
 				ret = sprintf(privateStr,
-						"\"%s\",\"%s\",\"\",\"\",\"\",\"\"",
+						"\"%s\",\"%s\",\"null\",\"null\",\"null\",\"null\"",
 						pse->getBaseId().c_str(),
 						pse->getDocumentId().c_str());
 				break;
@@ -561,6 +562,54 @@ void Project::setUseNit(bool use) {
 
 bool Project::getUseNit() {
 	return useNit;
+}
+
+void Project::fillCommandTagList() {
+	commandTagList["openbase"] = SE_OPEN_BASE;
+	commandTagList["activatebase"] = SE_ACTIVATE_BASE;
+	commandTagList["deactivatebase"] = SE_DEACTIVATE_BASE;
+	commandTagList["savebase"] = SE_SAVE_BASE;
+	commandTagList["closebase"] = SE_CLOSE_BASE;
+	commandTagList["adddocument"] = SE_ADD_DOCUMENT;
+	commandTagList["removedocument"] = SE_REMOVE_DOCUMENT;
+	commandTagList["startdocument"] = SE_START_DOCUMENT;
+	commandTagList["stopdocument"] = SE_STOP_DOCUMENT;
+	commandTagList["pausedocument"] = SE_PAUSE_DOCUMENT;
+	commandTagList["resumedocument"] = SE_RESUME_DOCUMENT;
+	commandTagList["savedocument"] = SE_SAVE_DOCUMENT;
+	commandTagList["addregionbase"] = SE_ADD_REGION_BASE;
+	commandTagList["removeregionbase"] = SE_REMOVE_REGION_BASE;
+	commandTagList["addrule"] = SE_ADD_RULE;
+	commandTagList["removerule"] = SE_REMOVE_RULE;
+	commandTagList["addrulebase"] = SE_ADD_RULE_BASE;
+	commandTagList["removerulebase"] = SE_REMOVE_RULE_BASE;
+	commandTagList["addconnector"] = SE_ADD_CONNECTOR;
+	commandTagList["removeconnector"] = SE_REMOVE_CONNECTOR;
+	commandTagList["addconnectorbase"] = SE_ADD_CONNECTOR_BASE;
+	commandTagList["removeconnectorbase"] = SE_REMOVE_CONNECTOR_BASE;
+	commandTagList["adddescriptor"] = SE_ADD_DESCRIPTOR;
+	commandTagList["removedescriptor"] = SE_REMOVE_DESCRIPTOR;
+	commandTagList["adddescriptorswitch"] = SE_ADD_DESCRIPTOR_SWITCH;
+	commandTagList["removedescriptorswitch"] = SE_REMOVE_DESCRIPTOR_SWITCH;
+	commandTagList["adddescriptorbase"] = SE_ADD_DESCRIPTOR_BASE;
+	commandTagList["removedescriptorbase"] = SE_REMOVE_DESCRIPTOR_BASE;
+	commandTagList["addtransition"] = SE_ADD_TRANSITION;
+	commandTagList["removetransition"] = SE_REMOVE_TRANSITION;
+	commandTagList["addtransitionbase"] = SE_ADD_TRANSITION_BASE;
+	commandTagList["removetransitionbase"] = SE_REMOVE_TRANSITION_BASE;
+	commandTagList["addimportbase"] = SE_ADD_IMPORT_BASE;
+	commandTagList["removeimportbase"] = SE_REMOVE_IMPORT_BASE;
+	commandTagList["addimporteddocumentbase"] = SE_ADD_IMPORTED_DOCUMENT_BASE;
+	commandTagList["removeimporteddocumentbase"] = SE_REMOVE_IMPORTED_DOCUMENT_BASE;
+	commandTagList["addimportncl"] = SE_ADD_IMPORT_NCL;
+	commandTagList["removeimportncl"] = SE_REMOVE_IMPORT_NCL;
+	commandTagList["addnode"] = SE_ADD_NODE;
+	commandTagList["removenode"] = SE_REMOVE_NODE;
+	commandTagList["addinterface"] = SE_ADD_INTERFACE;
+	commandTagList["removeinterface"] = SE_REMOVE_INTERFACE;
+	commandTagList["addlink"] = SE_ADD_LINK;
+	commandTagList["removelink"] = SE_REMOVE_LINK;
+	commandTagList["setpropertyvalue"] = SE_SET_PROPERTY_VALUE;
 }
 
 void Project::fillRegionList() {

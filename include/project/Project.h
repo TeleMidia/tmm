@@ -48,6 +48,8 @@ class Project {
 	private:
 
 	protected:
+		map<string, unsigned char> commandTagList;
+
 		string filename;
 		string projectName;
 		string projectDescription;
@@ -93,6 +95,7 @@ class Project {
 		bool changeToProjectDir();
 		bool mountCarousel(PCarousel* pcar);
 		bool createStreamEvent(PStreamEvent* pse);
+		void fillCommandTagList();
 		void fillRegionList();
 
 	public:

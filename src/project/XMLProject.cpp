@@ -257,10 +257,14 @@ int XMLProject::parseStreamEvent(XMLNode* m, XMLElement* f) {
 		value = LocalLibrary::getAttribute(f, "baseid");
 		if (value.size()) {
 			pse->setBaseId(value);
+		} else {
+			pse->setBaseId("null");
 		}
 		value = LocalLibrary::getAttribute(f, "documentid");
 		if (value.size()) {
 			pse->setDocumentId(value);
+		} else {
+			pse->setDocumentId("null");
 		}
 		value = LocalLibrary::getAttribute(f, "layer");
 		if (value.size()) {
@@ -293,6 +297,8 @@ int XMLProject::parseStreamEvent(XMLNode* m, XMLElement* f) {
 				return -9;
 			}
 			pse->setCarouselProj(proj);
+		} else {
+			pse->setEntryPoint("null");
 		}
 		for (o = f->FirstChild(); o; o = o->NextSibling()) {
 			g = o->ToElement();
@@ -309,96 +315,8 @@ int XMLProject::parseStreamEvent(XMLNode* m, XMLElement* f) {
 				} else se->setEventNPT(0);
 				value1 = LocalLibrary::getAttribute(g, "commandtag");
 				if (value1.size()) {
-					if (value1 == "openbase") {
-						se->setCommandTag(SE_OPEN_BASE);
-					} else if (value1 == "activatebase") {
-						se->setCommandTag(SE_ACTIVATE_BASE);
-					} else if (value1 == "deactivatebase") {
-						se->setCommandTag(SE_DEACTIVATE_BASE);
-					} else if (value1 == "savebase") {
-						se->setCommandTag(SE_SAVE_BASE);
-					} else if (value1 == "closebase") {
-						se->setCommandTag(SE_CLOSE_BASE);
-					} else if (value1 == "adddocument") {
-						se->setCommandTag(SE_ADD_DOCUMENT);
-					} else if (value1 == "removedocument") {
-						se->setCommandTag(SE_REMOVE_DOCUMENT);
-					} else if (value1 == "startdocument") {
-						se->setCommandTag(SE_START_DOCUMENT);
-					} else if (value1 == "stopdocument") {
-						se->setCommandTag(SE_STOP_DOCUMENT);
-					} else if (value1 == "pausedocument") {
-						se->setCommandTag(SE_PAUSE_DOCUMENT);
-					} else if (value1 == "resumedocument") {
-						se->setCommandTag(SE_RESUME_DOCUMENT);
-					} else if (value1 == "savedocument") {
-						se->setCommandTag(SE_SAVE_DOCUMENT);
-					} else if (value1 == "addregionbase") {
-						se->setCommandTag(SE_ADD_REGION_BASE);
-					} else if (value1 == "removeregionbase") {
-						se->setCommandTag(SE_REMOVE_REGION_BASE);
-					} else if (value1 == "addrule") {
-						se->setCommandTag(SE_ADD_RULE);
-					} else if (value1 == "removerule") {
-						se->setCommandTag(SE_REMOVE_RULE);
-					} else if (value1 == "addrulebase") {
-						se->setCommandTag(SE_ADD_RULE_BASE);
-					} else if (value1 == "removerulebase") {
-						se->setCommandTag(SE_REMOVE_RULE_BASE);
-					} else if (value1 == "addconnector") {
-						se->setCommandTag(SE_ADD_CONNECTOR);
-					} else if (value1 == "removeconnector") {
-						se->setCommandTag(SE_REMOVE_CONNECTOR);
-					} else if (value1 == "addconnectorbase") {
-						se->setCommandTag(SE_ADD_CONNECTOR_BASE);
-					} else if (value1 == "removeconnectorbase") {
-						se->setCommandTag(SE_REMOVE_CONNECTOR_BASE);
-					} else if (value1 == "adddescriptor") {
-						se->setCommandTag(SE_ADD_DESCRIPTOR);
-					} else if (value1 == "removedescriptor") {
-						se->setCommandTag(SE_REMOVE_DESCRIPTOR);
-					} else if (value1 == "adddescriptorswitch") {
-						se->setCommandTag(SE_ADD_DESCRIPTOR_SWITCH);
-					} else if (value1 == "removedescriptorswitch") {
-						se->setCommandTag(SE_REMOVE_DESCRIPTOR_SWITCH);
-					} else if (value1 == "adddescriptorbase") {
-						se->setCommandTag(SE_ADD_DESCRIPTOR_BASE);
-					} else if (value1 == "removedescriptorbase") {
-						se->setCommandTag(SE_REMOVE_DESCRIPTOR_BASE);
-					} else if (value1 == "addtransition") {
-						se->setCommandTag(SE_ADD_TRANSITION);
-					} else if (value1 == "removetransition") {
-						se->setCommandTag(SE_REMOVE_TRANSITION);
-					} else if (value1 == "addtransitionbase") {
-						se->setCommandTag(SE_ADD_TRANSITION_BASE);
-					} else if (value1 == "removetransitionbase") {
-						se->setCommandTag(SE_REMOVE_TRANSITION_BASE);
-					} else if (value1 == "addimportbase") {
-						se->setCommandTag(SE_ADD_IMPORT_BASE);
-					} else if (value1 == "removeimportbase") {
-						se->setCommandTag(SE_REMOVE_IMPORT_BASE);
-					} else if (value1 == "addimporteddocumentbase") {
-						se->setCommandTag(SE_ADD_IMPORTED_DOCUMENT_BASE);
-					} else if (value1 == "removeimporteddocumentbase") {
-						se->setCommandTag(SE_REMOVE_IMPORTED_DOCUMENT_BASE);
-					} else if (value1 == "addimportncl") {
-						se->setCommandTag(SE_ADD_IMPORT_NCL);
-					} else if (value1 == "removeimportncl") {
-						se->setCommandTag(SE_REMOVE_IMPORT_NCL);
-					} else if (value1 == "addnode") {
-						se->setCommandTag(SE_ADD_NODE);
-					} else if (value1 == "removenode") {
-						se->setCommandTag(SE_REMOVE_NODE);
-					} else if (value1 == "addinterface") {
-						se->setCommandTag(SE_ADD_INTERFACE);
-					} else if (value1 == "removeinterface") {
-						se->setCommandTag(SE_REMOVE_INTERFACE);
-					} else if (value1 == "addlink") {
-						se->setCommandTag(SE_ADD_LINK);
-					} else if (value1 == "removelink") {
-						se->setCommandTag(SE_REMOVE_LINK);
-					} else if (value1 == "setpropertyvalue") {
-						se->setCommandTag(SE_SET_PROPERTY_VALUE);
+					if (commandTagList.count(value1)) {
+						se->setCommandTag(commandTagList[value1]);
 					} else {
 						cout << "streamevent: 'commandtag' not recognized." << endl;
 						delete se;
