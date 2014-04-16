@@ -74,6 +74,8 @@ class Project {
 		unsigned char transmissionMode;
 		unsigned short packetsInBuffer;
 
+		bool partialReception;
+
 		map<string, unsigned char> regionList;
 		unsigned char areaCode1;
 		unsigned char areaCode2;

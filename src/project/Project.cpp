@@ -20,6 +20,7 @@ Project::Project() {
 	vbvBuffer = 1.0;
 	ttl = 16;
 	packetsInBuffer = 40;
+	partialReception = true;
 	useTot = false;
 	useSdt = false;
 	useNit = false;
@@ -388,9 +389,15 @@ int Project::configNit(vector<pmtViewInfo*>* newTimeline, ProjectInfo* nit) {
 	}
 	ti->descriptorList.push_back(tds);
 
-	if (orderedPmtList.size()) {
+	if (partialReception) {
 		PartialReception* pr = new PartialReception();
-		pr->addServiceId(orderedPmtList.begin()->second->getProgramNumber());
+		itOrd = orderedPmtList.begin();
+		while (itOrd != orderedPmtList.end()) {
+			if (itOrd->second->getServiceType() == SRV_TYPE_ONESEG) {
+				pr->addServiceId(itOrd->second->getProgramNumber());
+			}
+			++itOrd;
+		}
 		ti->descriptorList.push_back(pr);
 	}
 

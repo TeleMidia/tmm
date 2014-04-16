@@ -1349,21 +1349,21 @@ int XMLProject::processOutputProperties(XMLElement *top) {
 					return -6;
 				}
 			}
+			value1 = LocalLibrary::getAttribute(e, "partialreception");
+			if (value1.size()) {
+				if (value1 == "true") {
+					partialReception = true;
+				} else {
+					partialReception = false;
+				}
+			}
 
 			if (packetSize == 204) {
 				iip = new IIP();
 				TransmissionParameters* tp;
 				MCCI* mcci = new MCCI();
 				ConfigurationInformation* ci = new ConfigurationInformation;
-				ci->partialReceptionFlag = true;
-				value1 = LocalLibrary::getAttribute(e, "partialreception");
-				if (value1.size()) {
-					if (value1 == "true") {
-						ci->partialReceptionFlag = true;
-					} else {
-						ci->partialReceptionFlag = false;
-					}
-				}
+				ci->partialReceptionFlag = partialReception;
 				value1 = LocalLibrary::getAttribute(e, "modulationlayera");
 				if (value1.size()) {
 					tp = new TransmissionParameters;
