@@ -113,7 +113,8 @@ class Project {
 		int configAit(PAit* ait, unsigned int ctag, const string& aName,
 				const string& lang, const string& baseDir,
 				const string& initClass, unsigned int orgId,
-				unsigned short appId, unsigned int appcode);
+				unsigned short appId, unsigned int appcode,
+				unsigned char recommendedResolution);
 		int configAitService(ProjectInfo* ait, unsigned short serviceId,
 				unsigned char ctag);
 		int configSdt(vector<pmtViewInfo*>* newTimeline, ProjectInfo* sdt);

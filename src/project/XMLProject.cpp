@@ -334,7 +334,7 @@ int XMLProject::parseStreamEvent(XMLNode* m, XMLElement* f) {
 					se->setPrivateDataPayload((char*)params.c_str(), params.size());
 				}
 				se->setSequenceNumber(0);
-				se->setFinalFlag(1);
+				se->setFinalFlag(0);
 				pse->addStreamEvent(se);
 			}
 		}
@@ -483,7 +483,7 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 		for (o = f->FirstChild(); o; o = o->NextSibling()) {
 			g = o->ToElement();
 			if (strcmp(o->Value(), "carouselref") == 0) {
-				unsigned int orgId, appId, appcode;
+				unsigned int orgId, appId, appcode, rres;
 				string appname, lang, basedir, entrypoint;
 				value = LocalLibrary::getAttribute(g, "carouselid");
 				num = getId(value);
@@ -518,6 +518,45 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 						appcode = CC_UNBOUND;
 					} else {
 						cout << "ait: 'appcontrolcode' not recognized ("
+							 << value << ")" << endl;
+						return -6;
+					}
+				}
+				rres = RR_MULTIPLE_SIZES_RESOLUTIONS;
+				value = LocalLibrary::getAttribute(g, "resolution");
+				if (value.size()) {
+					if (value == "1920-1080-16-9") {
+						rres = RR_1920_1080_16_9;
+					} else if (value == "1280-720-16-9") {
+						rres = RR_1280_720_16_9;
+					} else if (value == "960-540-16-9") {
+						rres = RR_960_540_16_9;
+					} else if (value == "720-480-16-9") {
+						rres = RR_720_480_16_9;
+					} else if (value == "720-480-4-3") {
+						rres = RR_720_480_4_3;
+					} else if (value == "160-120-4-3") {
+						rres = RR_160_120_4_3;
+					} else if (value == "160-90-16-9") {
+						rres = RR_160_90_16_9;
+					} else if (value == "320-240-4-3") {
+						rres = RR_320_240_4_3;
+					} else if (value == "320-180-16-9") {
+						rres = RR_320_180_16_9;
+					} else if (value == "352-288-4-3") {
+						rres = RR_352_288_4_3;
+					} else if (value == "240-n-portrait") {
+						rres = RR_240_N_PORTRAIT;
+					} else if (value == "n-240-landscape") {
+						rres = RR_N_240_LANDSCAPE;
+					} else if (value == "480-n-portrait") {
+							rres = RR_480_N_PORTRAIT;
+					} else if (value == "n-480-landscape") {
+						rres = RR_N_480_LANDSCAPE;
+					} else if (value == "multiplesizesresolutions") {
+						rres = RR_MULTIPLE_SIZES_RESOLUTIONS;
+					} else {
+						cout << "ait: 'resolution' not recognized ("
 							 << value << ")" << endl;
 						return -6;
 					}
@@ -557,7 +596,7 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 					ait->setCarouselProj(proj);
 					configAit(ait, ((PCarousel*)proj)->getServiceDomain(),
 							appname, lang, basedir,
-							entrypoint, orgId, appId, appcode);
+							entrypoint, orgId, appId, appcode, rres);
 					(*projectList)[ait->getId()] = ait;
 				} else {
 					delete ait;

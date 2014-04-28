@@ -225,7 +225,8 @@ bool Project::createStreamEvents() {
 
 int Project::configAit(PAit* ait, unsigned int ctag, const string& aName,
 		const string& lang, const string& baseDir, const string& initClass,
-		unsigned int orgId, unsigned short appId, unsigned int appcode) {
+		unsigned int orgId, unsigned short appId, unsigned int appcode,
+		unsigned char recommendedResolution) {
 	vector<MpegDescriptor*>* dlist = new vector<MpegDescriptor*>;
 
 	TransportProtocol* tp = new TransportProtocol();
@@ -273,7 +274,7 @@ int Project::configAit(PAit* ait, unsigned int ctag, const string& aName,
 		dlist->push_back(gal);
 	}
 
-	ait->addApplicationInfo(orgId, appId, appcode, dlist);
+	ait->addApplicationInfo(orgId, appId, appcode, recommendedResolution, dlist);
 
 	return 0;
 }
