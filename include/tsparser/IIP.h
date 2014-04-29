@@ -24,6 +24,7 @@ class IIP {
 
 	protected:
 		char* stream;
+		unsigned short currentSize;
 
 		unsigned short IIPPacketPointer;
 		MCCI* mcci;
@@ -35,6 +36,8 @@ class IIP {
 	public:
 		IIP();
 		virtual ~IIP();
+
+		int addData(char* data, unsigned short length);
 
 		void setIIPPacketPointer(unsigned short pointer);
 		void setMcci(MCCI* mcci);

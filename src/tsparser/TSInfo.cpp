@@ -13,15 +13,13 @@ namespace telemidia {
 namespace tool {
 
 TSInfo::TSInfo() {
-	pat = NULL;
 	tsReader = NULL;
-	firstPts = -1;
+	init();
 }
 
 TSInfo::TSInfo(TSFileReader* tsReader) {
-	pat = NULL;
 	this->tsReader = tsReader;
-	firstPts = -1;
+	init();
 }
 
 TSInfo::~TSInfo() {
@@ -29,8 +27,18 @@ TSInfo::~TSInfo() {
 	clearPmtList();
 }
 
+void TSInfo::init() {
+	pat = NULL;
+	tot = NULL;
+	sdt = NULL;
+	nit = NULL;
+	iip = NULL;
+	firstPts = -1;
+	packetCounter = 0;
+}
+
 void TSInfo::clearPmtList() {
-	map<unsigned short,Pmt*>::iterator it;
+	map<unsigned short,PmtInfo*>::iterator it;
 
 	it = pmtList.begin();
 	while (it != pmtList.end()) {
@@ -48,7 +56,7 @@ void TSInfo::setTSFileReader(TSFileReader* tsReader) {
 }
 
 unsigned char TSInfo::getStreamType(unsigned short pid) {
-	map<unsigned short,Pmt*>::iterator it;
+	map<unsigned short,PmtInfo*>::iterator it;
 	map<unsigned short, unsigned char>::iterator itEs;
 	it = pmtList.begin();
 	while (it != pmtList.end()) {
@@ -61,14 +69,51 @@ unsigned char TSInfo::getStreamType(unsigned short pid) {
 	return 255;
 }
 
-bool TSInfo::readInfo() {
+bool TSInfo::processPacket(TSPacket *packet, PrivateSection **section) {
+	unsigned char len;
+	char* payload;
+
+	packet->process();
+	if (*section) {
+		if ((*section)->isConsolidated()) {
+			return true;
+		} else {
+			len = packet->getPayload(&payload);
+			(*section)->addData(payload, len);
+		}
+	} else if (packet->getStartIndicator() &&
+			  (packet->getAdaptationFieldControl() == 1 ||
+			   packet->getAdaptationFieldControl() == 3)) {
+		len = packet->getPayload(&payload);
+		switch (packet->getPid()) {
+		case 0x0000:
+			(*section) = new PatInfo();
+			break;
+		case 0x0010:
+			(*section) = new NitInfo();
+			break;
+		case 0x0011:
+			(*section) = new SdtInfo();
+			break;
+		case 0x0014:
+			(*section) = new TotInfo();
+			break;
+		}
+		(*section)->addData(payload, len);
+	}
+	return true;
+}
+
+bool TSInfo::readInfo(unsigned char mode) {
 	unsigned short pid;
 	unsigned char len;
 	char* payload;
-	Pmt* pmt;
-	map<unsigned short, Pmt*>::iterator pmtIt;
+	PmtInfo* pmt;
+	map<unsigned short, PmtInfo*>::iterator pmtIt;
 	TSPacket *packet;
 	char* buffer;
+	bool pmtListOk = false;
+	set<unsigned char>* layers;
 
 	if (!tsReader) return false;
 
@@ -80,25 +125,25 @@ bool TSInfo::readInfo() {
 		}
 
 		pid = packet->getPid();
+		packetCounter++;
+
+		if (tsReader->getPacketSize() == 204) {
+			ISDBTInformation* isdbt;
+			if (layerList.count(pid)) {
+				layers = layerList[pid];
+			} else {
+				layers = new set<unsigned char>;
+				layerList[pid] = layers;
+			}
+			isdbt = new ISDBTInformation(buffer + 188);
+			layers->insert(isdbt->getLayerIndicator());
+			delete isdbt;
+		}
 
 		if (pid == 0x00) {
-			packet->process();
-			if (pat) {
-				if (pat->isConsolidated()) {
-					continue;
-				} else {
-					len = packet->getPayload(&payload);
-					pat->addData(payload, len);
-				}
-			} else if (packet->getStartIndicator() &&
-					  (packet->getAdaptationFieldControl() == 1 ||
-					   packet->getAdaptationFieldControl() == 3)) {
-				len = packet->getPayload(&payload);
-				pat = new Pat();
-				pat->addData(payload, len);
-			}
+			processPacket(packet, (PrivateSection**)&pat);
 		} else if (pat && pat->isConsolidated()) {
-			if (pat->getPmtList()->count(pid)) {
+			if ((!pmtListOk) && pat->getPmtList()->count(pid)) {
 				packet->process();
 				pmtIt = pmtList.find(pid);
 				if (pmtIt != pmtList.end()) {
@@ -113,11 +158,39 @@ bool TSInfo::readInfo() {
 						  (packet->getAdaptationFieldControl() == 1 ||
 						   packet->getAdaptationFieldControl() == 3)) {
 					len = packet->getPayload(&payload);
-					pmt = new Pmt();
+					pmt = new PmtInfo();
 					pmt->addData(payload, len);
+					pmt->setPid(pid);
 					pmtList[pid] = pmt;
 				}
-				if (checkPmtsCount()) break;
+				pmtListOk = checkPmtsCount();
+			} else { //other PIDs
+				switch (packet->getPid()) {
+				case 0x0010:
+					processPacket(packet, (PrivateSection**)&nit);
+					break;
+				case 0x0011:
+					processPacket(packet, (PrivateSection**)&sdt);
+					break;
+				case 0x0014:
+					processPacket(packet, (PrivateSection**)&tot);
+					break;
+				case 0x1FF0:
+					if (!iip) {
+						packet->process();
+						if (packet->getStartIndicator() &&
+							(packet->getAdaptationFieldControl() == 1 ||
+							 packet->getAdaptationFieldControl() == 3)) {
+							len = packet->getPayload(&payload);
+							iip = new IIPInfo();
+							iip->addData(payload, len);
+						}
+					}
+					break;
+				}
+				if ((pmtListOk && (mode == 0)) ||
+					(pmtListOk && nit && sdt && tot && iip) ||
+					packetCounter >= 550000) break;
 			}
 		}
 		delete packet;
@@ -127,7 +200,7 @@ bool TSInfo::readInfo() {
 
 bool TSInfo::checkPmtsCount() {
 	if (pat->getPmtList()->size() == pmtList.size()) {
-		map<unsigned short,Pmt*>::iterator it;
+		map<unsigned short,PmtInfo*>::iterator it;
 		it = pmtList.begin();
 		while (it != pmtList.end()) {
 			if (!it->second->isConsolidated()) {
@@ -325,9 +398,9 @@ bool TSInfo::isVideoStreamType(unsigned char st) {
 	return true;
 }
 
-void TSInfo::printTable() {
-	Pmt* pmt;
-	map<unsigned short, Pmt*>::iterator j;
+void TSInfo::printESTable() {
+	PmtInfo* pmt;
+	map<unsigned short, PmtInfo*>::iterator j;
 	map<unsigned short, unsigned char>* esList;
 	map<unsigned short, unsigned char>::iterator k;
 
@@ -357,6 +430,95 @@ void TSInfo::printTable() {
 		}
 		++j;
 	}
+}
+
+bool TSInfo::printTables() {
+	map<unsigned short, PmtInfo*>::iterator it;
+
+	if (pat) {
+		cout << endl;
+		pat->printTable();
+	}
+
+	it = pmtList.begin();
+	while (it != pmtList.end()) {
+		cout << endl;
+		it->second->printTable();
+		++it;
+	}
+
+	if (nit) {
+		cout << endl;
+		nit->printTable();
+	}
+
+	if (sdt) {
+		cout << endl;
+		sdt->printTable();
+	}
+
+	if (tot) {
+		cout << endl;
+		tot->printTable();
+		cout << endl;
+	}
+
+	if (iip) {
+		cout << endl;
+		iip->printTable();
+		cout << endl;
+	}
+
+	if (layerList.size()) {
+		map<unsigned short, set<unsigned char>* >::iterator it;
+		set<unsigned char>* layers;
+		set<unsigned char>::iterator itLayer;
+
+		cout << endl <<
+			"TMCC - Transmission and Multiplexing Configuration Control"
+			<< endl <<
+			"----------------------------------------------------------"
+			<< endl << endl;
+
+		it = layerList.begin();
+		while (it != layerList.end()) {
+			layers = it->second;
+			cout << "PID " << it->first << ": ";
+			if (layers) {
+				itLayer = layers->begin();
+				while (itLayer != layers->end()) {
+					switch (*itLayer) {
+					case NULL_TSP:
+						cout << "NULL_TSP";
+						break;
+					case HIERARCHY_A:
+						cout << "A";
+						break;
+					case HIERARCHY_B:
+						cout << "B";
+						break;
+					case HIERARCHY_C:
+						cout << "C";
+						break;
+					case ACDATA_NO_HIERARCHY:
+						cout << "ACDATA";
+						break;
+					case IIP_NO_HIERARCHY:
+						cout << "IIP";
+						break;
+					}
+					++itLayer;
+					if (itLayer != layers->end()) cout << ", ";
+				}
+				cout << endl;
+			} else {
+				cout << "Not available." << endl;
+			}
+			++it;
+		}
+	}
+
+	return true;
 }
 
 }

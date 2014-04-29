@@ -14,6 +14,41 @@ namespace tool {
 namespace isdbt {
 
 ISDBTInformation::ISDBTInformation() {
+	init();
+}
+
+ISDBTInformation::ISDBTInformation(char* data) {
+	init();
+	memcpy(stream, data, 8);
+	TMCCIdentifier = (stream[0] & 0xC0) >> 6;
+	bufferResetControlFlag = (stream[0] & 0x10) >> 4;
+	switchOnControlFlagForEmergencyBroadcasting = (stream[0] & 0x08) >> 3;
+	initializationTimingHeadPacketFlag = (stream[0] & 0x04) >> 2;
+	frameHeadPacketFlag = (stream[0] & 0x02) >> 1;
+	frameIndicator = (stream[0] & 0x01);
+
+	layerIndicator = (stream[1] & 0xF0) >> 4;
+	countDownIndex = (stream[1] & 0x0F);
+
+	ACDataInvalidFlag = (stream[2] & 0x80) >> 7;
+	ACDataEffectiveBytes = (stream[2] & 0x60) >> 5;
+	TSPCounter = (stream[2] & 0x1F) << 8;
+
+	TSPCounter |= (stream[3] & 0xFF);
+
+	if (!ACDataInvalidFlag) {
+		if (ACData) delete ACData;
+		ACData = new char[4];
+		memcpy(ACData, stream + 4, 4);
+	}
+}
+
+ISDBTInformation::~ISDBTInformation() {
+	if (stream) delete stream;
+	if (ACData) delete ACData;
+}
+
+void ISDBTInformation::init() {
 	TMCCIdentifier = TERRESTRIAL_DIGITAL_TV;
 	stream = new char[8];
 	ACData = NULL;
@@ -26,11 +61,6 @@ ISDBTInformation::ISDBTInformation() {
 	countDownIndex = 0x0F; //?
 	ACDataLength = 0;
 	TSPCounter = 0;
-}
-
-ISDBTInformation::~ISDBTInformation() {
-	if (stream) delete stream;
-	if (ACData) delete ACData;
 }
 
 void ISDBTInformation::setTMCCIdentifier(unsigned char id) {

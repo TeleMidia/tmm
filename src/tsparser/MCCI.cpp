@@ -14,6 +14,103 @@ namespace tool {
 namespace isdbt {
 
 MCCI::MCCI() {
+	init();
+}
+
+MCCI::MCCI(char* data) {
+	int pos;
+
+	init();
+
+	memcpy(stream, data, 20);
+	ConfigurationInformation* ci;
+
+	TMCCSynchronizationWord = (stream[0] & 0x80) >> 7;
+	ACDataEffectivePosition = (stream[0] & 0x40) >> 6;
+	initializationTimingIndicator = stream[0] & 0x0F;
+
+	currentMode = (stream[1] & 0xC0) >> 6;
+	currentGuardInterval = (stream[1] & 0x30) >> 4;
+	nextMode = (stream[1] & 0x0C) >> 2;
+	nextGuardInterval = stream[1] & 0x03;
+
+	systemIdentifier = (stream[2] & 0xC0) >> 6;
+	countDownIndex = (stream[2] & 0x3C) >> 2;
+	switchOnControlFlag = (stream[2] & 0x02) >> 1;
+
+	pos = 2;
+
+	if (currentCI) delete currentCI;
+	currentCI = new ConfigurationInformation();
+	ci = currentCI;
+	for (int i = 0; i < 2; i++) {
+		ci->partialReceptionFlag = stream[pos] & 0x01;
+
+		pos++;
+
+		ci->tpLayerA = new TransmissionParameters();
+		ci->tpLayerA->modulationScheme = (stream[pos] & 0xE0) >> 5;
+		ci->tpLayerA->codingRateOfInnerCode = (stream[pos] & 0x1C) >> 2;
+		ci->tpLayerA->lengthOfTimeInterleaving = (stream[pos] & 0x03) << 1;
+
+		pos++;
+
+		ci->tpLayerA->lengthOfTimeInterleaving |= ((stream[pos] & 0x80) >> 7);
+		ci->tpLayerA->numberOfSegments = (stream[pos] & 0x78) >> 3;
+
+		ci->tpLayerB = new TransmissionParameters();
+		ci->tpLayerB->modulationScheme = stream[pos] & 0x07;
+
+		pos++;
+
+		ci->tpLayerB->codingRateOfInnerCode = (stream[pos] & 0xE0) >> 5;
+		ci->tpLayerB->lengthOfTimeInterleaving = (stream[pos] & 0x1C) >> 2;
+		ci->tpLayerB->numberOfSegments = (stream[pos] & 0x03) << 2;
+
+		pos++;
+
+		ci->tpLayerB->numberOfSegments |= ((stream[pos] & 0xC0) >> 6);
+
+		ci->tpLayerC = new TransmissionParameters();
+		ci->tpLayerC->modulationScheme = (stream[pos] & 0x38) >> 3;
+		ci->tpLayerC->codingRateOfInnerCode = stream[pos] & 0x03;
+
+		pos++;
+
+		ci->tpLayerC->lengthOfTimeInterleaving = (stream[pos] & 0xE0) >> 5;
+		ci->tpLayerC->numberOfSegments = (stream[pos] & 0x1E) >> 1;
+
+		if (nextCI) delete nextCI;
+		nextCI = new ConfigurationInformation();
+		ci = nextCI;
+	}
+
+	phaseCorrection = (stream[pos] & 0x01) << 2;
+
+	pos++;
+
+	phaseCorrection |= ((stream[pos] & 0xC0) >> 6);
+
+	pos += 3;
+
+	crc32 = (stream[pos] & 0xFF) << 24;
+	crc32 |= ((stream[pos+1] & 0xFF) << 16);
+	crc32 |= ((stream[pos+2] & 0xFF) << 8);
+	crc32 |= (stream[pos+3] & 0xFF);
+
+	/*Crc32 crc;
+	if (crc32 != crc.crc(stream, pos)) {
+
+	}*/
+}
+
+MCCI::~MCCI() {
+	if (stream) delete stream;
+	if (currentCI) delete currentCI;
+	if (nextCI) delete nextCI;
+}
+
+void MCCI::init() {
 	stream = new char[20];
 	currentCI = NULL;
 	nextCI = NULL;
@@ -23,12 +120,6 @@ MCCI::MCCI() {
 	countDownIndex = 0x0F;
 	switchOnControlFlag = false;
 	phaseCorrection = 0x07;
-}
-
-MCCI::~MCCI() {
-	if (stream) delete stream;
-	if (currentCI) delete currentCI;
-	if (nextCI) delete nextCI;
 }
 
 void MCCI::setTMCCSynchronizationWord(unsigned char sw) {

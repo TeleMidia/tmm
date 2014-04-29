@@ -15,6 +15,7 @@ namespace isdbt {
 
 IIP::IIP() {
 	stream = new char[184];
+	currentSize = 0;
 	mcci = NULL;
 	IIPPacketPointer = 1;
 	IIPBranchNumber = 0;
@@ -25,6 +26,30 @@ IIP::IIP() {
 IIP::~IIP() {
 	if (stream) delete stream;
 	if (mcci) delete mcci;
+}
+
+int IIP::addData(char* data, unsigned short length) {
+
+	if (currentSize + length > 184) return -1;
+
+	memcpy(stream + currentSize, data, length);
+
+	currentSize = currentSize + length;
+
+	if (currentSize >= 25) {
+		IIPPacketPointer = (((stream[0] & 0x1F) << 8) | (stream[1] & 0xFF));
+		if (mcci) delete mcci;
+		mcci = new MCCI(stream + 2);
+		IIPBranchNumber = stream[22] & 0xFF;
+		lastIIPBranchNumber = stream[23] & 0xFF;
+		nsiLength = stream[24] & 0xFF;
+
+		//TODO: Network Synchronization Information
+
+		return currentSize;
+	}
+
+	return currentSize;
 }
 
 void IIP::setIIPPacketPointer(unsigned short pointer) {

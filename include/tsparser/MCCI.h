@@ -80,8 +80,11 @@ class MCCI {
 		unsigned char phaseCorrection;
 		unsigned int crc32;
 
+		void init();
+
 	public:
 		MCCI();
+		MCCI(char* data);
 		virtual ~MCCI();
 
 		void setTMCCSynchronizationWord(unsigned char sw);

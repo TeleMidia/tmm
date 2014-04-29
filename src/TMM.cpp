@@ -53,7 +53,7 @@ int TMM::getTSInfo(InputData *inputList) {
 
 	tsFile.setFilename(inputList->getFilename());
 	tsInfo.setTSFileReader(&tsFile);
-	if (tsInfo.readInfo()) {
+	if (tsInfo.readInfo(0)) {
 		st = tsInfo.getStreamType(inputList->getPid());
 		if (st != 255) {
 			inputList->setStreamType(st);

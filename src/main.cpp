@@ -15,14 +15,21 @@ using namespace br::pucrio::telemidia::tool;
 
 const char *program_name;
 
-int readTSInfo(const string& file) {
+int readTSInfo(const string& file, unsigned char mode) {
 	TSFileReader tsFile;
 	TSInfo tsInfo;
 
 	tsFile.setFilename(file);
 	tsInfo.setTSFileReader(&tsFile);
-	if (tsInfo.readInfo()) {
-		tsInfo.printTable();
+	if (tsInfo.readInfo(mode)) {
+		switch (mode) {
+		case 0:
+			tsInfo.printESTable();
+			break;
+		case 1:
+			tsInfo.printTables();
+			break;
+		}
 		return 0;
 	} else {
 		return -1;
@@ -31,7 +38,7 @@ int readTSInfo(const string& file) {
 
 void printHelp() {
 	cout << endl;
-	cout << "Telemidia Multiplexer. Version 0.3 (Build 11)." << endl;
+	cout << "Telemidia Multiplexer. Version 0.4 (Build 1)." << endl;
 	cout << "Copyright(c) 1989-2014, PUC-RIO/LABORATORIO TELEMIDIA." << endl;
 	cout << "All Rights Reserved." << endl;
 	cout << "http://www.telemidia.puc-rio.br" << endl;
@@ -59,7 +66,13 @@ int main(int argc, char *argv[]) {
 
 	if (((strcmp(project_file, "--info") == 0) ||
 		 (strcmp(project_file, "-i") == 0)) && ts_output) {
-		readTSInfo(ts_output);
+		readTSInfo(ts_output, 0);
+		return 0;
+	}
+
+	if (((strcmp(project_file, "--fullinfo") == 0) ||
+		 (strcmp(project_file, "-fi") == 0)) && ts_output) {
+		readTSInfo(ts_output, 1);
 		return 0;
 	}
 

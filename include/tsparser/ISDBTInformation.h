@@ -48,8 +48,11 @@ class ISDBTInformation {
 		char* ACData;
 		unsigned short ACDataLength;
 
+		void init();
+
 	public:
 		ISDBTInformation();
+		ISDBTInformation(char* data);
 		virtual ~ISDBTInformation();
 
 		void setTMCCIdentifier(unsigned char id);
