@@ -805,7 +805,7 @@ void TMM::processPcrsInUse(vector<pmtViewInfo*>* newTimeline) {
 			if (showWarning && showOnce) {
 				cout << "Attention: PCR period values have been redefined to " <<
 						"default values in order to" << endl;
-				cout << "create a compliance TS for playback as ISDB-T." << endl;
+				cout << "create a compliant TS for playback as ISDB-T." << endl;
 				showOnce = false;
 			}
 		} else {

@@ -143,7 +143,8 @@ bool TSInfo::readInfo(unsigned char mode) {
 		if (pid == 0x00) {
 			processPacket(packet, (PrivateSection**)&pat);
 		} else if (pat && pat->isConsolidated()) {
-			if ((!pmtListOk) && pat->getPmtList()->count(pid)) {
+			if ((!pmtListOk) && (pid != 0x0010) &&
+					pat->getPmtList()->count(pid)) {
 				packet->process();
 				pmtIt = pmtList.find(pid);
 				if (pmtIt != pmtList.end()) {
@@ -199,7 +200,15 @@ bool TSInfo::readInfo(unsigned char mode) {
 }
 
 bool TSInfo::checkPmtsCount() {
-	if (pat->getPmtList()->size() == pmtList.size()) {
+	unsigned int pmtCount;
+
+	if (pat->getPmtList()->count(0x0010)) {
+		pmtCount = pat->getPmtList()->size() - 1;
+	} else {
+		pmtCount = pat->getPmtList()->size();
+	}
+
+	if (pat->getPmtList()->size() == pmtCount) {
 		map<unsigned short,PmtInfo*>::iterator it;
 		it = pmtList.begin();
 		while (it != pmtList.end()) {
