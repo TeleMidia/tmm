@@ -71,6 +71,35 @@ void Timeline::addTimeline(int64_t time, int64_t duration, PMTView* pmtView,
 
 }
 
+bool Timeline::removeOldTimelines(int64_t relStc) {
+	map<int64_t, vector<pmtViewInfo*>*>::iterator it;
+	vector<pmtViewInfo*>::iterator itV;
+
+	if (timelineList->size() < 2) return false;
+
+	it = timelineList->begin();
+	while (it != timelineList->end()) {
+		if ((it == timelineList->begin()) &&
+			((Stc::stcToSecond(relStc)*1000) >= it->first)) {
+			if (it->second) {
+				itV = it->second->begin();
+				while (itV != it->second->end()) {
+					delete (*itV);
+					++itV;
+				}
+				delete it->second;
+			}
+			timelineList->erase(it);
+			if (timelineList->size() < 2) return true;
+			it = timelineList->begin();
+			continue;
+		}
+		++it;
+	}
+
+	return true;
+}
+
 vector<pmtViewInfo*>* Timeline::currTimeline(int64_t relStc, int* condRet) {
 	map<int64_t, vector<pmtViewInfo*>*>::iterator itList;
 	map<int64_t, vector<pmtViewInfo*>*>::reverse_iterator it;
@@ -83,14 +112,14 @@ vector<pmtViewInfo*>* Timeline::currTimeline(int64_t relStc, int* condRet) {
 		if (Stc::stcToSecond(relStc)*1000 >= it->first) {
 			if (!it->second) {
 				map<int64_t, vector<pmtViewInfo*>*>* tempList;
-				int64_t startTime = 0;
+				uint64_t startTime = 0;
 				if (!isLoop) {
-					if (condRet) *condRet = 3; //End
+					if (condRet) *condRet = 3; //End of the timeline.
 					return NULL;
 				} else {
 					//TODO: Add a new project from here or
 
-					//use current project.
+					//use current overall project. Updating each timeline...
 					startTime = it->first;
 					tempList = new map<int64_t, vector<pmtViewInfo*>*>;
 

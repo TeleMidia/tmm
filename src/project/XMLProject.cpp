@@ -40,6 +40,7 @@ void XMLProject::init() {
 	xmldoc = new XMLDocument();
 	projectName.assign("Untitled project");
 	idIndex = 1;
+	relStc = 0;
 }
 
 vector<MetaData*>* XMLProject::getMetaDataList() {
@@ -1615,6 +1616,7 @@ int XMLProject::processOutput(XMLElement *top) {
 	XMLElement *e, *f, *g = NULL;
 	string value1, value2;
 	int num, id, ret;
+	bool isLiveVar = false;
 
 	for (n = top->FirstChild(); n; n = n->NextSibling()) {
 		e = n->ToElement();
@@ -1636,13 +1638,32 @@ int XMLProject::processOutput(XMLElement *top) {
 
 			timeline->setIsLoop(isLoop);
 
-			unsigned int startTime = 0; //Each timeline duration is limited to 24 days
+			uint64_t startTime = 0; //Each timeline duration is limited to 24 days
 			for (m = e->FirstChild(); m; m = m->NextSibling()) {
+				if (isLiveVar) {
+					cout << "output: only the first timeline will be considered." << endl;
+					break;
+				}
 				f = m->ToElement();
 				if (strcmp(m->Value(), "item") == 0) {
-					if (f->QueryAttribute("dur", &num) != XML_NO_ERROR) {
-						cout << "output: attribute 'dur' not found." << endl;
-						return -4;
+					value1 = LocalLibrary::getAttribute(f, "live");
+					if (value1.size()) {
+						if (value1 == "true") {
+							isLiveVar = true;
+							isLive = true;
+						}
+					}
+					if (isLiveVar) {
+						num = 0;
+						startTime = (uint64_t) Stc::stcToSecond(relStc) * 1000;
+						if (startTime > 1000) {
+							cout << "Live action at " << startTime/1000 << endl;
+						}
+					} else {
+						if (f->QueryAttribute("dur", &num) != XML_NO_ERROR) {
+							cout << "output: attribute 'dur' not found." << endl;
+							return -4;
+						}
 					}
 					for (o = f->FirstChild(); o; o = o->NextSibling()) {
 						g = o->ToElement();
@@ -1677,10 +1698,10 @@ int XMLProject::processOutput(XMLElement *top) {
 					startTime += num;
 				}
 			}
-			timeline->addTimeline(startTime, //end of timeline (for reference purpose)
-								  0,
-								  NULL,
-								  -1);
+			if (!isLiveVar) {
+				 //end of timeline (for reference purpose)
+				timeline->addTimeline(startTime, 0, NULL, -1);
+			}
 		}
 	}
 
@@ -1761,6 +1782,48 @@ int XMLProject::readFile() {
 	}
 }
 
+int XMLProject::readLiveStream() {
+	if (!liveServer.checkMemoryDescriptor()) {
+		return -1;
+	} else {
+		const char* buffer;
+		int bufferSize;
+
+		bufferSize = liveServer.readSharedMemory(&buffer);
+		liveServer.grantAccessToForeign();
+
+		if (bufferSize <= 0) {
+			return -1;
+		} else {
+			enum XMLError err;
+			XMLElement *top;
+			XMLElement *e;
+			string value;
+			int ret;
+
+			xmldoc->Clear();
+			err = xmldoc->Parse(buffer, bufferSize);
+			if (err != XML_SUCCESS) {
+				return -2;
+			}
+
+			e = xmldoc->FirstChildElement("tmm");
+			if (e) {
+				top = xmldoc->FirstChildElement("tmm")->FirstChildElement("body");
+				if (top) {
+					ret = processInputs(top);
+					if (ret < 0) return ret;
+					return processOutput(top);
+				} else {
+					return -10;
+				}
+			} else {
+				return -11;
+			}
+		}
+	}
+	return 0;
+}
 
 }
 }

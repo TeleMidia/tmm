@@ -48,6 +48,7 @@ class Timeline : public ProjectInfo {
 
 		void addTimeline(int64_t time, int64_t duration, PMTView* pmtView,
 						 int priorId);
+		bool removeOldTimelines(int64_t relStc);
 		vector<pmtViewInfo*>* currTimeline(int64_t relStc, int* condRet);
 		vector<pmtViewInfo*>* getCurrentTimeline();
 		vector<pmtViewInfo*>* getPreviousTimeline();

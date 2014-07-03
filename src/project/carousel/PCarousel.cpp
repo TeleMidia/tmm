@@ -14,6 +14,7 @@ namespace tool {
 
 PCarousel::PCarousel() {
 	projectType = PT_CAROUSEL;
+	mounted = false;
 }
 
 PCarousel::~PCarousel() {
@@ -34,6 +35,14 @@ string PCarousel::getOutputFile() {
 
 string PCarousel::getTempFolder() {
 	return tempFolder;
+}
+
+void PCarousel::setMounted(bool mounted) {
+	this->mounted = mounted;
+}
+
+bool PCarousel::getMounted() {
+	return mounted;
 }
 
 }

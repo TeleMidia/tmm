@@ -29,8 +29,21 @@ Project::Project() {
 	isPipe = false;
 	areaCode1 = 0;
 	areaCode2 = 0;
+	isLive = false;
+
 	fillCommandTagList();
 	fillRegionList();
+
+	liveServer.setSharedMemoryName("tmm.live");
+	liveServer.showErrorMessages(false);
+	cout << "External communication status: ";
+	if (liveServer.createSharedMemory()) {
+		liveServer.grantAccessToForeign();
+		cout << "Available.";
+	} else {
+		cout << "Unavailable.";
+	}
+	cout << endl;
 }
 
 Project::~Project() {
@@ -106,6 +119,7 @@ bool Project::mountCarousel(PCarousel* pcar) {
 	pcar->setOutputFile(path);
 	pcar->setTempFolder(tempPath);
 	pcar->createCarousel(path, tempPath);
+	pcar->setMounted(true);
 
 	return true;
 }
@@ -120,7 +134,9 @@ bool Project::mountCarousels() {
 				++itProj;
 				continue;
 			}
-			mountCarousel((PCarousel*) itProj->second);
+			if (!((PCarousel*) itProj->second)->getMounted()) {
+				mountCarousel((PCarousel*) itProj->second);
+			}
 			++itProj;
 		}
 	}
@@ -203,6 +219,8 @@ bool Project::createStreamEvent(PStreamEvent* pse) {
 		}
 	}
 
+	pse->setProcessed(true);
+
 	return true;
 }
 
@@ -216,7 +234,9 @@ bool Project::createStreamEvents() {
 				++itProj;
 				continue;
 			}
-			createStreamEvent((PStreamEvent*) itProj->second);
+			if (!((PStreamEvent*) itProj->second)->getProcessed()) {
+				createStreamEvent((PStreamEvent*) itProj->second);
+			}
 			++itProj;
 		}
 	}
@@ -570,6 +590,14 @@ void Project::setUseNit(bool use) {
 
 bool Project::getUseNit() {
 	return useNit;
+}
+
+void Project::updateRelativeStc(int64_t relStc) {
+	this->relStc = relStc;
+}
+
+bool Project::getIsLive() {
+	return isLive;
 }
 
 void Project::fillCommandTagList() {

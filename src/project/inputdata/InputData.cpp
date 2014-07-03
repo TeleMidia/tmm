@@ -17,6 +17,7 @@ InputData::InputData() {
 	hasDts = false;
 	offset = -1;
 	firstPts = -1;
+	streamType = 0xFF;
 	projectType = PT_INPUTDATA;
 }
 
@@ -26,6 +27,7 @@ InputData::InputData(int id) {
 	hasDts = false;
 	offset = -1;
 	firstPts = -1;
+	streamType = 0xFF;
 	projectType = PT_INPUTDATA;
 }
 

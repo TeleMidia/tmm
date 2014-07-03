@@ -27,6 +27,7 @@ class PCarousel : public ProjectInfo, public Carousel {
 	protected:
 		string outputFile;
 		string tempFolder;
+		bool mounted;
 	public:
 		PCarousel();
 		virtual ~PCarousel();
@@ -35,6 +36,8 @@ class PCarousel : public ProjectInfo, public Carousel {
 		string getOutputFile();
 		void setTempFolder(const string& folder);
 		string getTempFolder();
+		void setMounted(bool mounted);
+		bool getMounted();
 
 };
 

@@ -24,7 +24,8 @@
 #include "Stc.h"
 #include "../tsparser/ISDBTInformation.h"
 #include "../tsparser/IIP.h"
-#include "LocalLibrary.h"
+#include "../LocalLibrary.h"
+#include "../SharedMemory.h"
 
 #include <inttypes.h>
 #include <iostream>
@@ -53,6 +54,7 @@ class Project {
 		string filename;
 		string projectName;
 		string projectDescription;
+		SharedMemory liveServer;
 
 		bool isLoop;
 		string destination;
@@ -93,6 +95,9 @@ class Project {
 		string externalApp;
 		string appParams;
 		string tmmPath;
+
+		uint64_t relStc;
+		bool isLive;
 
 		bool changeToProjectDir();
 		bool mountCarousel(PCarousel* pcar);
@@ -153,10 +158,14 @@ class Project {
 		bool getUseNit();
 		void setPacketSize(unsigned char size);
 		unsigned char getPacketSize();
+		bool getIsLive();
 
 		static unsigned char toLayer(const string& layer);
 
+		void updateRelativeStc(int64_t relStc);
+
 		virtual int readFile()=0;
+		virtual int readLiveStream()=0;
 
 };
 

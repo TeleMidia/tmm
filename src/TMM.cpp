@@ -73,17 +73,23 @@ int TMM::getTSInfo(InputData *inputList) {
 }
 
 bool TMM::loadProject() {
-	map<int, ProjectInfo*>::iterator it;
-
 	//read project file
 	if (project->readFile()) return false;
+
+	return true;
+}
+
+bool TMM::loadMediasProject() {
+	map<int, ProjectInfo*>::iterator it;
 
 	//get stream type of all pids
 	if (project->getProjectList()) {
 		it = project->getProjectList()->begin();
 		while (it != project->getProjectList()->end()) {
 			if (it->second && (it->second->getProjectType() == PT_INPUTDATA)) {
-				if (getTSInfo((InputData*)it->second) < 0) return false;
+				if (((InputData*)it->second)->getStreamType() == 0xFF) {
+					if (getTSInfo((InputData*)it->second) < 0) return false;
+				}
 			}
 			++it;
 		}
@@ -94,6 +100,98 @@ bool TMM::loadProject() {
 
 	//create streamevents
 	project->createStreamEvents();
+
+	return true;
+}
+
+bool TMM::removeUnusedProjects(vector<pmtViewInfo*>* currTimeline,
+								Timeline* proj) {
+	map<int, ProjectInfo*>* prjList;
+	map<int, ProjectInfo*>::iterator itPrj;
+	vector<pmtViewInfo*>::iterator itPmtViewInfo;
+	bool found, filter;
+	PMTView* pv;
+	map<unsigned short, vector<ProjectInfo*>*>* pif;
+	map<unsigned short, vector<ProjectInfo*>*>::iterator itPif;
+	vector<ProjectInfo*>* pi;
+	vector<ProjectInfo*>::iterator it;
+
+	if (project && currTimeline && proj) {
+		prjList = project->getProjectList();
+	} else {
+		return false;
+	}
+
+	itPrj = prjList->begin();
+	while (itPrj != prjList->end()) {
+		found = false;
+		filter = false;
+		switch (itPrj->second->getProjectType()) {
+		case PT_INPUTDATA:
+		case PT_NPT:
+		case PT_STREAMEVENT:
+		case PT_CAROUSEL:
+		case PT_AIT:
+		case PT_EIT_PF:
+			//If any of the above cases...
+			filter = true;
+			itPmtViewInfo = currTimeline->begin();
+			while (itPmtViewInfo != currTimeline->end()) {
+				pv = (*itPmtViewInfo)->pv;
+				if (itPrj->second->getProjectType() == PT_EIT_PF) {
+					if (((PEit*)itPrj->second) == pv->getEitProj()) {
+						found = true;
+						break;
+					}
+				} else {
+					pif = pv->getProjectInfoList();
+					itPif = pif->begin();
+					while (itPif != pif->end()) {
+						if (itPif->second) {
+							pi = itPif->second;
+							it = pi->begin();
+							while (it != pi->end()) {
+								if ((*it)->getId() == itPrj->second->getId()) {
+									found = true;
+									break;
+								}
+								++it;
+							}
+						}
+						if (found) break;
+						++itPif;
+					}
+					if (found) break;
+				}
+				++itPmtViewInfo;
+			}
+			break;
+		case PT_TIMELINE:
+			filter = true;
+			if (((Timeline*)itPrj->second) == proj) {
+				((Timeline*)itPrj->second)->removeOldTimelines(muxer->getRelativeStc());
+				found = true;
+			}
+			break;
+		case PT_PMTVIEW:
+			filter = true;
+			itPmtViewInfo = currTimeline->begin();
+			while (itPmtViewInfo != currTimeline->end()) {
+				if (((PMTView*)itPrj->second) == (*itPmtViewInfo)->pv) {
+					found = true;
+					break;
+				}
+				++itPmtViewInfo;
+			}
+			break;
+		}
+		if (filter && !found) {
+			delete (itPrj->second);
+			prjList->erase(itPrj++);
+		} else {
+			++itPrj;
+		}
+	}
 
 	return true;
 }
@@ -729,6 +827,9 @@ int TMM::multiplex() {
 				}
 			}
 			currTimeline = newTimeline;
+			if (project->getIsLive()) {
+				removeUnusedProjects(currTimeline, (Timeline*)proj);
+			}
 		}
 
 		ret = muxer->mainLoop();
@@ -741,6 +842,11 @@ int TMM::multiplex() {
 				cout << " ~ elapsed time = " <<
 					(int64_t) Stc::stcToSecond(muxer->getRelativeStc()) << endl;
 			}
+		}
+
+		project->updateRelativeStc(muxer->getRelativeStc());
+		if (project->readLiveStream() == 0) {
+			loadMediasProject();
 		}
 	}
 
@@ -1353,6 +1459,8 @@ int TMM::sendTo(const char* destination) {
 		cout << "TMM::sendTo - Error opening project." << endl;
 		return -1;
 	}
+
+	loadMediasProject();
 
 	if (destination) this->destination.assign(destination); else
 		this->destination = project->getDestination();

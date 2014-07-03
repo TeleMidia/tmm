@@ -56,6 +56,9 @@ class TMM {
 		ProjectInfo* getFirstProject(unsigned char projectType);
 		ProjectInfo* getFirstProjectReversed(unsigned char projectType);
 		bool loadProject();
+		bool loadMediasProject();
+		bool removeUnusedProjects(vector<pmtViewInfo*>* currTimeline,
+									Timeline* proj);
 
 		RawStream* prepareNewRawStream(ProjectInfo* proj, int64_t freq,
 										int64_t nextSend, bool destroyBlocks);

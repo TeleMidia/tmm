@@ -42,6 +42,7 @@ class PStreamEvent : public ProjectInfo, public Subscriber {
 		string entryPoint;
 		string baseId;
 		string documentId;
+		bool processed;
 
 	public:
 		PStreamEvent();
@@ -68,6 +69,8 @@ class PStreamEvent : public ProjectInfo, public Subscriber {
 		string getDocumentId();
 		vector<StreamEvent*>* getStreamEventList();
 		void resetSampleCount();
+		void setProcessed(bool processed);
+		bool getProcessed();
 
 };
 

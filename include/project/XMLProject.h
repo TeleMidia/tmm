@@ -74,6 +74,7 @@ class XMLProject : public Project {
 		vector<MetaData*>* getMetaDataList();
 
 		int readFile();
+		int readLiveStream();
 
 };
 

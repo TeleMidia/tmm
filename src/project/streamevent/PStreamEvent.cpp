@@ -23,6 +23,7 @@ PStreamEvent::PStreamEvent() {
 	baseId.clear();
 	sampleCount = 0;
 	lastVersion = 1;
+	processed = false;
 }
 
 PStreamEvent::~PStreamEvent() {
@@ -112,6 +113,14 @@ string PStreamEvent::getDocumentId() {
 
 void PStreamEvent::resetSampleCount() {
 	sampleCount = 0;
+}
+
+void PStreamEvent::setProcessed(bool processed) {
+	this->processed = processed;
+}
+
+bool PStreamEvent::getProcessed() {
+	return processed;
 }
 
 int PStreamEvent::encode(int64_t stc, vector<pair<char*,int>*>* list) {
