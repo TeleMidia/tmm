@@ -9,15 +9,16 @@ SET( PROJ_SOURCES   "" )
 FILE( GLOB_RECURSE PROJ_SOURCES src/*.cpp )
 SET( PROJ_HEADERS   "" )
 FILE( GLOB_RECURSE PROJ_HEADERS include/*.h )
-SET( PROJ_LIBRARIES "${PROJ_PATH}/../libmpeg2-build/libmpeg2-tm.a" "rt")
-SET( PROJ_INCLUDES  "include" "${PROJ_PATH}/../libmpeg2/include" )
+SET( PROJ_LIBRARIES "tmm-mpeg2ts" "rt")
+SET( PROJ_INCLUDES  "include" "tmm-mpeg2ts/include")
 
 PROJECT( ${PROJ_NAME} )
 
 INCLUDE_DIRECTORIES( ${PROJ_INCLUDES} )
 ADD_EXECUTABLE (${PROJ_NAME} ${PROJ_SOURCES})
 
-LINK_DIRECTORIES ( ${PROJ_PATH}/../libmpeg2-build ) 
-TARGET_LINK_LIBRARIES( ${PROJ_NAME} ${PROJ_LIBRARIES} )
+ADD_SUBDIRECTORY(tmm-mpeg2ts)
+
+TARGET_LINK_LIBRARIES( ${PROJ_NAME} ${PROJ_LIBRARIES} tmm-mpeg2ts)
 
 set(CMAKE_CXX_FLAGS "-g -Wall")
