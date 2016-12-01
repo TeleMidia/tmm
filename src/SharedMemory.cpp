@@ -113,7 +113,7 @@ bool SharedMemory::createSharedMemory() {
 	}
 
 	/* Map the memory object */
-	buffer = mmap( 0, MEMORY_BUFFER_SIZE,
+	buffer = (char *) mmap( 0, MEMORY_BUFFER_SIZE,
 			PROT_READ | PROT_WRITE,
 			MAP_SHARED, md, 0 );
 	if( buffer == MAP_FAILED ) {
@@ -169,7 +169,7 @@ bool SharedMemory::openSharedMemory() {
 	}
 
 	/* Map the memory object */
-	buffer = mmap( 0, MEMORY_BUFFER_SIZE,
+	buffer = (char *) mmap( 0, MEMORY_BUFFER_SIZE,
 			PROT_READ | PROT_WRITE,
 			MAP_SHARED, md, 0 );
 	if( buffer == MAP_FAILED ) {

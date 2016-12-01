@@ -50,7 +50,7 @@ class SharedMemory {
 	protected:
 	string sharedMemoryName;
 	MemoryDescriptor md;
-	const char* buffer;
+        char *buffer;
 	char control;
 	char foreignControl;
 	bool showErrorMsg;
