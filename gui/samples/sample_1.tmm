@@ -1,0 +1,35 @@
+<tmm>
+ <head/>
+ <body>
+  <inputs>
+   <pmt id="pmt">
+    <es refid="id1"/>
+    <es refid="id2"/>
+    <es refid="id3"/>
+    <es refid="id4"/>
+    <es refid="carousel"/>
+   </pmt>
+   <av pid="1001" id="id1" src="..."/>
+   <av pid="1002" id="id2" src="..."/>
+   <av pid="1003" id="id3" src="..."/>
+   <av pid="1004" id="id4" src="..."/>
+   <carousel bitrate="1000" id="carousel" src="./sample_carousel/"/>
+   <pmt id="mt">
+    <es refid="item1"/>
+    <es refid="item2"/>
+    <es refid="arousel"/>
+   </pmt>
+   <av pid="1001" id="item1" src="..."/>
+   <av pid="1002" id="item2" src="hahaah"/>
+   <carousel bitrate="" id="arousel" src=""/>
+  </inputs>
+  <output dest="udp://192.168.1.20:8888" bitrate="10000">
+   <item dur="5000" name="item01">
+    <pmtref pmtid="pmt"/>
+   </item>
+   <item dur="5000" name="item02">
+    <pmtref pmtid="mt"/>
+   </item>
+  </output>
+ </body>
+</tmm>

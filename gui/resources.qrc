@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/icon">
+        <file>images/run_remote.png</file>
+        <file>images/stop.png</file>
+    </qresource>
+</RCC>

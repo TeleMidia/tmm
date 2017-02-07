@@ -1,0 +1,58 @@
+<tmm>
+ <head/>
+ <body>
+  <inputs>
+   <pmt id="pmt">
+    <es refid="nsv1"/>
+    <es refid="nsa1"/>
+    <es refid="carousel"/>
+   </pmt>
+   <av pid="68" id="nsv1" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV1-4mbps.ts"/>
+   <av pid="69" id="nsa1" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV1-4mbps.ts"/>
+   <carousel bitrate="" id="carousel" src=""/>
+   <pmt id="mt">
+    <es refid="nsv2"/>
+    <es refid="nsa2"/>
+    <es refid="arousel"/>
+   </pmt>
+   <av pid="69" id="nsv2" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV2-4mbps.ts"/>
+   <av pid="68" id="nsa2" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV2-4mbps.ts"/>
+   <carousel bitrate="" id="arousel" src=""/>
+   <pmt id="t">
+    <es refid="nsv4"/>
+    <es refid="nsa4"/>
+    <es refid="nsv4a"/>
+    <es refid="nsa4a"/>
+    <es refid="nsv4b"/>
+    <es refid="nsa4b"/>
+    <es refid="nsv4c"/>
+    <es refid="nsa4c"/>
+    <es refid="nsv4d"/>
+    <es refid="nsa4d"/>
+    <es refid="rousel"/>
+   </pmt>
+   <av pid="69" id="nsv4" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV4-1mbps.ts"/>
+   <av pid="68" id="nsa4" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV4-1mbps.ts"/>
+   <av pid="69" id="nsv4a" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV4a-768kbps.ts"/>
+   <av pid="68" id="nsa4a" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV4a-768kbps.ts"/>
+   <av pid="69" id="nsv4b" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV4b-512kbps.ts"/>
+   <av pid="68" id="nsa4b" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV4b-512kbps.ts"/>
+   <av pid="68" id="nsv4c" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV4c-768kbps.ts"/>
+   <av pid="69" id="nsa4c" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV4c-768kbps.ts"/>
+   <av pid="69" id="nsv4d" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV4d-768kbps.ts"/>
+   <av pid="68" id="nsa4d" src="/media/Hitachi/tmm/media/nagasoft/NagasoftTV4d-768kbps.ts"/>
+   <carousel bitrate="1000000" id="rousel" src="./sample_carousel_1"/>
+  </inputs>
+  <output dest="udp://224.1.1.2:1234" bitrate="19000000">
+   <item dur="106773" name="item1">
+    <pmtref pmtid="pmt"/>
+   </item>
+   <item dur="300000" name="item2">
+    <pmtref pmtid="mt"/>
+   </item>
+   <item dur="3193227" name="item3">
+    <pmtref pmtid="t"/>
+   </item>
+  </output>
+ </body>
+</tmm>
