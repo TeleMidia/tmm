@@ -118,10 +118,12 @@ void Muxer::setDestination(const string& dest) {
 	if ((dest[0] >= '0') && (dest[0] <= '9')) {
 		isFileMode = false;
 	}
+#if 0 // is this correct?
 	unsigned found = dest.find("://");
 	if (found != std::string::npos) {
 		isFileMode = false;
 	}
+#endif
 }
 
 string Muxer::getDestination() {
