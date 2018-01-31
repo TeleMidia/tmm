@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<tmm projectname="Telemidia TMM sample">
+  <head>
+    <meta name="author" content="Felipe Nagato and Rafael Diniz"/>
+    <meta name="company" content="Telemidia"/>
+    <meta name="description" content="This project multiplexes 1 service."/>
+  </head>
+  <body>
+    <inputs>
+      <av id="stream1-video" src="record1.ts" pid="273"/>
+      <av id="stream1-audio" src="record2.ts" pid="274"/>
+
+      <!-- Put ginga application inside ginga_app directory -->
+      <carousel id="carousel" src="ginga_app" servicedomain="10" bitrate="128000"
+		transactionid="2" language="por" basedirectory="/" />
+
+      <ait id="ait" transmissiondelay="1000">
+	<carouselref carouselid="carousel" apptype="ginga-ncl" appname="NCLTeste"
+		     organizationid="1" applicationid="1" entrypoint="main.ncl" appcontrolcode="autostart"/>
+      </ait>
+
+      <eit id="eit1">
+        <event eventid="1" time="2013-10-07T08:23:00-03:00" dur="3600000" >
+          <shortevent name="Evento 1" text="Descricao do Evento 1..." language="por" />
+          <component streamcontent="5" componenttype="195" ctag="0" language="por" text="" />
+          <parentalrating countrycode="BRA" agerating="generalaudiences" objectivecontentdescription="" />
+        </event>
+        <event eventid="2" time="2013-10-07T09:23:00-03:00" dur="3600000" >
+          <shortevent name="Evento 2" text="Descricao do Evento 2..." language="por" />
+          <component streamcontent="5" componenttype="195" ctag="0" language="por" text="" />
+          <parentalrating countrycode="BRA" agerating="18" objectivecontentdescription="violence,sex,drugs" />
+        </event>
+      </eit>
+
+      <pmt id="pmt1" servicenumber="0" pid="1000" pcrpid="1001" name="Telemidia"
+	   servicetype="tv" eitid="eit1">
+	<es refid="stream1-video" pid="1002"/>
+	<es refid="stream1-audio" pid="1003">
+	  <aac profileandlevel="46"/>
+	  <iso639language language="por" audiotype="0"/>
+	</es>
+	<es refid="ait" pid="1300"/>
+	<es refid="carousel" pid="1900"/>
+      </pmt>
+      
+    </inputs>
+    
+    <output dest="output.ts" name="Telemidia Network" tsname="Telemidia TV" generatingstation="zyb522"
+	    usesystime="false" time="2013-10-07T17:23:00-03:00" utcoffset="-3"
+	    daylightsavingtime="true" countrycode="bra" countryregionid="rj" loop="false" vbv="1000"
+	    fu="rj" microregion="rio de janeiro"
+	    packetsize="204" stcbegin="10" usepipe="false" partialreception="true"
+	    broadcastfrequency="509" virtualchannel="1" guardinterval="1/8" transmissionmode="3"
+	    modulationlayera="qpsk" codingratelayera="2/3" numsegmentlayera="1" interleavinglayera="2"
+	    modulationlayerb="64qam" codingratelayerb="3/4" numsegmentlayerb="12" interleavinglayerb="2"
+	    modulationlayerc="" codingratelayerc="" numsegmentlayerc="0" interleavinglayerc="">
+      <item dur="90000"> <!-- 1min 30s -->
+	<pmtref pmtid="pmt1"/>
+      </item>
+    </output>
+    
+  </body>
+</tmm>
