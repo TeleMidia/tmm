@@ -3,13 +3,17 @@ This is a transport stream multiplexer provider.
 
 ## Main features
   * Multiple services
-  * TSMCC encoder
+  * DSM-CC encoder
+  * IIP and TMCC
   * UDP and file output
   * Multi-platform (Linux and Windows)
 
-## Building
+## Downloading
 
-  * TODO
+    $ git clone https://github.com/TeleMidia/tmm.git
+    $ cd tmm
+    $ git submodule init
+    $ git submodule update
 
 ### Linux
 You can compile it by entering in the tmm root directory and typing:
@@ -23,12 +27,14 @@ You can compile it by entering in the tmm root directory and typing:
 
 ## Authors and contributors
   * Felippe Nagato <fnagato@telemidia.puc-rio.br>
+  * Rafael Diniz <rafaeldiniz@telemidia.puc-rio.br>
   * Roberto Azevedo <robertogerson@telemidia.puc-rio.br>
 
 ## License
 
 TeleMídia Multiplexer
-Copyright (C) 2016 TeleMídia Lab/PUC-Rio
+Copyright (C) 2016-2018 TeleMídia Lab/PUC-Rio
+
 This program is free software: you can redistribute it and/or modify it under
 the terms of the GNU Affero General Public License as published by the Free
 Software Foundation, either version 3 of the License, or (at your option) any
