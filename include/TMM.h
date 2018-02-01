@@ -37,6 +37,8 @@ Public License along with this program. If not, see http://www.gnu.org/licenses/
 #include "si/descriptor/HierarchicalTransmission.h"
 #include "si/descriptor/DeferredAssociationTags.h"
 #include "si/descriptor/AssociationTag.h"
+#include "si/descriptor/DataComponent.h"
+#include "si/descriptor/ApplicationSignalling.h"
 #include <iostream>
 #include <string>
 #include <vector>

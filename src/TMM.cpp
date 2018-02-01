@@ -942,8 +942,12 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 	map<unsigned short, vector<ProjectInfo*>*>* pi;
 	map<unsigned short, vector<Stream*>*>* si;
 	map<unsigned short, vector<ProjectInfo*>*>::iterator itPi;
+	map<unsigned short, vector<ProjectInfo*>*>::iterator itPiAux;
 	map<unsigned short, vector<Stream*>*>::iterator itSi;
+	vector<AppInformation*>* appInfo;
+	vector<AppInformation*>::iterator itAppInfo;
 	vector<ProjectInfo*>::iterator itPrj;
+	vector<ProjectInfo*>::iterator itPrjAux;
 	vector<Stream*>::iterator itStr;
 	Stream* str;
 	map<unsigned short, vector<MpegDescriptor*>* >::iterator itEs;
@@ -956,6 +960,10 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 	HierarchicalTransmission* htdesc = NULL;
 	DeferredAssociationTags* datdesc = NULL;
 	AssociationTag* atdesc = NULL;
+	DataComponent* datacompdesc = NULL;
+	ApplicationSignalling* appsignaldesc = NULL;
+	bool foundAit;
+	PAit *ait;
 	char* descStream;
 	unsigned char descLen, ctag;
 	unsigned char audioStreamId = 0xC0, videoStreamId = 0xE0;
@@ -1074,6 +1082,61 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
 				}
 				delete atdesc;
+
+				foundAit = false;
+				itPiAux = pi->begin();
+				while (itPiAux != pi->end()) {
+					itPrjAux = itPiAux->second->begin();
+					while (itPrjAux != itPiAux->second->end()) {
+						if ((*itPrjAux)->getProjectType() == PT_AIT) {
+							ait = (PAit*)(*itPrjAux);
+							if (ait->getCarouselProj() == (*itPrj)) {
+								foundAit = true;
+								appInfo = ait->getAppInformationList();
+								if (appInfo) {
+									itAppInfo = appInfo->begin();
+									while(itAppInfo != appInfo->end()) {
+										datacompdesc = new DataComponent();
+										datacompdesc->setDataComponentId(DC_GINGA_APP_EXECUTING_ENGINE);
+										datacompdesc->setDocumentResolution((*itAppInfo)->recommendedResolution);
+										datacompdesc->setOrganizationId((*itAppInfo)->organizationId);
+										datacompdesc->setApplicationId((*itAppInfo)->applicationId);
+										datacompdesc->setCarouselId(((PCarousel*)(*itPrj))->getServiceDomain());
+										descLen = datacompdesc->getStream(&descStream);
+										if (descLen) {
+											(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+										}
+										delete datacompdesc;
+										break;
+									}
+								}
+								break;
+							}
+						}
+						++itPrjAux;
+					}
+					if (foundAit) break;
+					++itPiAux;
+				}
+				break;
+			case PT_AIT:
+				datacompdesc = new DataComponent();
+				datacompdesc->setDataComponentId(DC_GINGA_APP_INFORMATION_TABLE);
+				datacompdesc->setApplicationType(((PAit*)(*itPrj))->getTableIdExtension());
+				datacompdesc->setAITVersionNumber(((PAit*)(*itPrj))->getVersion());
+				descLen = datacompdesc->getStream(&descStream);
+				if (descLen) {
+					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+				}
+				delete datacompdesc;
+				appsignaldesc = new ApplicationSignalling();
+				appsignaldesc->setApplicationType(((PAit*)(*itPrj))->getTableIdExtension());
+				appsignaldesc->setAITVersionNumber(((PAit*)(*itPrj))->getVersion());
+				descLen = appsignaldesc->getStream(&descStream);
+				if (descLen) {
+					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+				}
+				delete appsignaldesc;
 				break;
 			}
 
