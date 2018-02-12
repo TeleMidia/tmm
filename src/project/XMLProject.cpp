@@ -383,6 +383,11 @@ int XMLProject::parseCarousel(XMLNode* m, XMLElement* f) {
 			return -4;
 		}
 		carousel->setBitrate(num);
+		if (f->QueryAttribute("version", &num) == XML_NO_ERROR) {
+			carousel->setVersion((unsigned char)num);
+		} else {
+			carousel->setVersion(0x01);
+		}
 		if (f->QueryAttribute("servicedomain", &num) != XML_NO_ERROR) {
 			cout << "carousel: attribute 'servicedomain' not found." << endl;
 			delete carousel;

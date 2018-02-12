@@ -134,6 +134,7 @@ bool Project::mountCarousel(PCarousel* pcar) {
 	path.insert(path.size(), ".sec");
 	pcar->setOutputFile(path);
 	pcar->setTempFolder(tempPath);
+	pcar->setCarouselVersion(pcar->getVersion());
 	pcar->createCarousel(path, tempPath);
 	pcar->setMounted(true);
 
