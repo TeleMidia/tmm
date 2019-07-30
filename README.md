@@ -33,7 +33,7 @@ You can compile it by entering in the tmm root directory and typing:
 ## License
 
 TeleMídia Multiplexer
-Copyright (C) 2016-2018 TeleMídia Lab/PUC-Rio
+Copyright (C) 2016-2019 TeleMídia Lab/PUC-Rio
 
 This program is free software: you can redistribute it and/or modify it under
 the terms of the GNU Affero General Public License as published by the Free
