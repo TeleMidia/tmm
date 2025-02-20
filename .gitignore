@@ -1,0 +1,5 @@
+build/
+*.xml
+!docs/*.xml
+.DS_Store
+Thumbs.db
