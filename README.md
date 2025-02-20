@@ -8,22 +8,19 @@ This is a transport stream multiplexer provider.
   * UDP and file output
   * Multi-platform (Linux and Windows)
 
-## Downloading
+## Building
 
-    $ git clone https://github.com/TeleMidia/tmm.git
-    $ cd tmm
-    $ git submodule init
-    $ git submodule update
+```
+git clone https://github.com/TeleMidia/tmm.git --recursive
+```
 
-### Linux
-You can compile it by entering in the tmm root directory and typing:
+```
+cmake -Bbuild -H.
+```
 
-    $ mkdir build && cd build
-    $ cmake ../
-    $ make
-
-### Windows
-  * TODO
+```
+make -C build
+```
 
 ## Authors and contributors
   * Felippe Nagato <fnagato@telemidia.puc-rio.br>
