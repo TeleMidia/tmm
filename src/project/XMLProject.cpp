@@ -518,6 +518,8 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 					ait->setTableIdExtension(AT_GINGA_NCL);
 				} else if (value == "ginga-j") {
 					ait->setTableIdExtension(AT_GINGA_J);
+				} else if (value == "ginga-html") {
+					ait->setTableIdExtension(0x000B);
 				} else {
 					cout << "ait: 'apptype' not recognized ("
 						 << value << ")" << endl;
