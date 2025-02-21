@@ -115,15 +115,9 @@ void Muxer::setDestination(const string& dest) {
 	destination = dest;
 	if (!dest.size()) return;
 	isFileMode = true;
-	if ((dest[0] >= '0') && (dest[0] <= '9')) {
+	if (dest.find("udp://") == 0) {
 		isFileMode = false;
 	}
-#if 0 // is this correct?
-	unsigned found = dest.find("://");
-	if (found != std::string::npos) {
-		isFileMode = false;
-	}
-#endif
 }
 
 string Muxer::getDestination() {
@@ -196,13 +190,18 @@ int Muxer::open() {
 		}
 	} else {
 		string ip, port;
-		unsigned found = destination.find("://");
-		ip.assign(destination, found+3, 25);
-		found = ip.find(":");
-		port.assign(ip, found+1, 5);
-		ip.assign(ip, 0, found);
-		int num = atol(port.c_str());
-		server = new MulticastServer(ip.c_str(), num);
+        size_t colonPos = destination.substr(6).find(":");
+
+        if (colonPos != string::npos) {
+            ip = destination.substr(6, colonPos);
+            port = destination.substr(colonPos + 7);
+        } else {
+            cout << "Muxer::open - Invalid destination format: " << destination << endl;
+            return -4;
+        }
+
+        server = new MulticastServer(ip.c_str(), atoi(port.c_str()));
+
 		if (!server->createSocket()) {
 			cout << "Muxer::open - Unable to open socket: " <<
 					destination << endl;

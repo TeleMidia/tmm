@@ -1,3 +1,4 @@
+carousel/
 build/
 *.xml
 !docs/*.xml
