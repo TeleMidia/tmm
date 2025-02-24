@@ -508,6 +508,7 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 		for (o = f->FirstChild(); o; o = o->NextSibling()) {
 			g = o->ToElement();
 			if (strcmp(o->Value(), "carouselref") == 0) {
+				int application_profile = 0;
 				unsigned int orgId, appId, appcode, rres;
 				string appname, lang, basedir, entrypoint;
 				value = LocalLibrary::getAttribute(g, "carouselid");
@@ -516,6 +517,26 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 					cout << "The id = " << value << " doesn't exists." << endl;
 					return -8;
 				}
+				value = LocalLibrary::getAttribute(g, "applicationprofile");
+				if (value.size()) {
+					if (value == "FSA_09" || value == "8001h" || value == "0001h") {
+						application_profile |= 0x0001;
+					} else if (value == "FSB_09" || value == "8002h" || value == "0002h") {
+						application_profile |= 2;
+					} else if (value == "FSC_09" || value == "8003h") {
+						application_profile |= 3;
+					} else if (value == "FSD_09" || value == "8004h") {
+						application_profile |= 4;
+					} else {
+						cout << "ait: 'applicationprofile' not recognized ("
+							<< value << ")" << endl;
+						return -6;
+					}
+					if (LocalLibrary::getAttribute(g, "applicationinteractive") == "true" || value.find("8")) {
+						application_profile |= 0x8000;
+					}
+				}
+
 				value = LocalLibrary::getAttribute(g, "apptype");
 				if (value == "ginga-ncl") {
 					ait->setTableIdExtension(AT_GINGA_NCL);
@@ -623,7 +644,8 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 					ait->setCarouselProj(proj);
 					configAit(ait, ((PCarousel*)proj)->getServiceDomain(),
 							appname, lang, basedir,
-							entrypoint, orgId, appId, appcode, rres);
+							entrypoint, orgId, appId, appcode, rres,
+							application_profile);
 					(*projectList)[ait->getId()] = ait;
 				} else {
 					delete ait;
