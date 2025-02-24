@@ -48,7 +48,7 @@ class PAit : public ProjectInfo, public Ait {
 
 		void setCarouselProj(ProjectInfo* proj);
 		ProjectInfo* getCarouselProj();
-
+		bool signaldescriptor;
 };
 
 }

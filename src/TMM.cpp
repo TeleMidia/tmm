@@ -1129,14 +1129,16 @@ int TMM::createPmt(PMTView* currentPmtView, PMTView* newPmtView, Pmt** pmt) {
 					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
 				}
 				delete datacompdesc;
-				appsignaldesc = new ApplicationSignalling();
-				appsignaldesc->setApplicationType(((PAit*)(*itPrj))->getTableIdExtension());
-				appsignaldesc->setAITVersionNumber(((PAit*)(*itPrj))->getVersion());
-				descLen = appsignaldesc->getStream(&descStream);
-				if (descLen) {
-					(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+				if (((PAit*)(*itPrj))->signaldescriptor) {
+					appsignaldesc = new ApplicationSignalling();
+					appsignaldesc->setApplicationType(((PAit*)(*itPrj))->getTableIdExtension());
+					appsignaldesc->setAITVersionNumber(((PAit*)(*itPrj))->getVersion());
+					descLen = appsignaldesc->getStream(&descStream);
+					if (descLen) {
+						(*pmt)->addEsDescriptor(itPi->first, descStream, descLen);
+					}
+					delete appsignaldesc;
 				}
-				delete appsignaldesc;
 				break;
 			}
 

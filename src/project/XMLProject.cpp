@@ -502,6 +502,9 @@ int XMLProject::parseAIT(XMLNode* m, XMLElement* f) {
 		if (f->QueryAttribute("transmissiondelay", &num) == XML_NO_ERROR) {
 			ait->setTransmissionDelay((double) num / 1000);
 		}
+		value = LocalLibrary::getAttribute(f, "signaldescriptor");
+		ait->signaldescriptor = value == "true";
+
 		for (o = f->FirstChild(); o; o = o->NextSibling()) {
 			g = o->ToElement();
 			if (strcmp(o->Value(), "carouselref") == 0) {
