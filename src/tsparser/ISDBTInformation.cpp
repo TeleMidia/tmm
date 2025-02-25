@@ -171,10 +171,10 @@ unsigned short ISDBTInformation::getTSPCounter() {
 	return (TSPCounter & 0x1FFF);
 }
 
-void ISDBTInformation::setACData(char* acData, unsigned short length) {
-	if (ACData) delete ACData;
+void ISDBTInformation::setACData(char* acDatasrc, unsigned short length) {
+	if (ACData) delete[] ACData;
 	ACData = new char[length];
-	memcpy(ACData, ACData, length);
+	memcpy(ACData, acDatasrc, length);
 	ACDataLength = length;
 }
 

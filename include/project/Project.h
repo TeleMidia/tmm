@@ -135,7 +135,9 @@ class Project {
 				const string& lang, const string& baseDir,
 				const string& initClass, unsigned int orgId,
 				unsigned short appId, unsigned int appcode,
-				unsigned char recommendedResolution);
+				unsigned char recommendedResolution,
+				int application_profile
+			);
 		int configAitService(ProjectInfo* ait, unsigned short serviceId,
 				unsigned char ctag);
 		int configSdt(vector<pmtViewInfo*>* newTimeline, ProjectInfo* sdt);
