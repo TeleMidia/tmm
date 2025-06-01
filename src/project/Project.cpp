@@ -302,7 +302,7 @@ int Project::configAit(PAit* ait, unsigned int ctag, const string& aName,
 	} else if (ait->getTableIdExtension() == AT_GINGA_J) {
 		ga = new GingaApplication(0x03);
 		gal = new GingaApplicationLocation(0x04);
-	} else if (ait->getTableIdExtension() == 0x000B) {
+	} else if (ait->getTableIdExtension() == AT_GINGA_HTML) {
 		ga = new GingaApplication(0x0E);
 		gal = new GingaApplicationLocation(0x0F);
 	}
